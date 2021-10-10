@@ -1,6 +1,6 @@
 packages:
   package/*/*.cabal
-  example/*/*.cabal
+  -- example/*/*.cabal
 
 constraints: any.doctest            ==0.17.*,
              any.hspec-discover     ==2.7.*,
