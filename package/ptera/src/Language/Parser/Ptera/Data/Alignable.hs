@@ -1,6 +1,8 @@
 module Language.Parser.Ptera.Data.Alignable (
     T,
     Alignable (..),
+    initialAlign,
+    nextAlign,
     Inst (..),
 ) where
 
@@ -9,12 +11,13 @@ import           Language.Parser.Ptera.Prelude
 
 type T = Alignable
 
-class Coercible Int i => Alignable i where
-    initialAlign :: i
-    initialAlign = coerce (0 :: Int)
+class Coercible Int i => Alignable i
 
-    nextAlign :: i -> i
-    nextAlign = coerce (succ :: Int -> Int)
+initialAlign :: Alignable i => i
+initialAlign = coerce (0 :: Int)
+
+nextAlign :: Alignable i => i -> i
+nextAlign = coerce (succ :: Int -> Int)
 
 newtype Inst = Inst Int
 
