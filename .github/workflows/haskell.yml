@@ -22,12 +22,10 @@ jobs:
         - ubuntu-latest
 
         include:
-        -
-          ghc: 8.10.7
+        - ghc: 8.10.7
           cabal: 3.4.1.0
           os: macOS-latest
-        -
-          ghc: 8.10.7
+        - ghc: 8.10.7
           cabal: 3.4.1.0
           os: windows-latest
 
@@ -36,21 +34,29 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    -
-      name: Install ghcup
+    - name: Install ghcup on windows
+      run: |
+        Set-ExecutionPolicy Bypass -Scope Process -Force;
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
+        Invoke-Command -ScriptBlock ([ScriptBlock]::Create((Invoke-WebRequest https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1 -UseBasicParsing))) -ArgumentList $false,$true,$true,$false,$false,$false,$false,"C:\"
+      if: contains(matrix.os, 'windows-')
+    - name: Add ghcup to PATH on windows
+      run: echo "/c/ghcup/bin" >> $GITHUB_PATH
+      shell: bash
+      if: contains(matrix.os, 'windows-')
+    - name: Install ghcup if not windows
       run: curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
       shell: bash
+      if: "!contains(matrix.os, 'windows-')"
 
-    -
-      name: Install GHC and cabal
+    - name: Install GHC and cabal
       run: |
         ghcup install ghc ${{ matrix.ghc }}
         ghcup set ghc ${{ matrix.ghc }}
         ghcup install cabal ${{ matrix.cabal }}
       shell: bash
 
-    -
-      name: Cache
+    - name: Cache
       uses: actions/cache@v1
       env:
         cache-name: cache-cabal
@@ -62,18 +68,15 @@ jobs:
           ${{ runner.os }}-build-
           ${{ runner.os }}-
 
-    -
-      name: Install dependencies
+    - name: Install dependencies
       run: |
         cabal update
         cabal build --only-dependencies --enable-tests --enable-benchmarks all
       shell: bash
-    -
-      name: Build
+    - name: Build
       run: cabal build --flag develop --enable-tests --enable-benchmarks all
       shell: bash
-    -
-      name: Run tests
+    - name: Run tests
       run: |
         cabal test all
         cabal sdist all
