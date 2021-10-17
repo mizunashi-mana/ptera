@@ -123,8 +123,9 @@ library
         Language.Parser.Ptera.Data.Alignable.Set
 
         Language.Parser.Ptera.Machine.PEG
-        Language.Parser.Ptera.Machine.SRB
-        Language.Parser.Ptera.Machine.SRB.Builder
+        Language.Parser.Ptera.Machine.SSRB
+        Language.Parser.Ptera.Machine.SSRB.Builder
+        Language.Parser.Ptera.Pipeline.PEG2SSRB
     other-modules:
         Language.Parser.Ptera.Prelude.Core
 

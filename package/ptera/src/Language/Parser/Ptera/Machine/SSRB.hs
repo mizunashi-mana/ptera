@@ -1,4 +1,4 @@
-module Language.Parser.Ptera.Machine.SRB where
+module Language.Parser.Ptera.Machine.SSRB where
 
 import Language.Parser.Ptera.Prelude
 
@@ -10,13 +10,13 @@ import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Array as Array
 
 
-type T = SRB
+type T = SSRB
 
-data SRB a = SRB
+data SSRB a = SSRB
     {
-        srbInitials :: EnumMap.EnumMap PEG.StartPoint StateNum,
-        srbTrans :: AlignableArray.T StateNum SRBState,
-        srbRuleAlts :: AlignableArray.T RuleAltNum (RuleAlt a)
+        initials :: EnumMap.EnumMap PEG.StartPoint StateNum,
+        states :: AlignableArray.T StateNum MState,
+        ruleAlts :: AlignableArray.T RuleAltNum (RuleAlt a)
     }
     deriving (Eq, Show)
 
@@ -24,29 +24,20 @@ newtype StateNum = StateNum Int
     deriving (Eq, Show)
     deriving Alignable.T via Alignable.Inst
 
-data SRBState = SRBState
+data MState = MState
     {
-        srbStateNum :: StateNum,
-        srbStateTrans :: IntMap.IntMap SRBTrans,
-        srbStateTransOther :: Maybe SRBTrans,
-        srbStateRuleItem :: RuleItem
+        stateNum :: StateNum,
+        stateTrans :: Trans,
+        stateRuleItem :: RuleItem
     }
     deriving (Eq, Show)
 
-data SRBTrans = SRBTrans
-    {
-        srbTransOps :: [SRBOp],
-        srbTransStateNum :: StateNum
-    }
-    deriving (Eq, Show)
-
-data SRBOp
-    = SRBOpShift
-    | SRBOpEnter PEG.Var StateNum
-    | SRBOpPushBackpoint StateNum
-    | SRBOpReduce RuleAltNum
-    | SRBOpReduceNot RuleAltNum
-    | SRBOpAccept
+data Trans
+    = TransShift Int StateNum
+    | TransEnter PEG.Var StateNum StateNum
+    | TransPushBackpoint StateNum StateNum
+    | TransReduce RuleAltNum
+    | TransReduceNot RuleAltNum
     deriving (Eq, Show)
 
 data RuleItem = RuleItem
@@ -63,12 +54,9 @@ newtype RuleAltNum = RuleAltNum Int
 data RuleAlt a = RuleAlt
     {
         ruleAltVar :: PEG.Var,
-        ruleAltSeq :: UnitSeq,
+        ruleAltSeq :: Array.Array Int PEG.Unit,
         ruleAltKind :: PEG.AltKind,
         ruleWithBackpoint :: Bool,
         ruleAltAction :: a
     }
-    deriving (Eq, Show)
-
-newtype UnitSeq = UnitSeq (Array.Array Int PEG.Unit)
     deriving (Eq, Show)

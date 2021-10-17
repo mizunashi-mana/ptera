@@ -20,7 +20,7 @@ data PEG a = PEG
     }
     deriving (Eq, Show)
 
-newtype PE a = PE [Alt a]
+newtype PE a = PE (NonEmpty (Alt a))
     deriving (Eq, Show)
 
 data Alt a = Alt
@@ -48,4 +48,5 @@ newtype Terminal = Terminal Int
 
 newtype Var = Var Int
     deriving (Eq, Show)
+    deriving Enum via Int
     deriving Alignable.T via Alignable.Inst
