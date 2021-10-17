@@ -37,21 +37,9 @@ jobs:
     - uses: actions/checkout@v2
 
     -
-      name: Install ghcup on windows
-      run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force;
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
-        Invoke-Command -ScriptBlock ([ScriptBlock]::Create((Invoke-WebRequest https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1 -UseBasicParsing))) -ArgumentList $false,$true,$true,$false,$false,$false,$false,"C:\"
-      if: contains('windows-', matrix.os)
-    -
-      name: Add ghcup to PATH
-      run: echo "/c/ghcup/bin" >> $GITHUB_PATH
-      if: contains('windows-', matrix.os)
-      shell: bash
-    -
-      name: Install ghcup if not windows
+      name: Install ghcup
       run: curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-      if: "!contains('windows-', matrix.os)"
+      shell: bash
 
     -
       name: Install GHC and cabal
