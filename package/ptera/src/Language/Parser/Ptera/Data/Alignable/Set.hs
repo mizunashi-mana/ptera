@@ -13,10 +13,11 @@ module Language.Parser.Ptera.Data.Alignable.Set (
     member,
 ) where
 
-import           Language.Parser.Ptera.Prelude hiding (empty, toList, null, length)
+import           Language.Parser.Ptera.Prelude        hiding (empty, length,
+                                                       null, toList)
 
+import qualified Data.IntSet                          as IntSet
 import qualified Language.Parser.Ptera.Data.Alignable as Alignable
-import qualified Data.IntSet                 as IntSet
 
 
 type T = Set

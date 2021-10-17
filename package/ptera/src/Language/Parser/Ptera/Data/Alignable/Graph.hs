@@ -8,10 +8,10 @@ module Language.Parser.Ptera.Data.Alignable.Graph (
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.Alignable as Alignable
+import qualified Data.Array                                 as Array
+import qualified Data.Graph                                 as DataGraph
+import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
-import qualified Data.Graph                  as DataGraph
-import qualified Data.Array as Array
 
 
 type T = Graph

@@ -1,15 +1,15 @@
 module Language.Parser.Ptera.Machine.SSRB.Builder where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Data.EnumMap.Strict as EnumMap
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
-import qualified Language.Parser.Ptera.Data.Alignable as Alignable
+import qualified Data.Array                                 as Array
+import qualified Data.EnumMap.Strict                        as EnumMap
+import qualified Data.IntMap.Strict                         as IntMap
+import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
-import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
-import qualified Data.IntMap.Strict as IntMap
-import qualified Data.Array as Array
-import qualified Language.Parser.Ptera.Machine.SSRB as SSRB
+import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
+import qualified Language.Parser.Ptera.Machine.SSRB         as SSRB
 
 
 type T a = Builder a

@@ -1,9 +1,9 @@
 module Language.Parser.Ptera.Machine.PEG where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Data.EnumMap.Strict as EnumMap
-import qualified Language.Parser.Ptera.Data.Alignable as Alignable
+import qualified Data.EnumMap.Strict                        as EnumMap
+import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 
 
@@ -16,7 +16,7 @@ newtype StartPoint = StartPoint Int
 data PEG a = PEG
     {
         pegInitials :: EnumMap.EnumMap StartPoint Var,
-        pegRules :: AlignableArray.T Var (PE a)
+        pegRules    :: AlignableArray.T Var (PE a)
     }
     deriving (Eq, Show)
 
@@ -25,9 +25,9 @@ newtype PE a = PE (NonEmpty (Alt a))
 
 data Alt a = Alt
     {
-        altKind :: AltKind,
+        altKind    :: AltKind,
         altUnitSeq :: [Unit],
-        altAction :: a
+        altAction  :: a
     }
     deriving (Eq, Show)
 

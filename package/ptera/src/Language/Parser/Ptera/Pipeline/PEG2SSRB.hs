@@ -1,13 +1,13 @@
 module Language.Parser.Ptera.Pipeline.PEG2SSRB where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
-import qualified Language.Parser.Ptera.Machine.SSRB as SSRB
-import qualified Language.Parser.Ptera.Machine.SSRB.Builder as SSRBBuilder
-import qualified Data.EnumMap.Strict as EnumMap
-import qualified Data.Array as Array
+import qualified Data.Array                                 as Array
+import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
+import qualified Language.Parser.Ptera.Machine.SSRB         as SSRB
+import qualified Language.Parser.Ptera.Machine.SSRB.Builder as SSRBBuilder
 
 peg2Ssrb :: PEG.T a -> SSRB.T a
 peg2Ssrb g = SSRBBuilder.build do
@@ -30,7 +30,7 @@ type Pipeline a = State (Context a)
 
 data Context a = Context
     {
-        ctxVarMap :: EnumMap.EnumMap PEG.Var SSRB.StateNum,
+        ctxVarMap  :: EnumMap.EnumMap PEG.Var SSRB.StateNum,
         ctxBuilder :: SSRBBuilder.BuilderContext a
     }
 

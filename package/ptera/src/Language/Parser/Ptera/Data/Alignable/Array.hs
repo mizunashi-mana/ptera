@@ -2,10 +2,10 @@ module Language.Parser.Ptera.Data.Alignable.Array where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Data.Array                  as DataArray
-import qualified Language.Parser.Ptera.Data.Alignable as Alignable
-import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
+import qualified Data.Array                               as DataArray
 import qualified Data.IntMap.Strict
+import qualified Language.Parser.Ptera.Data.Alignable     as Alignable
+import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
 
 
 type T = Array
