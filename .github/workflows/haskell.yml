@@ -13,22 +13,22 @@ jobs:
     strategy:
       matrix:
         ghc:
-        - 8.8.3
-        - 8.10.3
+        - 8.10.7
+        - 9.0.1
         cabal:
-        - 3.0.0.0
-        - 3.2.0.0
+        - 3.0.1.0
+        - 3.2.1.0
         os:
         - ubuntu-latest
 
         include:
         -
-          ghc: 8.10.3
-          cabal: 3.2.0.0
+          ghc: 8.10.7
+          cabal: 3.2.1.0
           os: macOS-latest
         -
-          ghc: 8.10.3
-          cabal: 3.2.0.0
+          ghc: 8.10.7
+          cabal: 3.2.1.0
           os: windows-latest
 
     runs-on: ${{ matrix.os }}
@@ -47,6 +47,7 @@ jobs:
       name: Add ghcup to PATH
       run: echo "/c/ghcup/bin" >> $GITHUB_PATH
       if: contains('windows-', matrix.os)
+      shell: bash
     -
       name: Install ghcup if not windows
       run: curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
@@ -58,6 +59,7 @@ jobs:
         ghcup install ghc ${{ matrix.ghc }}
         ghcup set ghc ${{ matrix.ghc }}
         ghcup install cabal ${{ matrix.cabal }}
+      shell: bash
 
     -
       name: Cache
@@ -77,11 +79,14 @@ jobs:
       run: |
         cabal update
         cabal build --only-dependencies --enable-tests --enable-benchmarks all
+      shell: bash
     -
       name: Build
       run: cabal build --flag develop --enable-tests --enable-benchmarks all
+      shell: bash
     -
       name: Run tests
       run: |
         cabal test all
         cabal sdist all
+      shell: bash
