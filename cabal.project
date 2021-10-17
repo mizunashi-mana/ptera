@@ -2,7 +2,7 @@ packages:
   package/*/*.cabal
   -- example/*/*.cabal
 
-constraints: any.doctest            ==0.17.*,
+constraints: any.doctest            ==1.*,
              any.hspec-discover     ==2.7.*,
              any.hspec              ==2.7.*,
              any.QuickCheck         ==2.14.*,
