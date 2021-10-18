@@ -4,7 +4,6 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Data.Array                                 as Array
 import qualified Data.EnumMap.Strict                        as EnumMap
-import qualified Data.IntMap.Strict                         as IntMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG

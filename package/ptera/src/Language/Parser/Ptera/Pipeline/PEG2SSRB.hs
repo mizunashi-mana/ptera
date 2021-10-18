@@ -21,9 +21,9 @@ peg2Ssrb g = SSRBBuilder.build do
             in ctxBuilder finalCtx
     where
         pipeline = do
-            forM (AlignableArray.assocs do PEG.pegRules g) \(v, r) ->
+            forM_ (AlignableArray.assocs do PEG.pegRules g) \(v, r) ->
                 pegRulePipeline v r
-            forM (EnumMap.assocs do PEG.pegInitials g) \(i, v) ->
+            forM_ (EnumMap.assocs do PEG.pegInitials g) \(i, v) ->
                 registerInitial i v
 
 type Pipeline a = State (Context a)
@@ -35,22 +35,23 @@ data Context a = Context
     }
 
 pegRulePipeline :: PEG.Var -> PEG.PE a -> Pipeline a ()
-pegRulePipeline v (PEG.PE (alt0 :| alts)) = do
-    sn0 <- getStateNumForVar v
-    go sn0 alt0 alts
+pegRulePipeline v = \case
+        PEG.PE (alt0 :| alts) -> do
+            sn0 <- getStateNumForVar v
+            go sn0 alt0 alts
     where
         go sn0 alt = \case
             [] -> do
                 let alt' = pegRuleAlt False v alt
                 rn <- liftBuilder do SSRBBuilder.addRuleAlt alt'
-                pegRuleAltPipeline v sn0 rn alt'
+                pegRuleAltPipeline sn0 rn alt'
             nalt:alts -> do
                 let alt' = pegRuleAlt True v alt
                 rn <- liftBuilder do SSRBBuilder.addRuleAlt alt'
                 sn1 <- liftBuilder SSRBBuilder.getNewStateNum
                 backSn <- liftBuilder SSRBBuilder.getNewStateNum
                 addState do backState sn0 sn1 backSn rn
-                pegRuleAltPipeline v sn1 rn alt'
+                pegRuleAltPipeline sn1 rn alt'
                 go backSn nalt alts
 
         backState fromSn toSn backSn rn = SSRB.MState
@@ -63,8 +64,8 @@ pegRulePipeline v (PEG.PE (alt0 :| alts)) = do
                 }
             }
 
-pegRuleAltPipeline :: PEG.Var -> SSRB.StateNum -> SSRB.RuleAltNum -> SSRB.RuleAlt a -> Pipeline a ()
-pegRuleAltPipeline v sn rn alt = case SSRB.ruleAltKind alt of
+pegRuleAltPipeline :: SSRB.StateNum -> SSRB.RuleAltNum -> SSRB.RuleAlt a -> Pipeline a ()
+pegRuleAltPipeline sn rn alt = case SSRB.ruleAltKind alt of
     PEG.AltNot -> goNot sn
     PEG.AltSeq -> go sn 0
     PEG.AltAnd -> go sn 0
@@ -82,10 +83,10 @@ pegRuleAltPipeline v sn rn alt = case SSRB.ruleAltKind alt of
                         sn1 <- liftBuilder SSRBBuilder.getNewStateNum
                         addState do shiftState sn0 t sn1 i
                         go sn1 do i + 1
-                    PEG.UnitNonTerminal v -> do
+                    PEG.UnitNonTerminal enterV -> do
                         sn1 <- liftBuilder SSRBBuilder.getNewStateNum
                         enterSn <- liftBuilder SSRBBuilder.getNewStateNum
-                        addState do enterState sn0 v enterSn sn1 i
+                        addState do enterState sn0 enterV enterSn sn1 i
                         go sn1 do i + 1
 
         goNot sn0 = do
@@ -107,9 +108,9 @@ pegRuleAltPipeline v sn rn alt = case SSRB.ruleAltKind alt of
                 }
             }
 
-        enterState fromSn v enterSn toSn i = SSRB.MState
+        enterState fromSn enterV enterSn toSn i = SSRB.MState
             { stateNum = fromSn
-            , stateTrans = SSRB.TransEnter v enterSn toSn
+            , stateTrans = SSRB.TransEnter enterV enterSn toSn
             , stateRuleItem = SSRB.RuleItem
                 {
                     ruleItemAltNum = rn,

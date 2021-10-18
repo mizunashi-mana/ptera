@@ -1,6 +1,6 @@
 module Language.Parser.Ptera.Data.Alignable (
     T,
-    Alignable (..),
+    Alignable,
     initialAlign,
     nextAlign,
     Inst (..),

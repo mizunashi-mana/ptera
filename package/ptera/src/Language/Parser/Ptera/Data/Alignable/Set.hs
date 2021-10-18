@@ -9,6 +9,7 @@ module Language.Parser.Ptera.Data.Alignable.Set (
     null,
     intersection,
     union,
+    difference,
     length,
     member,
 ) where
