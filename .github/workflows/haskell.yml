@@ -56,14 +56,21 @@ jobs:
         ghcup install cabal ${{ matrix.cabal }}
       shell: bash
 
+    - name: Set the cache paths on windows
+      run: |
+        echo "cabal_cache_paths=~/AppData\Roaming\cabal" >> $GITHUB_ENV
+      if: contains(matrix.os, 'windows-')
+    - name: Set the cache paths on windows
+      run: |
+        echo "cabal_cache_paths=~/.cabal" >> $GITHUB_ENV
+      if: "!contains(matrix.os, 'windows-')"
+
     - name: Cache
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       env:
-        cache-name: cache-cabal
+        cache-name: cache-cabal-v2
       with:
-        path: |
-          ~/.cabal
-          %APPDATA%\cabal
+        path: ${{ env.cabal_cache_paths }}
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-
