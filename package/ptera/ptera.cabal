@@ -121,8 +121,11 @@ library
         Language.Parser.Ptera.Data.Alignable.Graph
         Language.Parser.Ptera.Data.Alignable.Map
         Language.Parser.Ptera.Data.Alignable.Set
+        Language.Parser.Ptera.Data.Symbolic.IntSet
+        Language.Parser.Ptera.Data.Symbolic.IntMap
 
         Language.Parser.Ptera.Machine.PEG
+        Language.Parser.Ptera.Machine.LAPEG
         Language.Parser.Ptera.Machine.SSRB
         Language.Parser.Ptera.Machine.SSRB.Builder
         Language.Parser.Ptera.Pipeline.PEG2SSRB
