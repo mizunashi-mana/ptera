@@ -25,6 +25,7 @@ type T = Set
 
 newtype Set n = Set IntSet.IntSet
     deriving (Eq, Show)
+    deriving Semigroup via IntSet.IntSet
 
 empty :: Set n
 empty = coerce IntSet.empty

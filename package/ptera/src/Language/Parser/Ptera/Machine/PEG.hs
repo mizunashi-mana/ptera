@@ -9,19 +9,19 @@ import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 
 type T = PEG
 
+data PEG a = PEG
+    {
+        initials :: EnumMap.EnumMap StartPoint Var,
+        rules    :: AlignableArray.T Var (PE a)
+    }
+    deriving (Eq, Show, Functor)
+
 newtype StartPoint = StartPoint Int
     deriving (Eq, Show)
     deriving Enum via Int
 
-data PEG a = PEG
-    {
-        pegInitials :: EnumMap.EnumMap StartPoint Var,
-        pegRules    :: AlignableArray.T Var (PE a)
-    }
-    deriving (Eq, Show)
-
-newtype PE a = PE (NonEmpty (Alt a))
-    deriving (Eq, Show)
+newtype PE a = PE [Alt a]
+    deriving (Eq, Show, Functor)
 
 data Alt a = Alt
     {
@@ -29,7 +29,7 @@ data Alt a = Alt
         altUnitSeq :: [Unit],
         altAction  :: a
     }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Functor)
 
 data AltKind
     = AltSeq
@@ -42,9 +42,7 @@ data Unit
     | UnitNonTerminal Var
     deriving (Eq, Show)
 
-newtype Terminal = Terminal Int
-    deriving (Eq, Show)
-    deriving Enum via Int
+type Terminal = Int
 
 newtype Var = Var Int
     deriving (Eq, Show)

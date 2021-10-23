@@ -83,6 +83,90 @@ update f k m = case DataIntMap.lookup k do intMapStraight m of
                         intMapStraight = DataIntMap.insert k jv do intMapStraight m
                     }
 
+alter :: (Maybe a -> Maybe a) -> Key -> IntMap a -> IntMap a
+alter f k m = case DataIntMap.lookup k do intMapStraight m of
+    Just mv -> go mv
+    Nothing -> go do intMapNegative m
+    where
+        go = \case
+            Nothing -> case f Nothing of
+                Nothing -> m
+                jv@Just{} -> m
+                    {
+                        intMapStraight = DataIntMap.insert k jv do intMapStraight m
+                    }
+            jv0@Just{} -> m
+                {
+                    intMapStraight = DataIntMap.insert k
+                        do f jv0
+                        do intMapStraight m
+                }
+
+alterBulk :: (Maybe a -> Maybe a) -> IntSet.T -> IntMap a -> IntMap a
+alterBulk f ks m0 = case ks of
+    IntSet.StraightSet s -> case intMapNegative m0 of
+        Nothing -> m0
+            {
+                intMapStraight = foldl'
+                    do \m k -> DataIntMap.alter
+                        do \mmv -> case f do join mmv of
+                            Nothing   -> Nothing
+                            jv@Just{} -> Just jv
+                        k m
+                    do intMapStraight m0
+                    do DataIntSet.elems s
+            }
+        njv@Just{} -> m0
+            {
+                intMapStraight = foldl'
+                    do \m k -> DataIntMap.alter
+                        do \case
+                            Nothing -> Just do f njv
+                            Just mv -> Just do f mv
+                        k m
+                    do intMapStraight m0
+                    do DataIntSet.elems s
+            }
+    IntSet.NegativeSet s -> case intMapNegative m0 of
+        Nothing -> case f Nothing of
+            Nothing -> m0
+                {
+                    intMapStraight = DataIntMap.mapMaybeWithKey
+                        do \k mv0 -> do
+                            _ <- mv0
+                            if DataIntSet.member k s
+                                then pure mv0
+                                else Just <$> f mv0
+                        do intMapStraight m0
+                }
+            jv@Just{} -> IntMap
+                { intMapStraight = DataIntMap.mapMaybeWithKey
+                    do \k mv0 -> if DataIntSet.member k s
+                        then pure mv0
+                        else case mv0 of
+                            Nothing -> pure jv
+                            Just{}  -> pure do f mv0
+                    do intMapStraight m0
+                , intMapNegative = jv
+                }
+        njv0@Just{} -> case f njv0 of
+            Nothing -> IntMap
+                { intMapStraight = DataIntMap.mapMaybeWithKey
+                    do \k mv0 -> if DataIntSet.member k s
+                        then Just <$> mv0
+                        else Just <$> f mv0
+                    do intMapStraight m0
+                , intMapNegative = Nothing
+                }
+            njv@Just{} -> IntMap
+                { intMapStraight = DataIntMap.mapMaybeWithKey
+                    do \k mv0 -> if DataIntSet.member k s
+                        then pure mv0
+                        else pure do f mv0
+                    do intMapStraight m0
+                , intMapNegative = njv
+                }
+
 lookup :: Key -> IntMap a -> Maybe a
 lookup k m = case DataIntMap.lookup k do intMapStraight m of
     Just mv -> mv
