@@ -59,6 +59,7 @@ jobs:
     - name: Set the cache paths on windows
       run: |
         echo "cabal_cache_paths=~/AppData\Roaming\cabal" >> $GITHUB_ENV
+      shell: bash
       if: contains(matrix.os, 'windows-')
     - name: Set the cache paths on windows
       run: |
