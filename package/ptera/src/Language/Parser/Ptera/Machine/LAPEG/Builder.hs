@@ -42,8 +42,8 @@ build builder = do
 
         finalCtxM = execStateT builder initialCtx
 
-getNewVar :: Monad m => BuilderT a m LAPEG.Var
-getNewVar = do
+genNewVar :: Monad m => BuilderT a m LAPEG.Var
+genNewVar = do
     ctx <- get
     let v = ctxNextVar ctx
     put do ctx { ctxNextVar = Alignable.nextAlign v }

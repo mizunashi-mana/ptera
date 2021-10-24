@@ -4,6 +4,7 @@ module Language.Parser.Ptera.Data.Alignable.Set (
     empty,
     singleton,
     insert,
+    delete,
     fromList,
     toList,
     null,
@@ -35,6 +36,9 @@ singleton = coerce IntSet.singleton
 
 insert :: Alignable.T n => n -> Set n -> Set n
 insert = coerce IntSet.insert
+
+delete :: Alignable.T n => n -> Set n -> Set n
+delete = coerce IntSet.delete
 
 fromList :: Alignable.T n => [n] -> Set n
 fromList = coerce IntSet.fromList
