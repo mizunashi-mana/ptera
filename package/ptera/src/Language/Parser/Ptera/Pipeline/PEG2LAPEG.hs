@@ -1,16 +1,16 @@
 module Language.Parser.Ptera.Pipeline.PEG2LAPEG where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
-import qualified Language.Parser.Ptera.Machine.LAPEG as LAPEG
-import qualified Language.Parser.Ptera.Machine.LAPEG.Builder as LAPEGBuilder
+import qualified Data.EnumMap.Strict                             as EnumMap
+import qualified Language.Parser.Ptera.Data.Alignable.Array      as AlignableArray
+import qualified Language.Parser.Ptera.Data.Alignable.Map        as AlignableMap
+import qualified Language.Parser.Ptera.Data.Alignable.Set        as AlignableSet
+import qualified Language.Parser.Ptera.Data.Symbolic.IntSet      as SymbolicIntSet
+import qualified Language.Parser.Ptera.Machine.LAPEG             as LAPEG
+import qualified Language.Parser.Ptera.Machine.LAPEG.Builder     as LAPEGBuilder
 import qualified Language.Parser.Ptera.Machine.LAPEG.LAPEBuilder as LAPEBuilder
-import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
-import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
-import qualified Language.Parser.Ptera.Data.Alignable.Set as AlignableSet
-import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
-import qualified Data.EnumMap.Strict                        as EnumMap
+import qualified Language.Parser.Ptera.Machine.PEG               as PEG
 
 
 peg2LaPeg :: PEG.T a -> Except (AlignableSet.T PEG.Var) (LAPEG.T a)
@@ -51,12 +51,12 @@ type Pipeline a = ExceptT (AlignableSet.T PEG.Var) (State (Context a))
 
 data Context a = Context
     {
-        ctxBuilder :: LAPEGBuilder.Context a,
-        ctxVarMap :: AlignableMap.T PEG.Var LAPEG.Var,
-        ctxAvailables :: AlignableMap.T LAPEG.Var SymbolicIntSet.T,
-        ctxUpdates :: AlignableSet.T LAPEG.Var,
+        ctxBuilder        :: LAPEGBuilder.Context a,
+        ctxVarMap         :: AlignableMap.T PEG.Var LAPEG.Var,
+        ctxAvailables     :: AlignableMap.T LAPEG.Var SymbolicIntSet.T,
+        ctxUpdates        :: AlignableSet.T LAPEG.Var,
         ctxUpdateVarStack :: [PEG.Var],
-        ctxOriginalRules :: AlignableArray.T PEG.Var (PEG.PE a)
+        ctxOriginalRules  :: AlignableArray.T PEG.Var (PEG.PE a)
     }
 
 pegInitialPipeline :: PEG.StartPoint -> PEG.Var -> Pipeline a ()

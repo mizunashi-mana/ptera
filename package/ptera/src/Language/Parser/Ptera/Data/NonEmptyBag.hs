@@ -5,9 +5,9 @@ module Language.Parser.Ptera.Data.NonEmptyBag
         toNonEmpty,
     ) where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.List.NonEmpty            as NonEmpty
 
 
 type T = NonEmptyBag

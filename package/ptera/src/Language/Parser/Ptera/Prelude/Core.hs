@@ -26,9 +26,12 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Except hiding (liftCallCC, liftListen, liftPass)
-import           Control.Monad.Trans.Maybe hiding (liftCallCC, liftCatch, liftListen, liftPass)
-import           Control.Monad.Trans.State.Strict hiding (modify, liftCallCC, liftCatch, liftListen, liftPass)
+import           Control.Monad.Trans.Except       hiding (liftCallCC,
+                                                   liftListen, liftPass)
+import           Control.Monad.Trans.Maybe        hiding (liftCallCC, liftCatch,
+                                                   liftListen, liftPass)
+import           Control.Monad.Trans.State.Strict hiding (liftCallCC, liftCatch,
+                                                   liftListen, liftPass, modify)
 import           Data.Coerce
 import           Data.Foldable                    hiding (foldl, foldr')
 import           Data.Function                    hiding (($))

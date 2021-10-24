@@ -2,10 +2,10 @@ module Language.Parser.Ptera.Machine.LAPEG.LAPEBuilder where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
+import qualified Data.List.NonEmpty                         as NonEmpty
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
-import qualified Data.List.NonEmpty as NonEmpty
+import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 
 
 type T a = BuilderT a

@@ -1,13 +1,13 @@
 module Language.Parser.Ptera.Machine.LAPEG where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
 import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
-import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
+import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
 type T = LAPEG
@@ -22,7 +22,7 @@ data LAPEG a = LAPEG
 data LAPE a = LAPE
     {
         available :: SymbolicIntSet.T,
-        alts :: SymbolicIntMap.T (NonEmpty (Alt a))
+        alts      :: SymbolicIntMap.T (NonEmpty (Alt a))
     }
     deriving (Eq, Show, Functor)
 

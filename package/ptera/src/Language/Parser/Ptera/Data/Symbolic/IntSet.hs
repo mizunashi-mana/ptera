@@ -1,8 +1,8 @@
 module Language.Parser.Ptera.Data.Symbolic.IntSet where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Data.IntSet as DataIntSet
+import qualified Data.IntSet                   as DataIntSet
 
 
 type T = IntSet

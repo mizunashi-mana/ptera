@@ -1,9 +1,9 @@
 module Language.Parser.Ptera.Data.Symbolic.IntMap where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Data.IntMap.Strict as DataIntMap
-import qualified Data.IntSet as DataIntSet
+import qualified Data.IntMap.Strict                         as DataIntMap
+import qualified Data.IntSet                                as DataIntSet
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as IntSet
 
 

@@ -6,8 +6,8 @@ import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
-import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
 type T a = BuilderT a
@@ -17,8 +17,8 @@ type BuilderT a = StateT (Context a)
 data Context a = Context
     {
         ctxInitials :: [(PEG.StartPoint, LAPEG.Var)],
-        ctxNextVar :: LAPEG.Var,
-        ctxRules :: AlignableMap.T LAPEG.Var (LAPEG.LAPE a)
+        ctxNextVar  :: LAPEG.Var,
+        ctxRules    :: AlignableMap.T LAPEG.Var (LAPEG.LAPE a)
     }
     deriving (Eq, Show)
 
