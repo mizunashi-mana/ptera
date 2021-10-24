@@ -129,6 +129,8 @@ library
         Language.Parser.Ptera.Machine.LAPEG
         Language.Parser.Ptera.Machine.LAPEG.Builder
         Language.Parser.Ptera.Machine.LAPEG.LAPEBuilder
+        Language.Parser.Ptera.Machine.SRB
+        Language.Parser.Ptera.Machine.SRB.Builder
         Language.Parser.Ptera.Pipeline.PEG2LAPEG
     other-modules:
         Language.Parser.Ptera.Prelude.Core

@@ -1,4 +1,4 @@
-module Language.Parser.Ptera.Machine.SSRB where
+module Language.Parser.Ptera.Machine.SRB where
 
 import           Language.Parser.Ptera.Prelude
 
@@ -6,18 +6,19 @@ import qualified Data.Array                                 as Array
 import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
+import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
-type T = SSRB
+type T = SRB
 
-data SSRB a = SSRB
+data SRB a = SRB
     {
         initials :: EnumMap.EnumMap PEG.StartPoint StateNum,
         states   :: AlignableArray.T StateNum MState,
         ruleAlts :: AlignableArray.T RuleAltNum (RuleAlt a)
     }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Functor)
 
 newtype StateNum = StateNum Int
     deriving (Eq, Show)
@@ -26,17 +27,21 @@ newtype StateNum = StateNum Int
 data MState = MState
     {
         stateNum      :: StateNum,
-        stateTrans    :: Trans,
+        stateTrans    :: SymbolicIntMap.T Trans,
         stateRuleItem :: RuleItem
     }
     deriving (Eq, Show)
 
 data Trans
-    = TransShift Int StateNum
-    | TransEnter PEG.Var StateNum StateNum
-    | TransPushBackpoint StateNum StateNum
+    = TransWithOps [TransOp] StateNum
     | TransReduce RuleAltNum
     | TransReduceNot RuleAltNum
+    deriving (Eq, Show)
+
+data TransOp
+    = TransOpEnter PEG.Var StateNum
+    | TransOpPushBackpoint StateNum
+    | TransOpShift
     deriving (Eq, Show)
 
 data RuleItem = RuleItem
@@ -58,4 +63,4 @@ data RuleAlt a = RuleAlt
         ruleWithBackpoint :: Bool,
         ruleAltAction     :: a
     }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Functor)
