@@ -1,4 +1,4 @@
-module Language.Parser.Ptera.Machine.LAPEG.LAPEBuilder where
+module Language.Parser.Ptera.Machine.LAPEG.RuleBuilder where
 
 import           Language.Parser.Ptera.Prelude
 
@@ -10,33 +10,29 @@ import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 
 type T a = BuilderT a
 
-type BuilderT a = StateT (Context a)
+type BuilderT = StateT Context
 
-newtype Context a = Context
+newtype Context = Context
     {
-        ctxAlts :: SymbolicIntMap.T (NonEmpty (LAPEG.Alt a))
+        ctxAlts :: SymbolicIntMap.T (NonEmpty LAPEG.AltNum)
     }
     deriving (Eq, Show)
 
-build :: Monad m => BuilderT a m () -> m (LAPEG.LAPE a)
+build :: Monad m => BuilderT m () -> m LAPEG.Rule
 build builder = do
-    finalCtx <- finalCtxM
+    finalCtx <- execStateT builder initialCtx
     pure do
-        LAPEG.LAPE
-            { available = SymbolicIntMap.keys do ctxAlts finalCtx
-            , alts = fmap
+        LAPEG.Rule do
+            SymbolicIntMap.groupBy
                 do \alts -> NonEmpty.reverse alts
                 do ctxAlts finalCtx
-            }
     where
         initialCtx = Context
             {
                ctxAlts = SymbolicIntMap.empty
             }
 
-        finalCtxM = execStateT builder initialCtx
-
-addAlt :: Monad m => SymbolicIntSet.T -> LAPEG.Alt a -> BuilderT a m ()
+addAlt :: Monad m => SymbolicIntSet.T -> LAPEG.AltNum -> BuilderT m ()
 addAlt is alt = modify' \ctx -> ctx
     {
         ctxAlts = SymbolicIntMap.alterBulk

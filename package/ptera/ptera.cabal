@@ -128,10 +128,11 @@ library
         Language.Parser.Ptera.Machine.PEG
         Language.Parser.Ptera.Machine.LAPEG
         Language.Parser.Ptera.Machine.LAPEG.Builder
-        Language.Parser.Ptera.Machine.LAPEG.LAPEBuilder
+        Language.Parser.Ptera.Machine.LAPEG.RuleBuilder
         Language.Parser.Ptera.Machine.SRB
         Language.Parser.Ptera.Machine.SRB.Builder
         Language.Parser.Ptera.Pipeline.PEG2LAPEG
+        --Language.Parser.Ptera.Pipeline.LAPEG2SRB
     other-modules:
         Language.Parser.Ptera.Prelude.Core
 

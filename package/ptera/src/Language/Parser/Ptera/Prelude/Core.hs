@@ -13,6 +13,7 @@ module Language.Parser.Ptera.Prelude.Core (
     module Data.Functor,
     module Data.Functor.Identity,
     module Data.Functor.Compose,
+    module Data.Hashable,
     module Data.Ix,
     module Data.Kind,
     module Data.List.NonEmpty,
@@ -38,6 +39,7 @@ import           Data.Function                    hiding (($))
 import           Data.Functor
 import           Data.Functor.Compose
 import           Data.Functor.Identity
+import           Data.Hashable (Hashable)
 import           Data.Ix                          (Ix)
 import           Data.Kind                        (Type)
 import           Data.List.NonEmpty               (NonEmpty (..))

@@ -1,6 +1,6 @@
 module Language.Parser.Ptera.Data.Symbolic.IntSet where
 
-import           Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude hiding (empty)
 
 import qualified Data.IntSet                   as DataIntSet
 
@@ -14,8 +14,11 @@ data IntSet
     | NegativeSet DataIntSet.IntSet
     deriving (Eq, Show)
 
-empty :: IntSet
-empty = StraightSet DataIntSet.empty
+instance Semigroup IntSet where
+    (<>) = union
+
+instance Monoid IntSet where
+    mempty = StraightSet DataIntSet.empty
 
 full :: IntSet
 full = NegativeSet DataIntSet.empty

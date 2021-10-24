@@ -7,7 +7,8 @@ import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
-import qualified Language.Parser.Ptera.Machine.PEG          as PEG
+import qualified Language.Parser.Ptera.Machine.PEG        as PEG
+import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 
 
 type T = SRB
@@ -57,10 +58,9 @@ newtype RuleAltNum = RuleAltNum Int
 
 data RuleAlt a = RuleAlt
     {
-        ruleAltVar        :: PEG.Var,
-        ruleAltSeq        :: Array.Array Int PEG.Unit,
+        ruleAltVar        :: LAPEG.Var,
+        ruleAltSeq        :: Array.Array Int LAPEG.Unit,
         ruleAltKind       :: PEG.AltKind,
-        ruleWithBackpoint :: Bool,
         ruleAltAction     :: a
     }
     deriving (Eq, Show, Functor)

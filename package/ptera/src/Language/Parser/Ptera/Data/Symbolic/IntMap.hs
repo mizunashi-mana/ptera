@@ -5,6 +5,7 @@ import           Language.Parser.Ptera.Prelude
 import qualified Data.IntMap.Strict                         as DataIntMap
 import qualified Data.IntSet                                as DataIntSet
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as IntSet
+import qualified Data.HashMap.Strict as HashMap
 
 
 type T = IntMap
@@ -16,7 +17,7 @@ data IntMap a = IntMap
         intMapStraight :: DataIntMap.IntMap (Maybe a),
         intMapNegative :: Maybe a
     }
-    deriving (Eq, Show, Functor)
+    deriving (Eq, Show, Functor, Foldable, Traversable)
 
 empty :: IntMap a
 empty = IntMap
@@ -186,3 +187,39 @@ keys m = case intMapNegative m of
             | (k, mv) <- DataIntMap.assocs do intMapStraight m
             , case mv of { Nothing -> False; Just{} -> True }
             ]
+
+groupBy :: Eq b => Hashable b => (a -> b) -> IntMap a -> HashMap.HashMap b IntSet.T
+groupBy f m0 = case intMapNegative m0 of
+    Nothing -> foldl'
+        do \m (k, mv) -> case mv of
+            Nothing ->
+                m
+            Just v ->
+                let fv = f v in HashMap.alter
+                    do \case
+                        Just ks -> Just do IntSet.insert k ks
+                        Nothing -> Just do IntSet.singleton k
+                    fv m
+        do HashMap.empty
+        do DataIntMap.assocs do intMapStraight m0
+    Just nv -> do
+        let fnv = f nv
+        let (m1, nks1) = foldl'
+                do \(m, nks) (k, mv) -> case mv of
+                    Nothing ->
+                        (m, IntSet.delete k nks)
+                    Just v -> do
+                        let fv = f v
+                        if fv == fnv
+                            then (m, nks)
+                            else
+                                ( HashMap.alter
+                                    do \case
+                                        Just ks -> Just do IntSet.insert k ks
+                                        Nothing -> Just do IntSet.singleton k
+                                    fv m
+                                , nks
+                                )
+                do (HashMap.empty, IntSet.full)
+                do DataIntMap.assocs do intMapStraight m0
+        HashMap.insert fnv nks1 m1

@@ -10,9 +10,9 @@ import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 
 
-type T a = Builder a
+type T a = BuilderT a
 
-type Builder a = State (Context a)
+type BuilderT a = StateT (Context a)
 
 data Context a = Context
     {
@@ -24,16 +24,19 @@ data Context a = Context
     }
     deriving (Eq, Show)
 
-build :: Builder a () -> SRB.T a
-build builder = SRB.SRB
-    { initials = EnumMap.fromList do ctxInitials finalCtx
-    , states = AlignableArray.fromMap
-        do ctxNextStateNum finalCtx
-        do ctxStates finalCtx
-    , ruleAlts = AlignableArray.fromMap
-        do ctxNextRuleAltNum finalCtx
-        do ctxRuleItems finalCtx
-    }
+build :: Monad m => BuilderT a m () -> m (SRB.T a)
+build builder = do
+    finalCtx <- execStateT builder initialCtx
+    pure do
+        SRB.SRB
+            { initials = EnumMap.fromList do ctxInitials finalCtx
+            , states = AlignableArray.fromMap
+                do ctxNextStateNum finalCtx
+                do ctxStates finalCtx
+            , ruleAlts = AlignableArray.fromMap
+                do ctxNextRuleAltNum finalCtx
+                do ctxRuleItems finalCtx
+            }
     where
         initialCtx = Context
             {
@@ -44,22 +47,20 @@ build builder = SRB.SRB
                 ctxRuleItems = AlignableMap.empty
             }
 
-        finalCtx = execState builder initialCtx
-
-getNewStateNum :: Builder a SRB.StateNum
+getNewStateNum :: Monad m => BuilderT a m SRB.StateNum
 getNewStateNum = do
     ctx <- get
     let sn = ctxNextStateNum ctx
     put do ctx { ctxNextStateNum = Alignable.nextAlign sn }
     pure sn
 
-registerInitial :: PEG.StartPoint -> SRB.StateNum -> Builder a ()
+registerInitial :: Monad m => PEG.StartPoint -> SRB.StateNum -> BuilderT a m ()
 registerInitial i v = modify' \ctx -> ctx
     {
         ctxInitials = (i, v):ctxInitials ctx
     }
 
-addRuleAlt :: SRB.RuleAlt a -> Builder a SRB.RuleAltNum
+addRuleAlt :: Monad m => SRB.RuleAlt a -> BuilderT a m SRB.RuleAltNum
 addRuleAlt alt = do
     ctx <- get
     let n = ctxNextRuleAltNum ctx
@@ -70,7 +71,7 @@ addRuleAlt alt = do
             }
     pure n
 
-addState :: SRB.MState -> Builder a ()
+addState :: Monad m => SRB.MState -> BuilderT a m ()
 addState s = modify' \ctx -> ctx
     {
         ctxStates = AlignableMap.insert

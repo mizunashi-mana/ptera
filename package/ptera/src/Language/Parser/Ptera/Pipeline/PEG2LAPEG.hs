@@ -9,7 +9,7 @@ import qualified Language.Parser.Ptera.Data.Alignable.Set        as AlignableSet
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet      as SymbolicIntSet
 import qualified Language.Parser.Ptera.Machine.LAPEG             as LAPEG
 import qualified Language.Parser.Ptera.Machine.LAPEG.Builder     as LAPEGBuilder
-import qualified Language.Parser.Ptera.Machine.LAPEG.LAPEBuilder as LAPEBuilder
+import qualified Language.Parser.Ptera.Machine.LAPEG.RuleBuilder as LARuleBuilder
 import qualified Language.Parser.Ptera.Machine.PEG               as PEG
 
 
@@ -56,7 +56,7 @@ data Context a = Context
         ctxAvailables     :: AlignableMap.T LAPEG.Var SymbolicIntSet.T,
         ctxUpdates        :: AlignableSet.T LAPEG.Var,
         ctxUpdateVarStack :: [PEG.Var],
-        ctxOriginalRules  :: AlignableArray.T PEG.Var (PEG.PE a)
+        ctxOriginalRules  :: AlignableArray.T PEG.Var (PEG.Rule a)
     }
 
 pegInitialPipeline :: PEG.StartPoint -> PEG.Var -> Pipeline a ()
@@ -96,8 +96,8 @@ pegVarStackPipeline = do
                     _ <- pegVarUpdatePipeline v
                     pegVarStackPipeline
 
-pegRulePipeline :: PEG.Var -> PEG.PE a -> Pipeline a (LAPEG.Var, SymbolicIntSet.T)
-pegRulePipeline v (PEG.PE alts) = do
+pegRulePipeline :: PEG.Var -> PEG.Rule a -> Pipeline a (LAPEG.Var, SymbolicIntSet.T)
+pegRulePipeline v (PEG.Rule alts) = do
     newV <- getNewVar v
     lift do
         modify' \ctx -> ctx
@@ -105,36 +105,42 @@ pegRulePipeline v (PEG.PE alts) = do
                 ctxUpdates = AlignableSet.insert newV
                     do ctxUpdates ctx
             }
-    newPe <- LAPEBuilder.build do
+    newRule <- LARuleBuilder.build do
         forM_ alts \alt -> do
             (newAlt, is) <- lift do pegAltPipeline alt
-            LAPEBuilder.addAlt is newAlt
-    liftBuilder do LAPEGBuilder.addRule newV newPe
+            LARuleBuilder.addAlt is newAlt
+    liftBuilder do LAPEGBuilder.addRule newV newRule
+    let newAvailable = case newRule of
+            LAPEG.Rule newAlts -> fold newAlts
     lift do
         modify' \ctx -> ctx
             { ctxAvailables = AlignableMap.insert newV
-                do LAPEG.available newPe
+                do newAvailable
                 do ctxAvailables ctx
             , ctxUpdates = AlignableSet.delete newV
                 do ctxUpdates ctx
             }
-    pure (newV, LAPEG.available newPe)
+    pure (newV, newAvailable)
 
-pegAltPipeline :: PEG.Alt a -> Pipeline a (LAPEG.Alt a, SymbolicIntSet.T)
+pegAltPipeline :: PEG.Alt a -> Pipeline a (LAPEG.AltNum, SymbolicIntSet.T)
 pegAltPipeline alt = case PEG.altUnitSeq alt of
-    [] ->
-        pure (newAlt [], SymbolicIntSet.full)
+    [] -> do
+        n <- newAltNum []
+        pure (n, SymbolicIntSet.full)
     u0:us -> do
         (newU0, is) <- goUnit0 u0
         newUs <- forM us \u -> goUnit u
-        pure (newAlt do newU0:newUs, is)
+        n <- newAltNum do newU0:newUs
+        pure (n, is)
     where
-        newAlt us = LAPEG.Alt
-            {
-                altUnitSeq = us,
-                altKind = PEG.altKind alt,
-                altAction = PEG.altAction alt
-            }
+        newAltNum us = do
+            let newAlt = LAPEG.Alt
+                    {
+                        altUnitSeq = us,
+                        altKind = PEG.altKind alt,
+                        altAction = PEG.altAction alt
+                    }
+            liftBuilder do LAPEGBuilder.addAlt newAlt
 
         goUnit0 = \case
             PEG.UnitTerminal t ->

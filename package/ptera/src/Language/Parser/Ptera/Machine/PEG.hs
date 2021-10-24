@@ -12,7 +12,7 @@ type T = PEG
 data PEG a = PEG
     {
         initials :: EnumMap.EnumMap StartPoint Var,
-        rules    :: AlignableArray.T Var (PE a)
+        rules    :: AlignableArray.T Var (Rule a)
     }
     deriving (Eq, Show, Functor)
 
@@ -20,7 +20,7 @@ newtype StartPoint = StartPoint Int
     deriving (Eq, Show)
     deriving Enum via Int
 
-newtype PE a = PE [Alt a]
+newtype Rule a = Rule [Alt a]
     deriving (Eq, Show, Functor)
 
 data Alt a = Alt

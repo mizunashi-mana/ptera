@@ -17,7 +17,7 @@ import qualified Language.Parser.Ptera.Data.Alignable as Alignable
 type T = Map
 
 newtype Map n a = Map (IntMap.IntMap a)
-    deriving (Eq, Show, Functor)
+    deriving (Eq, Show, Functor, Foldable, Traversable)
 
 empty :: Map n a
 empty = Map IntMap.empty
@@ -33,3 +33,5 @@ assocs = coerce do IntMap.assocs @a
 
 toAscList :: forall n a. Alignable.T n => Map n a -> [(n, a)]
 toAscList = coerce do IntMap.toAscList @a
+
+

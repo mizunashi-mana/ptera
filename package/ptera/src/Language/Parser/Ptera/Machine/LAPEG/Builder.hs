@@ -17,17 +17,22 @@ type BuilderT a = StateT (Context a)
 data Context a = Context
     {
         ctxInitials :: [(PEG.StartPoint, LAPEG.Var)],
+        ctxNextAltNum :: LAPEG.AltNum,
+        ctxAlts :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt a),
         ctxNextVar  :: LAPEG.Var,
-        ctxRules    :: AlignableMap.T LAPEG.Var (LAPEG.LAPE a)
+        ctxRules    :: AlignableMap.T LAPEG.Var LAPEG.Rule
     }
     deriving (Eq, Show)
 
 build :: Monad m => BuilderT a m () -> m (LAPEG.T a)
 build builder = do
-    finalCtx <- finalCtxM
+    finalCtx <- execStateT builder initialCtx
     pure do
         LAPEG.LAPEG
             { initials = EnumMap.fromList do ctxInitials finalCtx
+            , alts = AlignableArray.fromMap
+                do ctxNextAltNum finalCtx
+                do ctxAlts finalCtx
             , rules = AlignableArray.fromMap
                 do ctxNextVar finalCtx
                 do ctxRules finalCtx
@@ -36,11 +41,18 @@ build builder = do
         initialCtx = Context
             {
                 ctxInitials = [],
+                ctxNextAltNum = Alignable.initialAlign,
+                ctxAlts = AlignableMap.empty,
                 ctxNextVar = Alignable.initialAlign,
                 ctxRules = AlignableMap.empty
             }
 
-        finalCtxM = execStateT builder initialCtx
+genNewAltNum :: Monad m => BuilderT a m LAPEG.AltNum
+genNewAltNum = do
+    ctx <- get
+    let n = ctxNextAltNum ctx
+    put do ctx { ctxNextAltNum = Alignable.nextAlign n }
+    pure n
 
 genNewVar :: Monad m => BuilderT a m LAPEG.Var
 genNewVar = do
@@ -55,7 +67,17 @@ registerInitial i v = modify' \ctx -> ctx
         ctxInitials = (i, v):ctxInitials ctx
     }
 
-addRule :: Monad m => LAPEG.Var -> LAPEG.LAPE a -> BuilderT a m ()
+addAlt :: Monad m => LAPEG.Alt a -> BuilderT a m LAPEG.AltNum
+addAlt alt = do
+    n <- genNewAltNum
+    modify' \ctx -> ctx
+        {
+            ctxAlts = AlignableMap.insert n alt
+                do ctxAlts ctx
+        }
+    pure n
+
+addRule :: Monad m => LAPEG.Var -> LAPEG.Rule -> BuilderT a m ()
 addRule v e = modify' \ctx -> ctx
     {
         ctxRules = AlignableMap.insert v e
