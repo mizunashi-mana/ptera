@@ -30,10 +30,10 @@ build builder = do
     pure do
         LAPEG.LAPEG
             { initials = EnumMap.fromList do ctxInitials finalCtx
-            , alts = AlignableArray.fromMap
+            , alts = AlignableArray.fromTotalMap
                 do ctxNextAltNum finalCtx
                 do ctxAlts finalCtx
-            , rules = AlignableArray.fromMap
+            , rules = AlignableArray.fromTotalMap
                 do ctxNextVar finalCtx
                 do ctxRules finalCtx
             }

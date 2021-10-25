@@ -2,7 +2,6 @@ module Language.Parser.Ptera.Machine.SRB where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Data.Array                                 as Array
 import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
@@ -17,7 +16,7 @@ data SRB a = SRB
     {
         initials :: EnumMap.EnumMap PEG.StartPoint StateNum,
         states   :: AlignableArray.T StateNum MState,
-        ruleAlts :: AlignableArray.T RuleAltNum (RuleAlt a)
+        alts :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
     }
     deriving (Eq, Show, Functor)
 
@@ -29,38 +28,25 @@ data MState = MState
     {
         stateNum      :: StateNum,
         stateTrans    :: SymbolicIntMap.T Trans,
-        stateRuleItem :: RuleItem
+        stateRuleItem :: AltItem
     }
     deriving (Eq, Show)
 
 data Trans
     = TransWithOps [TransOp] StateNum
-    | TransReduce RuleAltNum
-    | TransReduceNot RuleAltNum
+    | TransReduce LAPEG.AltNum
+    | TransReduceNot LAPEG.AltNum
     deriving (Eq, Show)
 
 data TransOp
-    = TransOpEnter PEG.Var StateNum
+    = TransOpEnter LAPEG.Var StateNum
     | TransOpPushBackpoint StateNum
     | TransOpShift
     deriving (Eq, Show)
 
-data RuleItem = RuleItem
+data AltItem = AltItem
     {
-        ruleItemAltNum :: RuleAltNum,
-        ruleItemCurPos :: Int
+        altItemAltNum :: LAPEG.AltNum,
+        altItemCurPos :: Int
     }
     deriving (Eq, Show)
-
-newtype RuleAltNum = RuleAltNum Int
-    deriving (Eq, Show)
-    deriving Alignable.T via Alignable.Inst
-
-data RuleAlt a = RuleAlt
-    {
-        ruleAltVar        :: LAPEG.Var,
-        ruleAltSeq        :: Array.Array Int LAPEG.Unit,
-        ruleAltKind       :: PEG.AltKind,
-        ruleAltAction     :: a
-    }
-    deriving (Eq, Show, Functor)

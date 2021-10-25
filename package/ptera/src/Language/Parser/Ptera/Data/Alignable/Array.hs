@@ -12,9 +12,13 @@ type T = Array
 newtype Array n a = Array (DataArray.Array Int a)
     deriving (Eq, Show, Functor, Foldable)
 
-fromMap :: Alignable.T n => n -> AlignableMap.T n a -> Array n a
-fromMap b m = Array
+fromTotalMap :: Alignable.T n => n -> AlignableMap.T n a -> Array n a
+fromTotalMap b m = Array
     do DataArray.array (0, pred do coerce b) do coerce do AlignableMap.toAscList m
+
+fromList :: forall n a. Alignable.T n => [a] -> Array n a
+fromList xs = Array
+    do DataArray.listArray (0, length xs - 1) xs
 
 mapWithIx :: Alignable.T n => (n -> a -> a) -> Array n a -> Array n a
 mapWithIx f (Array arr) = Array

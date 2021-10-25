@@ -21,7 +21,6 @@ peg2LaPeg g = LAPEGBuilder.build do
                 ctxBuilder = initialCtxBuilder,
                 ctxVarMap = AlignableMap.empty,
                 ctxAvailables = AlignableMap.empty,
-                ctxUpdates = AlignableSet.empty,
                 ctxUpdateVarStack = [],
                 ctxOriginalRules = PEG.rules g
             }
@@ -53,8 +52,7 @@ data Context a = Context
     {
         ctxBuilder        :: LAPEGBuilder.Context a,
         ctxVarMap         :: AlignableMap.T PEG.Var LAPEG.Var,
-        ctxAvailables     :: AlignableMap.T LAPEG.Var SymbolicIntSet.T,
-        ctxUpdates        :: AlignableSet.T LAPEG.Var,
+        ctxAvailables     :: AlignableMap.T LAPEG.Var (Maybe SymbolicIntSet.T),
         ctxUpdateVarStack :: [PEG.Var],
         ctxOriginalRules  :: AlignableArray.T PEG.Var (PEG.Rule a)
     }
@@ -75,7 +73,7 @@ pegVarUpdatePipeline v = do
     let pe = AlignableArray.index
             do ctxOriginalRules ctx
             do v
-    lift do put do ctx { ctxUpdates = AlignableSet.empty }
+    lift do put do ctx { ctxAvailables = AlignableMap.empty }
     r <- pegRulePipeline v pe
     pegVarStackPipeline
     pure r
@@ -102,28 +100,26 @@ pegRulePipeline v (PEG.Rule alts) = do
     lift do
         modify' \ctx -> ctx
             {
-                ctxUpdates = AlignableSet.insert newV
-                    do ctxUpdates ctx
+                ctxAvailables = AlignableMap.insert newV
+                    do Nothing
+                    do ctxAvailables ctx
             }
     newRule <- LARuleBuilder.build do
         forM_ alts \alt -> do
-            (newAlt, is) <- lift do pegAltPipeline alt
+            (newAlt, is) <- lift do pegAltPipeline newV alt
             LARuleBuilder.addAlt is newAlt
     liftBuilder do LAPEGBuilder.addRule newV newRule
-    let newAvailable = case newRule of
-            LAPEG.Rule newAlts -> fold newAlts
+    let newAvailable = LAPEG.ruleRange newRule
     lift do
         modify' \ctx -> ctx
             { ctxAvailables = AlignableMap.insert newV
-                do newAvailable
+                do Just newAvailable
                 do ctxAvailables ctx
-            , ctxUpdates = AlignableSet.delete newV
-                do ctxUpdates ctx
             }
     pure (newV, newAvailable)
 
-pegAltPipeline :: PEG.Alt a -> Pipeline a (LAPEG.AltNum, SymbolicIntSet.T)
-pegAltPipeline alt = case PEG.altUnitSeq alt of
+pegAltPipeline :: LAPEG.Var -> PEG.Alt a -> Pipeline a (LAPEG.AltNum, SymbolicIntSet.T)
+pegAltPipeline ruleV alt = case PEG.altUnitSeq alt of
     [] -> do
         n <- newAltNum []
         pure (n, SymbolicIntSet.full)
@@ -136,7 +132,8 @@ pegAltPipeline alt = case PEG.altUnitSeq alt of
         newAltNum us = do
             let newAlt = LAPEG.Alt
                     {
-                        altUnitSeq = us,
+                        altVar = ruleV,
+                        altUnitSeq = AlignableArray.fromList us,
                         altKind = PEG.altKind alt,
                         altAction = PEG.altAction alt
                     }
@@ -150,13 +147,13 @@ pegAltPipeline alt = case PEG.altUnitSeq alt of
                 case AlignableMap.lookup v do ctxVarMap ctx of
                     Nothing -> do
                         goVarUpdate v
-                    Just newV | AlignableSet.member newV do ctxUpdates ctx ->
-                        throwV v
                     Just newV -> case AlignableMap.lookup newV do ctxAvailables ctx of
-                        Just is ->
-                            pure (LAPEG.UnitNonTerminal newV, is)
                         Nothing ->
                             goVarUpdate v
+                        Just Nothing ->
+                            throwV v
+                        Just (Just is) ->
+                            pure (LAPEG.UnitNonTerminal newV, is)
 
         goVarUpdate v = do
             (newV, is) <- pegVarUpdatePipeline v
@@ -192,7 +189,9 @@ getAvailableVar v = do
         Just newV -> case AlignableMap.lookup newV do ctxAvailables ctx of
             Nothing ->
                 pure Nothing
-            Just _ ->
+            Just Nothing ->
+                pure Nothing
+            Just (Just _) ->
                 pure do Just newV
 
 pushUpdateVar :: PEG.Var -> Pipeline a ()

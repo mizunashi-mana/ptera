@@ -10,6 +10,7 @@ import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Machine.LAPEG          as LAPEG
 import qualified Language.Parser.Ptera.Machine.SRB         as SRB
 import qualified Language.Parser.Ptera.Machine.SRB.Builder as SRBBuilder
+import qualified Data.HashMap.Strict as HashMap
 
 laPeg2Srb :: LAPEG.T a -> SRB.T a
 laPeg2Srb g = undefined g
@@ -21,7 +22,8 @@ data Context a = Context
     {
         ctxBuilder :: SRBBuilder.Context a,
         ctxVarMap  :: AlignableMap.T LAPEG.Var (SymbolicIntMap.T SRB.StateNum),
-        ctxEnterVarMap :: AlignableMap.T LAPEG.Var SRB.StateNum
+        ctxStateMap :: HashMap.HashMap (LAPEG.Position, NonEmpty LAPEG.AltNum) SRB.StateNum,
+        ctxStateQueue :: [(SRB.StateNum, LAPEG.Position, NonEmpty LAPEG.AltNum)]
     }
 
 laPegRulePipeline :: LAPEG.Var -> LAPEG.LAPE a -> Pipeline a ()

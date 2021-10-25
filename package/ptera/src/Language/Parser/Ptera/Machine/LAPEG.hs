@@ -7,7 +7,6 @@ import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG
-import qualified Data.HashMap.Strict as HashMap
 
 
 type T = LAPEG
@@ -16,11 +15,15 @@ data LAPEG a = LAPEG
     {
         initials :: EnumMap.EnumMap PEG.StartPoint Var,
         alts :: AlignableArray.T AltNum (Alt a),
-        rules    :: AlignableArray.T Var Rule
+        rules :: AlignableArray.T Var Rule
     }
     deriving (Eq, Show, Functor)
 
-newtype Rule = Rule (HashMap.HashMap (NonEmpty AltNum) SymbolicIntSet.T)
+data Rule = Rule
+    {
+        ruleRange :: SymbolicIntSet.T,
+        ruleAlts :: [AltNum]
+    }
     deriving (Eq, Show)
 
 newtype AltNum = AltNum Int
@@ -30,11 +33,16 @@ newtype AltNum = AltNum Int
 
 data Alt a = Alt
     {
+        altVar     :: Var,
         altKind    :: PEG.AltKind,
-        altUnitSeq :: [Unit],
+        altUnitSeq :: AlignableArray.T Position Unit,
         altAction  :: a
     }
     deriving (Eq, Show, Functor)
+
+newtype Position = Position Int
+    deriving (Eq, Show)
+    deriving Alignable.T via Alignable.Inst
 
 newtype Var = Var Int
     deriving (Eq, Show)
