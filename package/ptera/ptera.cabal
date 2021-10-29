@@ -132,7 +132,7 @@ library
         Language.Parser.Ptera.Machine.SRB
         Language.Parser.Ptera.Machine.SRB.Builder
         Language.Parser.Ptera.Pipeline.PEG2LAPEG
-        --Language.Parser.Ptera.Pipeline.LAPEG2SRB
+        Language.Parser.Ptera.Pipeline.LAPEG2SRB
     other-modules:
         Language.Parser.Ptera.Prelude.Core
 

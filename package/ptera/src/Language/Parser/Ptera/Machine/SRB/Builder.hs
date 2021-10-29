@@ -44,8 +44,8 @@ build alts builder = do
                 ctxStates = AlignableMap.empty
             }
 
-getNewStateNum :: Monad m => BuilderT a m SRB.StateNum
-getNewStateNum = do
+genNewStateNum :: Monad m => BuilderT a m SRB.StateNum
+genNewStateNum = do
     ctx <- get
     let sn = ctxNextStateNum ctx
     put do ctx { ctxNextStateNum = Alignable.nextAlign sn }

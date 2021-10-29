@@ -28,7 +28,7 @@ data MState = MState
     {
         stateNum      :: StateNum,
         stateTrans    :: SymbolicIntMap.T Trans,
-        stateRuleItem :: AltItem
+        stateAltItems :: [AltItem]
     }
     deriving (Eq, Show)
 
@@ -39,7 +39,7 @@ data Trans
     deriving (Eq, Show)
 
 data TransOp
-    = TransOpEnter LAPEG.Var StateNum
+    = TransOpEnter LAPEG.Var (Maybe StateNum)
     | TransOpPushBackpoint StateNum
     | TransOpShift
     deriving (Eq, Show)

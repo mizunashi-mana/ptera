@@ -42,6 +42,7 @@ data Alt a = Alt
 
 newtype Position = Position Int
     deriving (Eq, Show)
+    deriving Hashable via Int
     deriving Alignable.T via Alignable.Inst
 
 newtype Var = Var Int
