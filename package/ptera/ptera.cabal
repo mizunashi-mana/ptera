@@ -118,12 +118,10 @@ library
         Language.Parser.Ptera.Prelude
         Language.Parser.Ptera.Data.Alignable
         Language.Parser.Ptera.Data.Alignable.Array
-        Language.Parser.Ptera.Data.Alignable.Graph
         Language.Parser.Ptera.Data.Alignable.Map
         Language.Parser.Ptera.Data.Alignable.Set
         Language.Parser.Ptera.Data.Symbolic.IntSet
         Language.Parser.Ptera.Data.Symbolic.IntMap
-        Language.Parser.Ptera.Data.NonEmptyBag
 
         Language.Parser.Ptera.Machine.PEG
         Language.Parser.Ptera.Machine.LAPEG

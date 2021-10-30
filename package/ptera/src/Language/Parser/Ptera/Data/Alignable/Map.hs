@@ -33,5 +33,3 @@ assocs = coerce do IntMap.assocs @a
 
 toAscList :: forall n a. Alignable.T n => Map n a -> [(n, a)]
 toAscList = coerce do IntMap.toAscList @a
-
-

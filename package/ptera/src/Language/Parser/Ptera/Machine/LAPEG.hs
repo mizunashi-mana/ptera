@@ -52,4 +52,5 @@ newtype Var = Var Int
 data Unit
     = UnitTerminal PEG.Terminal
     | UnitNonTerminal Var
+    | UnitNot
     deriving (Eq, Show)

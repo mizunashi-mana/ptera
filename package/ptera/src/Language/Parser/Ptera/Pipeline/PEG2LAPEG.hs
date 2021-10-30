@@ -70,7 +70,7 @@ pegInitialPipeline s v = do
 pegVarUpdatePipeline :: PEG.Var -> Pipeline a (LAPEG.Var, SymbolicIntSet.T)
 pegVarUpdatePipeline v = do
     ctx <- lift get
-    let pe = AlignableArray.index
+    let pe = AlignableArray.forceIndex
             do ctxOriginalRules ctx
             do v
     lift do put do ctx { ctxAvailables = AlignableMap.empty }
@@ -119,16 +119,30 @@ pegRulePipeline v (PEG.Rule alts) = do
     pure (newV, newAvailable)
 
 pegAltPipeline :: LAPEG.Var -> PEG.Alt a -> Pipeline a (LAPEG.AltNum, SymbolicIntSet.T)
-pegAltPipeline ruleV alt = case PEG.altUnitSeq alt of
-    [] -> do
-        n <- newAltNum []
-        pure (n, SymbolicIntSet.full)
-    u0:us -> do
-        (newU0, is) <- goUnit0 u0
-        newUs <- forM us \u -> goUnit u
-        n <- newAltNum do newU0:newUs
-        pure (n, is)
+pegAltPipeline ruleV alt = case PEG.altKind alt of
+        PEG.AltSeq -> goStraight
+        PEG.AltNot -> goNegative
+        PEG.AltAnd -> goStraight
     where
+        goStraight = case PEG.altUnitSeq alt of
+            [] -> do
+                n <- newAltNum []
+                pure (n, SymbolicIntSet.full)
+            u0:us -> do
+                (newU0, is) <- goUnit0 u0
+                newUs <- forM us \u -> goUnit u
+                n <- newAltNum do newU0:newUs
+                pure (n, is)
+
+        goNegative = case PEG.altUnitSeq alt of
+            [] -> do
+                n <- newAltNum [LAPEG.UnitNot]
+                pure (n, mempty)
+            us@(_:_) -> do
+                newUs <- forM us \u -> goUnit u
+                n <- newAltNum do LAPEG.UnitNot:newUs
+                pure (n, SymbolicIntSet.full)
+
         newAltNum us = do
             let newAlt = LAPEG.Alt
                     {

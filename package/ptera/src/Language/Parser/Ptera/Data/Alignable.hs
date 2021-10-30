@@ -3,6 +3,7 @@ module Language.Parser.Ptera.Data.Alignable (
     Alignable,
     initialAlign,
     nextAlign,
+    numIncrements,
     Inst (..),
 ) where
 
@@ -18,6 +19,9 @@ initialAlign = coerce (0 :: Int)
 
 nextAlign :: Alignable i => i -> i
 nextAlign = coerce (succ :: Int -> Int)
+
+numIncrements :: Alignable i => i -> Int
+numIncrements = coerce
 
 newtype Inst = Inst Int
 

@@ -26,8 +26,13 @@ mapWithIx f (Array arr) = Array
         do DataArray.bounds arr
         do [ f (coerce i) x | (i, x) <- DataArray.assocs arr ]
 
-index :: forall n a. Alignable.T n => Array n a -> n -> a
-index = coerce do (DataArray.!) @Int @a
+index :: forall n a. Alignable.T n => Array n a -> n -> Maybe a
+index arr i = case Alignable.numIncrements i < length arr of
+    False -> Nothing
+    True  -> Just do forceIndex arr i
+
+forceIndex :: forall n a. Alignable.T n => Array n a -> n -> a
+forceIndex = coerce do (DataArray.!) @Int @a
 
 assocs :: forall n a. Alignable.T n => Array n a -> [(n, a)]
 assocs = coerce do DataArray.assocs @Int @a

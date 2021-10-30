@@ -47,6 +47,6 @@ data TransOp
 data AltItem = AltItem
     {
         altItemAltNum :: LAPEG.AltNum,
-        altItemCurPos :: Int
+        altItemCurPos :: LAPEG.Position
     }
     deriving (Eq, Show)
