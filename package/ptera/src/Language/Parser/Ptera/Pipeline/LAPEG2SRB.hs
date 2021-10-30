@@ -6,6 +6,7 @@ import qualified Language.Parser.Ptera.Data.Alignable as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
 import qualified Data.EnumMap.Strict as EnumMap
+import qualified Data.List.NonEmpty as NonEmpty
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG
@@ -192,36 +193,132 @@ laPegTransPipeline p0 alts0 = do
                         backOp:ops
             case altItemsForTransOp altItems of
                 AltItemsOpShift -> do
-                    sn <- getStateForAltItems p1 do altItemsForTransAlts altItems
+                    let alts = NonEmpty.reverse do altItemsForTransRevAlts altItems
+                    sn <- getStateForAltItems p1 alts
                     pure do
                         SRB.TransWithOps
                             do withBackOp [SRB.TransOpShift]
                             do sn
                 AltItemsOpEnter v enterSn -> do
-                    sn <- getStateForAltItems p1 do altItemsForTransAlts altItems
+                    let alts = NonEmpty.reverse do altItemsForTransRevAlts altItems
+                    sn <- getStateForAltItems p1 alts
                     pure do
                         SRB.TransWithOps
                             do withBackOp [SRB.TransOpEnter v do Just sn]
                             do enterSn
-                AltItemsOpNot -> case altItemsForTransAlts altItems of
-                    altn :| _ -> do
-                        sn <- getStateForAltItems p1 do altItemsForTransAlts altItems
-                        notSn <- getStateForReduceNot p0 altn
-                        pure do
-                            SRB.TransWithOps
-                                do withBackOp [SRB.TransOpPushBackpoint notSn]
-                                do sn
-                AltItemsOpReduce -> case altItemsForTransAlts altItems of
-                    altn :| _ ->
-                        pure do SRB.TransReduce altn
+                AltItemsOpNot -> do
+                    let alts = NonEmpty.reverse do altItemsForTransRevAlts altItems
+                    sn <- getStateForAltItems p1 alts
+                    notSn <- getStateForReduceNot p0 do NonEmpty.head alts
+                    pure do
+                        SRB.TransWithOps
+                            do withBackOp [SRB.TransOpPushBackpoint notSn]
+                            do sn
+                AltItemsOpReduce -> do
+                    let altn = NonEmpty.last do altItemsForTransRevAlts altItems
+                    pure do SRB.TransReduce altn
 
 genAltMapForTrans :: LAPEG.Position -> NonEmpty LAPEG.AltNum -> Pipeline a (SymbolicIntMap.T AltItemsForTrans)
-genAltMapForTrans = undefined
+genAltMapForTrans p alts0 = go SymbolicIntMap.empty alts0 where
+    go m0 (alt :| rest) = getUnitForAltItem p alt >>= \case
+        Nothing -> do
+            let m1 = SymbolicIntMap.alterBulk
+                    do \case
+                        e@(Just altItems) | hasRest altItems ->
+                            e
+                        Just altItems -> Just do
+                            altItems
+                                {
+                                    altItemsForTransRest = alt:rest
+                                }
+                        Nothing -> Just do
+                            AltMapForTrans
+                                { altItemsForTransOp = AltItemsOpReduce
+                                , altItemsForTransRevAlts = pure alt
+                                , altItemsForTransRest = []
+                                }
+                    do SymbolicIntSet.full
+                    do m0
+            pure m1
+        Just (LAPEG.UnitTerminal t) -> do
+            let m1 = SymbolicIntMap.alter
+                    do \case
+                        e@(Just altItems) | hasRest altItems ->
+                            e
+                        Just altItems -> case altItemsForTransOp altItems of
+                            AltItemsOpShift -> Just do
+                                altItems
+                                    {
+                                        altItemsForTransRevAlts = NonEmpty.cons alt
+                                            do altItemsForTransRevAlts altItems
+                                    }
+                            _ -> Just do
+                                altItems
+                                    {
+                                        altItemsForTransRest = alt:rest
+                                    }
+                        Nothing -> Just do
+                            AltMapForTrans
+                                { altItemsForTransOp = AltItemsOpShift
+                                , altItemsForTransRevAlts = pure alt
+                                , altItemsForTransRest = []
+                                }
+                    do t
+                    do m0
+            pure m1
+        Just (LAPEG.UnitNonTerminal v) -> do
+            (_, vm) <- laPegVarPipeline v
+            let m1 = SymbolicIntMap.merge
+                    do \altItems sn -> case altItemsForTransOp altItems of
+                        _ | hasRest altItems ->
+                            Just altItems
+                        AltItemsOpEnter v' sn' | v == v' && sn == sn' -> Just do
+                            altItems
+                                {
+                                    altItemsForTransRevAlts = NonEmpty.cons alt
+                                        do altItemsForTransRevAlts altItems
+                                }
+                        _ -> Just do
+                            altItems
+                                {
+                                    altItemsForTransRest = alt:rest
+                                }
+                    do \altItems -> Just altItems
+                    do \sn -> Just do
+                        AltMapForTrans
+                            { altItemsForTransOp = AltItemsOpEnter v sn
+                            , altItemsForTransRevAlts = pure alt
+                            , altItemsForTransRest = []
+                            }
+                    do m0
+                    do vm
+            pure m1
+        Just LAPEG.UnitNot -> do
+            let m1 = SymbolicIntMap.alterBulk
+                    do \case
+                        e@(Just altItems) | hasRest altItems ->
+                            e
+                        Just altItems -> Just do
+                            altItems
+                                {
+                                    altItemsForTransRest = alt:rest
+                                }
+                        Nothing -> Just do
+                            AltMapForTrans
+                                { altItemsForTransOp = AltItemsOpNot
+                                , altItemsForTransRevAlts = pure alt
+                                , altItemsForTransRest = rest
+                                }
+                    do SymbolicIntSet.full
+                    do m0
+            pure m1
+
+    hasRest altItems = not do null do altItemsForTransRest altItems
 
 data AltItemsForTrans = AltMapForTrans
     {
         altItemsForTransOp :: AltItemsOpForTrans,
-        altItemsForTransAlts :: NonEmpty LAPEG.AltNum,
+        altItemsForTransRevAlts :: NonEmpty LAPEG.AltNum,
         altItemsForTransRest :: [LAPEG.AltNum]
     }
 

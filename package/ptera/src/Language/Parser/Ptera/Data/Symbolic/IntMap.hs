@@ -188,14 +188,86 @@ keys m = case intMapNegative m of
             , case mv of { Nothing -> False; Just{} -> True }
             ]
 
+merge :: (a -> b -> Maybe c) -> (a -> Maybe c) -> (b -> Maybe c) -> IntMap a -> IntMap b -> IntMap c
+merge fab fa fb = \sma0 smb0 -> case intMapNegative sma0 of
+    Nothing -> case intMapNegative smb0 of
+        Nothing -> goMergeStraight sma0 smb0
+        Just nb0 -> case fb nb0 of
+            Nothing -> goMergeStraight sma0 smb0
+            Just nb1 -> goMergeNegative nb1 sma0 smb0
+    Just na0 -> case intMapNegative smb0 of
+        Nothing -> case fa na0 of
+            Nothing -> goMergeStraight sma0 smb0
+            Just na1 -> goMergeNegative na1 sma0 smb0
+        Just nb0 -> case fab na0 nb0 of
+            Nothing -> goMergeStraight sma0 smb0
+            Just nab1 -> goMergeNegative nab1 sma0 smb0
+    where
+        goMergeStraight sma0 smb0 = IntMap
+            { intMapStraight = DataIntMap.mergeWithKey
+                do \_ mx my -> case mx of
+                    Nothing -> case my of
+                        Nothing -> Nothing
+                        Just y  -> Just <$> fb y
+                    Just x  -> case my of
+                        Nothing -> Just <$> fa x
+                        Just y  -> Just <$> fab x y
+                do \ma -> case intMapNegative smb0 of
+                    Nothing -> DataIntMap.mapMaybe
+                        do \mx -> fmap Just do mx >>= fa
+                        do ma
+                    Just nb1 -> DataIntMap.mapMaybe
+                        do \mx -> fmap Just do mx >>= \x -> fab x nb1
+                        do ma
+                do \mb -> case intMapNegative sma0 of
+                    Nothing -> DataIntMap.mapMaybe
+                        do \my -> fmap Just do my >>= fb
+                        do mb
+                    Just na1 -> DataIntMap.mapMaybe
+                        do \my -> fmap Just do my >>= \y -> fab na1 y
+                        do mb
+                do intMapStraight sma0
+                do intMapStraight smb0
+            , intMapNegative = Nothing
+            }
+
+        goMergeNegative n1 sma0 smb0 = IntMap
+            { intMapStraight = DataIntMap.mergeWithKey
+                do \_ mx my -> case mx of
+                    Nothing -> case my of
+                        Nothing -> Just Nothing
+                        Just y  -> Just do fb y
+                    Just x  -> case my of
+                        Nothing -> Just do fa x
+                        Just y  -> Just do fab x y
+                do \ma -> case intMapNegative smb0 of
+                    Nothing -> fmap
+                        do \mx -> mx >>= fa
+                        do ma
+                    Just nb1 -> fmap
+                        do \mx -> mx >>= \x -> fab x nb1
+                        do ma
+                do \mb -> case intMapNegative sma0 of
+                    Nothing -> fmap
+                        do \my -> my >>= fb
+                        do mb
+                    Just na1 -> fmap
+                        do \my -> my >>= \y -> fab na1 y
+                        do mb
+                do intMapStraight sma0
+                do intMapStraight smb0
+            , intMapNegative = Just n1
+            }
+
 groupBy :: Eq b => Hashable b => (a -> b) -> IntMap a -> HashMap.HashMap b IntSet.T
 groupBy f m0 = case intMapNegative m0 of
     Nothing -> foldl'
         do \m (k, mv) -> case mv of
             Nothing ->
                 m
-            Just v ->
-                let fv = f v in HashMap.alter
+            Just v -> do
+                let fv = f v
+                HashMap.alter
                     do \case
                         Just ks -> Just do IntSet.insert k ks
                         Nothing -> Just do IntSet.singleton k
