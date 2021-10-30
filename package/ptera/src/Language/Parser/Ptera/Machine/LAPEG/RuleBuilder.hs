@@ -13,7 +13,7 @@ type BuilderT = StateT Context
 data Context = Context
     {
         ctxRange :: SymbolicIntSet.T,
-        ctxAlts :: [LAPEG.AltNum]
+        ctxAlts  :: [LAPEG.AltNum]
     }
     deriving (Eq, Show)
 

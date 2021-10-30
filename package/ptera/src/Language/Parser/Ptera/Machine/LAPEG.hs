@@ -14,15 +14,15 @@ type T = LAPEG
 data LAPEG a = LAPEG
     {
         initials :: EnumMap.EnumMap PEG.StartPoint Var,
-        alts :: AlignableArray.T AltNum (Alt a),
-        rules :: AlignableArray.T Var Rule
+        alts     :: AlignableArray.T AltNum (Alt a),
+        rules    :: AlignableArray.T Var Rule
     }
     deriving (Eq, Show, Functor)
 
 data Rule = Rule
     {
         ruleRange :: SymbolicIntSet.T,
-        ruleAlts :: [AltNum]
+        ruleAlts  :: [AltNum]
     }
     deriving (Eq, Show)
 

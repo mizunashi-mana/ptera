@@ -2,10 +2,10 @@ module Language.Parser.Ptera.Data.Symbolic.IntMap where
 
 import           Language.Parser.Ptera.Prelude
 
+import qualified Data.HashMap.Strict                        as HashMap
 import qualified Data.IntMap.Strict                         as DataIntMap
 import qualified Data.IntSet                                as DataIntSet
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as IntSet
-import qualified Data.HashMap.Strict as HashMap
 
 
 type T = IntMap
@@ -193,14 +193,14 @@ merge fab fa fb = \sma0 smb0 -> case intMapNegative sma0 of
     Nothing -> case intMapNegative smb0 of
         Nothing -> goMergeStraight sma0 smb0
         Just nb0 -> case fb nb0 of
-            Nothing -> goMergeStraight sma0 smb0
+            Nothing  -> goMergeStraight sma0 smb0
             Just nb1 -> goMergeNegative nb1 sma0 smb0
     Just na0 -> case intMapNegative smb0 of
         Nothing -> case fa na0 of
-            Nothing -> goMergeStraight sma0 smb0
+            Nothing  -> goMergeStraight sma0 smb0
             Just na1 -> goMergeNegative na1 sma0 smb0
         Just nb0 -> case fab na0 nb0 of
-            Nothing -> goMergeStraight sma0 smb0
+            Nothing   -> goMergeStraight sma0 smb0
             Just nab1 -> goMergeNegative nab1 sma0 smb0
     where
         goMergeStraight sma0 smb0 = IntMap

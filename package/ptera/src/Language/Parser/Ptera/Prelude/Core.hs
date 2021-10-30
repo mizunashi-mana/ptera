@@ -39,7 +39,7 @@ import           Data.Function                    hiding (($))
 import           Data.Functor
 import           Data.Functor.Compose
 import           Data.Functor.Identity
-import           Data.Hashable (Hashable)
+import           Data.Hashable                    (Hashable)
 import           Data.Ix                          (Ix)
 import           Data.Kind                        (Type)
 import           Data.List.NonEmpty               (NonEmpty (..))

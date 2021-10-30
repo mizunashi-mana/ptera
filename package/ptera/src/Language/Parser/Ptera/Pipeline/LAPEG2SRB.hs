@@ -2,18 +2,18 @@ module Language.Parser.Ptera.Pipeline.LAPEG2SRB where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.Alignable as Alignable
+import qualified Data.EnumMap.Strict                        as EnumMap
+import qualified Data.HashMap.Strict                        as HashMap
+import qualified Data.List.NonEmpty                         as NonEmpty
+import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
-import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
-import qualified Data.EnumMap.Strict as EnumMap
-import qualified Data.List.NonEmpty as NonEmpty
+import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
+import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG
-import qualified Language.Parser.Ptera.Machine.LAPEG          as LAPEG
-import qualified Language.Parser.Ptera.Machine.SRB         as SRB
-import qualified Language.Parser.Ptera.Machine.SRB.Builder as SRBBuilder
-import qualified Data.HashMap.Strict as HashMap
+import qualified Language.Parser.Ptera.Machine.SRB          as SRB
+import qualified Language.Parser.Ptera.Machine.SRB.Builder  as SRBBuilder
 
 laPeg2Srb :: LAPEG.T a -> SRB.T a
 laPeg2Srb g = runIdentity do
@@ -317,9 +317,9 @@ genAltMapForTrans p alts0 = go SymbolicIntMap.empty alts0 where
 
 data AltItemsForTrans = AltMapForTrans
     {
-        altItemsForTransOp :: AltItemsOpForTrans,
+        altItemsForTransOp      :: AltItemsOpForTrans,
         altItemsForTransRevAlts :: NonEmpty LAPEG.AltNum,
-        altItemsForTransRest :: [LAPEG.AltNum]
+        altItemsForTransRest    :: [LAPEG.AltNum]
     }
 
 data AltItemsOpForTrans

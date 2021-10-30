@@ -6,8 +6,8 @@ import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
-import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
 type T = SRB
@@ -16,7 +16,7 @@ data SRB a = SRB
     {
         initials :: EnumMap.EnumMap PEG.StartPoint StateNum,
         states   :: AlignableArray.T StateNum MState,
-        alts :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
+        alts     :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
     }
     deriving (Eq, Show, Functor)
 

@@ -16,11 +16,11 @@ type BuilderT a = StateT (Context a)
 
 data Context a = Context
     {
-        ctxInitials :: [(PEG.StartPoint, LAPEG.Var)],
+        ctxInitials   :: [(PEG.StartPoint, LAPEG.Var)],
         ctxNextAltNum :: LAPEG.AltNum,
-        ctxAlts :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt a),
-        ctxNextVar  :: LAPEG.Var,
-        ctxRules    :: AlignableMap.T LAPEG.Var LAPEG.Rule
+        ctxAlts       :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt a),
+        ctxNextVar    :: LAPEG.Var,
+        ctxRules      :: AlignableMap.T LAPEG.Var LAPEG.Rule
     }
     deriving (Eq, Show)
 
