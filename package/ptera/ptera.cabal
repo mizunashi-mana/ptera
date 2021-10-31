@@ -1,7 +1,7 @@
 cabal-version:       3.0
 build-type:          Custom
 
-name:                ptera-core
+name:                ptera
 version:             0.1.0.0
 license:             Apache-2.0 OR MPL-2.0
 license-file:        LICENSE
@@ -91,17 +91,12 @@ common general
         base                 >= 4.12.0 && < 5,
 
         -- project depends
-        transformers            >= 0.5.0 && < 0.6,
-        containers              >= 0.6.0 && < 0.7,
-        enummapset-th           >= 0.6.0 && < 0.7,
-        unordered-containers    >= 0.2.0 && < 0.3,
-        hashable                >= 1.1 && < 1.4,
-        array                   >= 0.5.4 && < 0.6,
+        ptera-core,
 
     autogen-modules:
-        Paths_ptera_core
+        Paths_ptera
     other-modules:
-        Paths_ptera_core
+        Paths_ptera
 
 custom-setup
     setup-depends:
@@ -115,28 +110,9 @@ library
     hs-source-dirs:
         src
     exposed-modules:
-        Language.Parser.Ptera.Prelude
-        Language.Parser.Ptera.Data.Alignable
-        Language.Parser.Ptera.Data.Alignable.Array
-        Language.Parser.Ptera.Data.Alignable.Map
-        Language.Parser.Ptera.Data.Alignable.Set
-        Language.Parser.Ptera.Data.Symbolic.IntSet
-        Language.Parser.Ptera.Data.Symbolic.IntMap
+        Language.Parser.Ptera.Data.HList
 
-        Language.Parser.Ptera.Syntax.Grammar
-        Language.Parser.Ptera.Syntax.SafeRule
-        Language.Parser.Ptera.Machine.PEG
-        Language.Parser.Ptera.Machine.PEG.Builder
-        Language.Parser.Ptera.Machine.LAPEG
-        Language.Parser.Ptera.Machine.LAPEG.Builder
-        Language.Parser.Ptera.Machine.LAPEG.RuleBuilder
-        Language.Parser.Ptera.Machine.SRB
-        Language.Parser.Ptera.Machine.SRB.Builder
-        Language.Parser.Ptera.Pipeline.Grammar2PEG
-        Language.Parser.Ptera.Pipeline.PEG2LAPEG
-        Language.Parser.Ptera.Pipeline.LAPEG2SRB
-    other-modules:
-        Language.Parser.Ptera.Prelude.Core
+        Language.Parser.Ptera.Syntax
 
 test-suite doctest
     import:
@@ -169,7 +145,7 @@ test-suite spec
     build-tool-depends:
         hspec-discover:hspec-discover,
     build-depends:
-        ptera-core,
+        ptera,
 
         hspec,
         QuickCheck,
