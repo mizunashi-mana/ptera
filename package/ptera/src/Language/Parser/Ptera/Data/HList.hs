@@ -4,4 +4,6 @@ type T = HList
 
 data HList us where
     HNil :: HList '[]
-    HCons :: u -> HList us -> HList (u ': us)
+    (:*) :: u -> HList us -> HList (u ': us)
+
+infixr 6 :*

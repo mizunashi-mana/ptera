@@ -10,9 +10,9 @@ module Language.Parser.Ptera.Syntax (
 
     initial,
     rule,
+    alt,
     (SyntaxGrammar.<^>),
-    (SyntaxGrammar.<^^>),
-    (SyntaxGrammar.<:>),
+    (<:>),
     eps,
     var,
     tok,
@@ -43,7 +43,16 @@ initial = SyntaxGrammar.initialT
 rule :: Enum n => n -> [Grammar s n t e (Alt n t e r)] -> Grammar s n t e (Rule n r)
 rule = SyntaxGrammar.ruleT
 
-eps :: Grammar s n t e (Expr n t e '[])
+alt :: Grammar s n t e (Expr n t e us, SemanticAction us r) -> Grammar s n t e (Alt n t e r)
+alt = SyntaxGrammar.altT
+
+(<:>) :: Grammar s n t e (Unit n t e u) -> (HList.T us2 -> r)
+    -> Grammar s n t e (Expr n t e '[u], SemanticAction us2 r)
+mu <:> act = mu SyntaxGrammar.<:> SemanticAction act
+
+infixr 5 <:>
+
+eps :: SemanticAction '[] r -> Grammar s n t e (Alt n t e r)
 eps = SyntaxGrammar.epsT
 
 var :: Grammar s n t e (Rule n r) -> Grammar s n t e (Unit n t e r)

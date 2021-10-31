@@ -71,40 +71,36 @@ ruleT v mes = do
                 }
     pure do Rule v
 
+altT :: Monad m
+    => GrammarT s n t e f m (SafeRule.Expr n t e us, f us r)
+    -> GrammarT s n t e f m (SafeRule.Alt n t e f r)
+altT malt = do
+    (e, act) <- malt
+    pure do SafeRule.Alt e act
+
 (<^>) :: Monad m
     => GrammarT s n t e f m (SafeRule.Unit n t e u)
-    -> GrammarT s n t e f m (SafeRule.Expr n t e us)
-    -> GrammarT s n t e f m (SafeRule.Expr n t e (u ': us))
+    -> GrammarT s n t e f m (SafeRule.Expr n t e us1, f us2 r)
+    -> GrammarT s n t e f m (SafeRule.Expr n t e (u ': us1), f us2 r)
 mu <^> me = do
     u <- mu
-    e <- me
-    pure do u SafeRule.:^ e
+    (e, act) <- me
+    pure (u SafeRule.:^ e, act)
 
 infixr 5 <^>
 
-(<^^>) :: Monad m
-    => GrammarT s n t e f m (SafeRule.Unit n t e u1)
-    -> GrammarT s n t e f m (SafeRule.Unit n t e u2)
-    -> GrammarT s n t e f m (SafeRule.Expr n t e '[u1, u2])
-mu1 <^^> mu2 = do
-    u1 <- mu1
-    u2 <- mu2
-    pure do u1 SafeRule.:^ u2 SafeRule.:^ SafeRule.Eps
-
-infixr 5 <^^>
-
 (<:>) :: Monad m
-    => GrammarT s n t e f m (SafeRule.Expr n t e us)
-    -> f us r
-    -> GrammarT s n t e f m (SafeRule.Alt n t e f r)
-me <:> act = do
-    e <- me
-    pure do SafeRule.Alt e act
+    => GrammarT s n t e f m (SafeRule.Unit n t e u)
+    -> f us2 r
+    -> GrammarT s n t e f m (SafeRule.Expr n t e '[u], f us2 r)
+mu <:> act = do
+    u <- mu
+    pure (u SafeRule.:^ SafeRule.Eps, act)
 
-infixr 8 <:>
+infixr 5 <:>
 
-epsT :: Monad m => GrammarT s n t e f m (SafeRule.Expr n t e '[])
-epsT = pure SafeRule.Eps
+epsT :: Monad m => f '[] r -> GrammarT s n t e f m (SafeRule.Alt n t e f r)
+epsT act = pure do SafeRule.Alt SafeRule.Eps act
 
 varT :: Monad m => GrammarT s n t e f m (Rule n r) -> GrammarT s n t e f m (SafeRule.Unit n t e r)
 varT mr = do
