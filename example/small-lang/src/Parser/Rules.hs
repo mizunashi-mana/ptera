@@ -3,7 +3,7 @@
 module Parser.Rules where
 
 import qualified Language.Parser.Ptera.Syntax as Syntax
-import Language.Parser.Ptera.Syntax (rule, alt, (<^>), (<:>), eps, var, tok)
+import Language.Parser.Ptera.Syntax (initial, rule, alt, (<^>), (<:>), var, tok)
 import Language.Parser.Ptera.Data.HList (HList (..))
 
 
@@ -46,6 +46,9 @@ data Ast
     | Value Integer
     deriving (Eq, Show)
 
+
+grammar :: Grammar ()
+grammar = initial StartExpr rExpr
 
 rExpr :: Rule Ast
 rExpr = rule NtExpr
