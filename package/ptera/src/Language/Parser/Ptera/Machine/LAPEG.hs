@@ -11,9 +11,9 @@ import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 type T = LAPEG
 
-data LAPEG a = LAPEG
+data LAPEG s a = LAPEG
     {
-        initials :: EnumMap.EnumMap PEG.StartPoint Var,
+        initials :: EnumMap.EnumMap s Var,
         alts     :: AlignableArray.T AltNum (Alt a),
         rules    :: AlignableArray.T Var Rule
     }

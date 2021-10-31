@@ -7,14 +7,13 @@ import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
-import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
 type T = SRB
 
-data SRB a = SRB
+data SRB s a = SRB
     {
-        initials :: EnumMap.EnumMap PEG.StartPoint StateNum,
+        initials :: EnumMap.EnumMap s StateNum,
         states   :: AlignableArray.T StateNum MState,
         alts     :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
     }

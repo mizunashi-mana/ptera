@@ -7,17 +7,16 @@ import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
-import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 
 
-type T a = BuilderT a
+type T s a = BuilderT s a
 
-type BuilderT a = StateT (Context a)
+type BuilderT s a = StateT (Context s a)
 
-data Context a = Context
+data Context s a = Context
     {
-        ctxInitials     :: [(PEG.StartPoint, SRB.StateNum)],
+        ctxInitials     :: EnumMap.EnumMap s SRB.StateNum,
         ctxNextStateNum :: SRB.StateNum,
         ctxStates       :: AlignableMap.T SRB.StateNum SRB.MState
     }
@@ -25,12 +24,12 @@ data Context a = Context
 
 type Alts a = AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
 
-build :: Monad m => Alts a -> BuilderT a m () -> m (SRB.T a)
+build :: Monad m => Alts a -> BuilderT s a m () -> m (SRB.T s a)
 build alts builder = do
     finalCtx <- execStateT builder initialCtx
     pure do
         SRB.SRB
-            { initials = EnumMap.fromList do ctxInitials finalCtx
+            { initials = ctxInitials finalCtx
             , states = AlignableArray.fromTotalMap
                 do ctxNextStateNum finalCtx
                 do ctxStates finalCtx
@@ -39,25 +38,25 @@ build alts builder = do
     where
         initialCtx = Context
             {
-                ctxInitials = [],
+                ctxInitials = EnumMap.empty,
                 ctxNextStateNum = Alignable.initialAlign,
                 ctxStates = AlignableMap.empty
             }
 
-genNewStateNum :: Monad m => BuilderT a m SRB.StateNum
+genNewStateNum :: Monad m => BuilderT s a m SRB.StateNum
 genNewStateNum = do
     ctx <- get
     let sn = ctxNextStateNum ctx
     put do ctx { ctxNextStateNum = Alignable.nextAlign sn }
     pure sn
 
-registerInitial :: Monad m => PEG.StartPoint -> SRB.StateNum -> BuilderT a m ()
+registerInitial :: Monad m => Enum s => s -> SRB.StateNum -> BuilderT s a m ()
 registerInitial i v = modify' \ctx -> ctx
     {
-        ctxInitials = (i, v):ctxInitials ctx
+        ctxInitials = EnumMap.insert i v do ctxInitials ctx
     }
 
-addState :: Monad m => SRB.MState -> BuilderT a m ()
+addState :: Monad m => SRB.MState -> BuilderT s a m ()
 addState s = modify' \ctx -> ctx
     {
         ctxStates = AlignableMap.insert

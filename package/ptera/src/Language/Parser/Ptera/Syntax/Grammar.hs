@@ -6,6 +6,8 @@ import qualified Data.EnumMap.Strict as EnumMap
 import qualified Language.Parser.Ptera.Syntax.SafeRule as SafeRule
 
 
+type T s n t e f = GrammarT s n t e f
+
 type GrammarT s n t e f = StateT (Context s n t e f)
 
 data Context s n t e f = Context

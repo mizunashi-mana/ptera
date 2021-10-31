@@ -13,7 +13,7 @@ import qualified Language.Parser.Ptera.Machine.LAPEG.RuleBuilder as LARuleBuilde
 import qualified Language.Parser.Ptera.Machine.PEG               as PEG
 
 
-peg2LaPeg :: PEG.T a -> Except (AlignableSet.T PEG.Var) (LAPEG.T a)
+peg2LaPeg :: Enum s => PEG.T s a -> Except (AlignableSet.T PEG.Var) (LAPEG.T s a)
 peg2LaPeg g = LAPEGBuilder.build do
     initialCtxBuilder <- get
     let initialCtx = Context
@@ -46,18 +46,18 @@ peg2LaPeg g = LAPEGBuilder.build do
                 else throwE rvs
 
 
-type Pipeline a = ExceptT (AlignableSet.T PEG.Var) (State (Context a))
+type Pipeline s a = ExceptT (AlignableSet.T PEG.Var) (State (Context s a))
 
-data Context a = Context
+data Context s a = Context
     {
-        ctxBuilder        :: LAPEGBuilder.Context a,
+        ctxBuilder        :: LAPEGBuilder.Context s a,
         ctxVarMap         :: AlignableMap.T PEG.Var LAPEG.Var,
         ctxAvailables     :: AlignableMap.T LAPEG.Var (Maybe SymbolicIntSet.T),
         ctxUpdateVarStack :: [PEG.Var],
         ctxOriginalRules  :: AlignableArray.T PEG.Var (PEG.Rule a)
     }
 
-pegInitialPipeline :: PEG.StartPoint -> PEG.Var -> Pipeline a ()
+pegInitialPipeline :: Enum s => s -> PEG.Var -> Pipeline s a ()
 pegInitialPipeline s v = do
     newV <- getAvailableVar v >>= \case
         Just x ->
@@ -67,7 +67,7 @@ pegInitialPipeline s v = do
             pure x
     liftBuilder do LAPEGBuilder.registerInitial s newV
 
-pegVarUpdatePipeline :: PEG.Var -> Pipeline a (LAPEG.Var, SymbolicIntSet.T)
+pegVarUpdatePipeline :: PEG.Var -> Pipeline s a (LAPEG.Var, SymbolicIntSet.T)
 pegVarUpdatePipeline v = do
     ctx <- lift get
     let pe = AlignableArray.forceIndex
@@ -78,7 +78,7 @@ pegVarUpdatePipeline v = do
     pegVarStackPipeline
     pure r
 
-pegVarStackPipeline :: Pipeline a ()
+pegVarStackPipeline :: Pipeline s a ()
 pegVarStackPipeline = do
     ctx <- lift get
     goVars ctx do ctxUpdateVarStack ctx
@@ -94,7 +94,7 @@ pegVarStackPipeline = do
                     _ <- pegVarUpdatePipeline v
                     pegVarStackPipeline
 
-pegRulePipeline :: PEG.Var -> PEG.Rule a -> Pipeline a (LAPEG.Var, SymbolicIntSet.T)
+pegRulePipeline :: PEG.Var -> PEG.Rule a -> Pipeline s a (LAPEG.Var, SymbolicIntSet.T)
 pegRulePipeline v (PEG.Rule alts) = do
     newV <- getNewVar v
     lift do
@@ -118,7 +118,7 @@ pegRulePipeline v (PEG.Rule alts) = do
             }
     pure (newV, newAvailable)
 
-pegAltPipeline :: LAPEG.Var -> PEG.Alt a -> Pipeline a (LAPEG.AltNum, SymbolicIntSet.T)
+pegAltPipeline :: LAPEG.Var -> PEG.Alt a -> Pipeline s a (LAPEG.AltNum, SymbolicIntSet.T)
 pegAltPipeline ruleV alt = case PEG.altKind alt of
         PEG.AltSeq -> goStraight
         PEG.AltNot -> goNegative
@@ -181,7 +181,7 @@ pegAltPipeline ruleV alt = case PEG.altKind alt of
                 newV <- getNewVar v
                 pure do LAPEG.UnitNonTerminal newV
 
-getNewVar :: PEG.Var -> Pipeline a LAPEG.Var
+getNewVar :: PEG.Var -> Pipeline s a LAPEG.Var
 getNewVar v = do
     ctx <- lift get
     case AlignableMap.lookup v do ctxVarMap ctx of
@@ -194,7 +194,7 @@ getNewVar v = do
                     ctx { ctxVarMap = AlignableMap.insert v newV do ctxVarMap ctx }
             pure newV
 
-getAvailableVar :: PEG.Var -> Pipeline a (Maybe LAPEG.Var)
+getAvailableVar :: PEG.Var -> Pipeline s a (Maybe LAPEG.Var)
 getAvailableVar v = do
     ctx <- lift get
     case AlignableMap.lookup v do ctxVarMap ctx of
@@ -208,7 +208,7 @@ getAvailableVar v = do
             Just (Just _) ->
                 pure do Just newV
 
-pushUpdateVar :: PEG.Var -> Pipeline a ()
+pushUpdateVar :: PEG.Var -> Pipeline s a ()
 pushUpdateVar v = do
     ctx <- lift get
     getAvailableVar v >>= \case
@@ -217,10 +217,10 @@ pushUpdateVar v = do
         Nothing ->
             lift do put do ctx { ctxUpdateVarStack = v:ctxUpdateVarStack ctx }
 
-throwV :: PEG.Var -> Pipeline a r
+throwV :: PEG.Var -> Pipeline s a r
 throwV v = throwE do AlignableSet.singleton v
 
-liftBuilder :: LAPEGBuilder.T a Identity r -> Pipeline a r
+liftBuilder :: LAPEGBuilder.T s a Identity r -> Pipeline s a r
 liftBuilder builder = do
     ctx <- lift get
     let (x, builderCtx) = runState builder do ctxBuilder ctx

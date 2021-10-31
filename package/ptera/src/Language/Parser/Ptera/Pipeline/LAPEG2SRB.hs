@@ -11,11 +11,10 @@ import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
-import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Machine.SRB.Builder  as SRBBuilder
 
-laPeg2Srb :: LAPEG.T a -> SRB.T a
+laPeg2Srb :: Enum s => LAPEG.T s a -> SRB.T s a
 laPeg2Srb g = runIdentity do
         SRBBuilder.build
             do LAPEG.alts g
@@ -43,11 +42,11 @@ laPeg2Srb g = runIdentity do
                 do \(s, v) -> laPegInitialPipeline s v
             laPegStateQueuePipeline
 
-type Pipeline a = State (Context a)
+type Pipeline s a = State (Context s a)
 
-data Context a = Context
+data Context s a = Context
     {
-        ctxBuilder :: SRBBuilder.Context a,
+        ctxBuilder :: SRBBuilder.Context s a,
         ctxInitialVarState :: AlignableMap.T LAPEG.Var SRB.StateNum,
         ctxReduceNotState :: AlignableMap.T LAPEG.AltNum SRB.StateNum,
         ctxVarMap  :: AlignableMap.T LAPEG.Var (SymbolicIntSet.T, SymbolicIntMap.T SRB.StateNum),
@@ -57,7 +56,7 @@ data Context a = Context
         ctxAlts :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
     }
 
-laPegInitialPipeline :: PEG.StartPoint -> LAPEG.Var -> Pipeline a ()
+laPegInitialPipeline :: Enum s => s -> LAPEG.Var -> Pipeline s a ()
 laPegInitialPipeline s v = do
     m0 <- ctxInitialVarState <$> get
     case AlignableMap.lookup v m0 of
@@ -80,7 +79,7 @@ laPegInitialPipeline s v = do
                     }
             liftBuilder do SRBBuilder.addState st
 
-laPegStateQueuePipeline :: Pipeline a ()
+laPegStateQueuePipeline :: Pipeline s a ()
 laPegStateQueuePipeline = do
     ctx <- get
     case ctxStateQueue ctx of
@@ -91,7 +90,7 @@ laPegStateQueuePipeline = do
             laPegStatePipeline sn p alts
             laPegStateQueuePipeline
 
-laPegVarPipeline :: LAPEG.Var -> Pipeline a (SymbolicIntSet.T, SymbolicIntMap.T SRB.StateNum)
+laPegVarPipeline :: LAPEG.Var -> Pipeline s a (SymbolicIntSet.T, SymbolicIntMap.T SRB.StateNum)
 laPegVarPipeline v = do
     ctx <- get
     case AlignableMap.lookup v do ctxVarMap ctx of
@@ -103,7 +102,8 @@ laPegVarPipeline v = do
                     do v
             laPegRulePipeline v r
 
-laPegRulePipeline :: LAPEG.Var -> LAPEG.Rule -> Pipeline a (SymbolicIntSet.T, SymbolicIntMap.T SRB.StateNum)
+laPegRulePipeline :: LAPEG.Var -> LAPEG.Rule
+    -> Pipeline s a (SymbolicIntSet.T, SymbolicIntMap.T SRB.StateNum)
 laPegRulePipeline v r = do
     sm <- case LAPEG.ruleAlts r of
         [] ->
@@ -118,7 +118,8 @@ laPegRulePipeline v r = do
         }
     pure ss
 
-laPegEnterStatePipeline :: NonEmpty LAPEG.AltNum -> Pipeline a (SymbolicIntMap.T SRB.StateNum)
+laPegEnterStatePipeline :: NonEmpty LAPEG.AltNum
+    -> Pipeline s a (SymbolicIntMap.T SRB.StateNum)
 laPegEnterStatePipeline = \alts -> go do revTails [] alts where
     revTails accs = \case
         alts@(_:|[]) -> alts:accs
@@ -153,7 +154,7 @@ laPegEnterStatePipeline = \alts -> go do revTails [] alts where
 
 laPegStatePipeline
     :: SRB.StateNum -> LAPEG.Position -> NonEmpty LAPEG.AltNum
-    -> Pipeline a ()
+    -> Pipeline s a ()
 laPegStatePipeline sn p alts = do
         trans <- laPegTransPipeline p alts
         let st = SRB.MState
@@ -171,7 +172,8 @@ laPegStatePipeline sn p alts = do
                 altItemCurPos = p
             }
 
-laPegTransPipeline :: LAPEG.Position -> NonEmpty LAPEG.AltNum -> Pipeline a (SymbolicIntMap.T SRB.Trans)
+laPegTransPipeline :: LAPEG.Position -> NonEmpty LAPEG.AltNum
+    -> Pipeline s a (SymbolicIntMap.T SRB.Trans)
 laPegTransPipeline p0 alts0 = do
         m <- genAltMapForTrans p0 alts0
         let p1 = Alignable.nextAlign p0
@@ -218,7 +220,8 @@ laPegTransPipeline p0 alts0 = do
                     let altn = NonEmpty.last do altItemsForTransRevAlts altItems
                     pure do SRB.TransReduce altn
 
-genAltMapForTrans :: LAPEG.Position -> NonEmpty LAPEG.AltNum -> Pipeline a (SymbolicIntMap.T AltItemsForTrans)
+genAltMapForTrans :: LAPEG.Position -> NonEmpty LAPEG.AltNum
+    -> Pipeline s a (SymbolicIntMap.T AltItemsForTrans)
 genAltMapForTrans p alts0 = go SymbolicIntMap.empty alts0 where
     go m0 (alt :| rest) = getUnitForAltItem p alt >>= \case
         Nothing -> do
@@ -329,7 +332,7 @@ data AltItemsOpForTrans
     | AltItemsOpReduce
     deriving (Eq, Show)
 
-getStateForAltItems :: LAPEG.Position -> NonEmpty LAPEG.AltNum -> Pipeline a SRB.StateNum
+getStateForAltItems :: LAPEG.Position -> NonEmpty LAPEG.AltNum -> Pipeline s a SRB.StateNum
 getStateForAltItems p alts = do
     ctx <- get
     case HashMap.lookup (p, alts) do ctxStateMap ctx of
@@ -345,7 +348,7 @@ getStateForAltItems p alts = do
                     }
             pure s
 
-getStateForReduceNot :: LAPEG.Position -> LAPEG.AltNum -> Pipeline a SRB.StateNum
+getStateForReduceNot :: LAPEG.Position -> LAPEG.AltNum -> Pipeline s a SRB.StateNum
 getStateForReduceNot p alt = do
     ctx <- get
     case AlignableMap.lookup alt do ctxReduceNotState ctx of
@@ -375,19 +378,19 @@ getStateForReduceNot p alt = do
             liftBuilder do SRBBuilder.addState st
             pure s
 
-getUnitForAltItem :: LAPEG.Position -> LAPEG.AltNum -> Pipeline a (Maybe LAPEG.Unit)
+getUnitForAltItem :: LAPEG.Position -> LAPEG.AltNum -> Pipeline s a (Maybe LAPEG.Unit)
 getUnitForAltItem p altn = do
     alt <- getAlt altn
     let us = LAPEG.altUnitSeq alt
     pure do AlignableArray.index us p
 
-getAlt :: LAPEG.AltNum -> Pipeline a (LAPEG.Alt a)
+getAlt :: LAPEG.AltNum -> Pipeline s a (LAPEG.Alt a)
 getAlt altn = do
     ctx <- get
     let alts = ctxAlts ctx
     pure do AlignableArray.forceIndex alts altn
 
-liftBuilder :: SRBBuilder.T a Identity r -> Pipeline a r
+liftBuilder :: SRBBuilder.T s a Identity r -> Pipeline s a r
 liftBuilder builder = do
     ctx <- get
     let (x, builderCtx) = runIdentity
