@@ -15,32 +15,45 @@ data Context s n t e f = Context
     }
 
 fixed :: Monad m => GrammarT s n t e f m () -> m (FixedGrammar s n t e f)
-fixed builder = execStateT builder initialCtx where
-    initialCtx = Context
-        {
-            ctxStarts = EnumMap.empty,
-            ctxRules = EnumMap.empty
-        }
+fixed builder = do
+        finalCtx <- execStateT builder initialCtx
+        pure do fromCtx finalCtx
+    where
+        initialCtx = Context
+            {
+                ctxStarts = EnumMap.empty,
+                ctxRules = EnumMap.empty
+            }
+
+        fromCtx ctx = FixedGrammar
+            {
+                grammarStarts = ctxStarts ctx,
+                grammarRules = ctxRules ctx
+            }
 
 data FixedGrammar s n t e f = FixedGrammar
     {
-        ctxStarts :: EnumMap.EnumMap s n,
-        ctxRules :: EnumMap.EnumMap n (RuleWrapper n t e f)
+        grammarStarts :: EnumMap.EnumMap s n,
+        grammarRules :: EnumMap.EnumMap n (RuleWrapper n t e f)
     }
 
 data RuleWrapper n t e f where
     RuleWrapper :: SafeRule.Rule n t e f r -> RuleWrapper n t e f
 
-initialT :: Enum s => Monad m => s -> n -> GrammarT s n t e f m ()
-initialT s v = modify' \ctx -> ctx
-    {
-        ctxStarts = EnumMap.insert s v
-            do ctxStarts ctx
-    }
+data Rule n r = Rule n
+
+initialT :: Enum s => Monad m => s -> GrammarT s n t e f m (Rule n r) -> GrammarT s n t e f m ()
+initialT s r = do
+    Rule v <- r
+    modify' \ctx -> ctx
+        {
+            ctxStarts = EnumMap.insert s v
+                do ctxStarts ctx
+        }
 
 ruleT :: Enum n => Monad m
     => n -> [GrammarT s n t e f m (SafeRule.Alt n t e f r)]
-    -> GrammarT s n t e f m (SafeRule.Unit n t e r)
+    -> GrammarT s n t e f m (Rule n r)
 ruleT v mes = do
     rules <- ctxRules <$> get
     case EnumMap.lookup v rules of
@@ -54,7 +67,7 @@ ruleT v mes = do
                     ctxRules = EnumMap.insert v r
                         do ctxRules ctx
                 }
-    pure do SafeRule.UnitVar v
+    pure do Rule v
 
 (<^>) :: Monad m
     => GrammarT s n t e f m (SafeRule.Unit n t e u)
@@ -90,6 +103,11 @@ infixr 8 <:>
 
 epsT :: Monad m => GrammarT s n t e f m (SafeRule.Expr n t e '[])
 epsT = pure SafeRule.Eps
+
+varT :: Monad m => GrammarT s n t e f m (Rule n r) -> GrammarT s n t e f m (SafeRule.Unit n t e r)
+varT mr = do
+    Rule v <- mr
+    pure do SafeRule.UnitVar v
 
 tokenT :: Monad m => t -> GrammarT s n t e f m (SafeRule.Unit n t e e)
 tokenT t = pure do SafeRule.UnitToken t
