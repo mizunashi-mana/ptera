@@ -6,7 +6,7 @@ import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
-import qualified Language.Parser.Ptera.Machine.PEG        as PEG
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
 type T s a = BuilderT s a
@@ -15,9 +15,9 @@ type BuilderT s a = StateT (Context s a)
 
 data Context s a = Context
     {
-        ctxInitials   :: EnumMap.EnumMap s PEG.Var,
-        ctxNextVar    :: PEG.Var,
-        ctxRules      :: AlignableMap.T PEG.Var (PEG.Rule a)
+        ctxInitials :: EnumMap.EnumMap s PEG.Var,
+        ctxNextVar  :: PEG.Var,
+        ctxRules    :: AlignableMap.T PEG.Var (PEG.Rule a)
     }
     deriving (Eq, Show)
 

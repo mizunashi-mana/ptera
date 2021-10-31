@@ -1,8 +1,8 @@
 module Language.Parser.Ptera.Syntax.Grammar where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Data.EnumMap.Strict as EnumMap
+import qualified Data.EnumMap.Strict                   as EnumMap
 import qualified Language.Parser.Ptera.Syntax.SafeRule as SafeRule
 
 
@@ -13,7 +13,7 @@ type GrammarT s n t e f = StateT (Context s n t e f)
 data Context s n t e f = Context
     {
         ctxStarts :: EnumMap.EnumMap s n,
-        ctxRules :: EnumMap.EnumMap n (RuleWrapper n t e f)
+        ctxRules  :: EnumMap.EnumMap n (RuleWrapper n t e f)
     }
 
 fixed :: Monad m => GrammarT s n t e f m () -> m (FixedGrammar s n t e f)
@@ -36,7 +36,7 @@ fixed builder = do
 data FixedGrammar s n t e f = FixedGrammar
     {
         grammarStarts :: EnumMap.EnumMap s n,
-        grammarRules :: EnumMap.EnumMap n (RuleWrapper n t e f)
+        grammarRules  :: EnumMap.EnumMap n (RuleWrapper n t e f)
     }
 
 data RuleWrapper n t e f where

@@ -2,11 +2,11 @@ module Language.Parser.Ptera.Pipeline.Grammar2PEG where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Syntax.Grammar as Grammar
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
+import qualified Data.EnumMap.Strict                       as EnumMap
+import qualified Language.Parser.Ptera.Machine.PEG         as PEG
 import qualified Language.Parser.Ptera.Machine.PEG.Builder as PEGBuilder
-import qualified Language.Parser.Ptera.Syntax.SafeRule as SafeRule
-import qualified Data.EnumMap.Strict as EnumMap
+import qualified Language.Parser.Ptera.Syntax.Grammar      as Grammar
+import qualified Language.Parser.Ptera.Syntax.SafeRule     as SafeRule
 
 
 grammar2Peg :: Enum s => Enum n => Enum t
@@ -35,8 +35,8 @@ type Pipeline s n f = State (Context s n f)
 
 data Context s n f = Context
     {
-        ctxBuilder        :: PEGBuilder.Context s (Action f),
-        ctxVarMap         :: EnumMap.EnumMap n PEG.Var
+        ctxBuilder :: PEGBuilder.Context s (Action f),
+        ctxVarMap  :: EnumMap.EnumMap n PEG.Var
     }
 
 grammarStartPipeline :: Enum s => Enum n => s -> n -> Pipeline s n f ()
