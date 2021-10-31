@@ -1,7 +1,7 @@
 cabal-version:       3.0
 build-type:          Custom
 
-name:                ptera
+name:                ptera-core
 version:             0.1.0.0
 license:             Apache-2.0 OR MPL-2.0
 license-file:        LICENSE
@@ -96,12 +96,12 @@ common general
         enummapset-th           >= 0.6.0 && < 0.7,
         unordered-containers    >= 0.2.0 && < 0.3,
         hashable                >= 1.1 && < 1.4,
-        array,
+        array                   >= 0.5.4 && < 0.6,
 
     autogen-modules:
-        Paths_ptera
+        Paths_ptera_core
     other-modules:
-        Paths_ptera
+        Paths_ptera_core
 
 custom-setup
     setup-depends:
