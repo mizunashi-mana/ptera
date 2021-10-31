@@ -123,6 +123,8 @@ library
         Language.Parser.Ptera.Data.Symbolic.IntSet
         Language.Parser.Ptera.Data.Symbolic.IntMap
 
+        Language.Parser.Ptera.Syntax.Grammar
+        Language.Parser.Ptera.Syntax.SafeRule
         Language.Parser.Ptera.Machine.PEG
         Language.Parser.Ptera.Machine.LAPEG
         Language.Parser.Ptera.Machine.LAPEG.Builder
