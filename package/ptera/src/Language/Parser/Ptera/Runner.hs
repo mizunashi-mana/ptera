@@ -2,9 +2,9 @@ module Language.Parser.Ptera.Runner where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Runner.Parser  as Parser
-import qualified Language.Parser.Ptera.Runner.RunT    as RunT
-import qualified Language.Parser.Ptera.Scanner as Scanner
+import qualified Language.Parser.Ptera.Runner.Parser as Parser
+import qualified Language.Parser.Ptera.Runner.RunT   as RunT
+import qualified Language.Parser.Ptera.Scanner       as Scanner
 
 type T = Parser.T
 type Scanner = Scanner.T
