@@ -6,13 +6,14 @@ import qualified Language.Parser.Ptera.Data.HList    as HList
 import qualified Language.Parser.Ptera.Machine.PEG   as PEG
 import qualified Language.Parser.Ptera.Runner.Parser as Parser
 import qualified Language.Parser.Ptera.Scanner       as Scanner
+import qualified Unsafe.Coerce                       as Unsafe
 
 
 type T s p e = RunT s p e
 
 type RunT s p e = StateT (Context s p e)
 
-runT :: forall s p e m. Scanner.T p e m => RunT s p e m Result
+runT :: forall s p e m a. Scanner.T p e m => RunT s p e m (Result a)
 runT = go where
     go = consumeIfNeeded >>= \case
         Nothing -> transByInput Parser.eosToken >>= \case
@@ -26,14 +27,15 @@ runT = go where
             CantContParse ->
                 pure ParseFail
 
-    goResult :: RunT s p e m Result
+    goResult :: RunT s p e m (Result a)
     goResult = get >>= \ctx -> case ctxItemStack ctx of
-        [x] -> pure do Parsed x
+        [x] -> pure do Parsed do Unsafe.unsafeCoerce x
         _   -> pure ParseFail
 
-data Result where
-    Parsed :: a -> Result
-    ParseFail :: Result
+data Result a
+    = Parsed a
+    | ParseFail
+    deriving (Eq, Show, Functor)
 
 data Context s p e = Context
     {

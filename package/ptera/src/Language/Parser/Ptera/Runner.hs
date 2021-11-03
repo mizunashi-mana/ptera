@@ -11,7 +11,7 @@ type Scanner = Scanner.T
 type Parser = Parser.T
 type Result = RunT.Result
 
-runParser :: Enum s => Scanner.T p e m => Parser.T s e -> s -> m Result
+runParser :: Enum s => Scanner.T p e m => Parser.T s e -> s -> m (Result a)
 runParser p s = case RunT.initialContext p s of
     Nothing ->
         pure do RunT.ParseFail
