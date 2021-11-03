@@ -10,7 +10,7 @@ import qualified Language.Parser.Ptera.Syntax.SafeRule     as SafeRule
 
 
 grammar2Peg :: Enum s => Enum n => Enum t
-    => Grammar.FixedGrammar s n t e f -> PEG.T s (Action f)
+    => Grammar.FixedGrammar s n t e f -> PEG.T s (Grammar.Action f)
 grammar2Peg g = runIdentity do PEGBuilder.build builder where
     builder = do
         initialBuilderCtx <- get
@@ -28,14 +28,11 @@ grammar2Peg g = runIdentity do PEGBuilder.build builder where
         forM_ do EnumMap.assocs do Grammar.grammarRules g
             do \(_, r) -> grammarRulePipeline r
 
-data Action f where
-    Action :: f us r -> Action f
-
 type Pipeline s n f = State (Context s n f)
 
 data Context s n f = Context
     {
-        ctxBuilder :: PEGBuilder.Context s (Action f),
+        ctxBuilder :: PEGBuilder.Context s (Grammar.Action f),
         ctxVarMap  :: EnumMap.EnumMap n PEG.Var
     }
 
@@ -53,10 +50,10 @@ grammarRulePipeline (Grammar.RuleWrapper (SafeRule.Rule v alts)) = do
     liftBuilder do PEGBuilder.addRule newV newRule
 
 grammarAltPipeline :: Enum n => Enum t
-    => SafeRule.Alt n t e f r -> Pipeline s n f (PEG.Alt (Action f))
+    => SafeRule.Alt n t e f r -> Pipeline s n f (PEG.Alt (Grammar.Action f))
 grammarAltPipeline (SafeRule.Alt e act) = do
     newUs <- grammarExprPipeline e
-    let newAct = Action act
+    let newAct = Grammar.Action act
     let newAlt = PEG.Alt
             {
                 altKind = PEG.AltSeq,
@@ -102,7 +99,7 @@ getNewVar v = do
                 }
             pure newV
 
-liftBuilder :: PEGBuilder.T s (Action f) Identity r -> Pipeline s n f r
+liftBuilder :: PEGBuilder.T s (Grammar.Action f) Identity r -> Pipeline s n f r
 liftBuilder builder = do
     ctx <- get
     let (x, builderCtx) = runState builder do ctxBuilder ctx

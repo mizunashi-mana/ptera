@@ -34,12 +34,12 @@ data MState = MState
 data Trans
     = TransWithOps [TransOp] StateNum
     | TransReduce LAPEG.AltNum
-    | TransReduceNot LAPEG.AltNum
     deriving (Eq, Show)
 
 data TransOp
     = TransOpEnter LAPEG.Var (Maybe StateNum)
     | TransOpPushBackpoint StateNum
+    | TransOpHandleNot LAPEG.AltNum
     | TransOpShift
     deriving (Eq, Show)
 

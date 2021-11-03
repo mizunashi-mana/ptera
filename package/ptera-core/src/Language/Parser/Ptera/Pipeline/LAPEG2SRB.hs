@@ -211,10 +211,10 @@ laPegTransPipeline p0 alts0 = do
                 AltItemsOpNot -> do
                     let alts = NonEmpty.reverse do altItemsForTransRevAlts altItems
                     sn <- getStateForAltItems p1 alts
-                    notSn <- getStateForReduceNot p0 do NonEmpty.head alts
+                    let notAlt = NonEmpty.head alts
                     pure do
                         SRB.TransWithOps
-                            do withBackOp [SRB.TransOpPushBackpoint notSn]
+                            do withBackOp [SRB.TransOpHandleNot notAlt]
                             do sn
                 AltItemsOpReduce -> do
                     let altn = NonEmpty.last do altItemsForTransRevAlts altItems
@@ -346,36 +346,6 @@ getStateForAltItems p alts = do
                         ctxStateMap = HashMap.insert (p, alts) s
                             do ctxStateMap ctx
                     }
-            pure s
-
-getStateForReduceNot :: LAPEG.Position -> LAPEG.AltNum -> Pipeline s a SRB.StateNum
-getStateForReduceNot p alt = do
-    ctx <- get
-    case AlignableMap.lookup alt do ctxReduceNotState ctx of
-        Just s ->
-            pure s
-        Nothing -> do
-            s <- liftBuilder SRBBuilder.genNewStateNum
-            put do
-                ctx
-                    {
-                        ctxReduceNotState = AlignableMap.insert alt s
-                            do ctxReduceNotState ctx
-                    }
-            let altItem = SRB.AltItem
-                    {
-                        altItemAltNum = alt,
-                        altItemCurPos = p
-                    }
-            let st = SRB.MState
-                    { stateNum = s
-                    , stateTrans = SymbolicIntMap.insertBulk
-                        do SymbolicIntSet.full
-                        do SRB.TransReduceNot alt
-                        do SymbolicIntMap.empty
-                    , stateAltItems = [altItem]
-                    }
-            liftBuilder do SRBBuilder.addState st
             pure s
 
 getUnitForAltItem :: LAPEG.Position -> LAPEG.AltNum -> Pipeline s a (Maybe LAPEG.Unit)

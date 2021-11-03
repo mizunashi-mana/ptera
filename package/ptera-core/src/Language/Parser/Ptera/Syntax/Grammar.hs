@@ -39,6 +39,9 @@ data FixedGrammar s n t e f = FixedGrammar
         grammarRules  :: EnumMap.EnumMap n (RuleWrapper n t e f)
     }
 
+data Action f where
+    Action :: f us r -> Action f
+
 data RuleWrapper n t e f where
     RuleWrapper :: SafeRule.Rule n t e f r -> RuleWrapper n t e f
 
