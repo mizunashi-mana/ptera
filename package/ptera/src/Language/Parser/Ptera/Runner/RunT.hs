@@ -8,9 +8,11 @@ import qualified Language.Parser.Ptera.Runner.Parser as Parser
 import qualified Language.Parser.Ptera.Scanner       as Scanner
 
 
+type T s p e = RunT s p e
+
 type RunT s p e = StateT (Context s p e)
 
-runT :: forall s p e m. Scanner.T p e m => RunT s p e m FinalResult
+runT :: forall s p e m. Scanner.T p e m => RunT s p e m Result
 runT = go where
     go = consumeIfNeeded >>= \case
         Nothing -> transByInput Parser.eosToken >>= \case
@@ -24,14 +26,14 @@ runT = go where
             CantContParse ->
                 pure ParseFail
 
-    goResult :: RunT s p e m FinalResult
+    goResult :: RunT s p e m Result
     goResult = get >>= \ctx -> case ctxItemStack ctx of
         [x] -> pure do Parsed x
         _   -> pure ParseFail
 
-data FinalResult where
-    Parsed :: a -> FinalResult
-    ParseFail :: FinalResult
+data Result where
+    Parsed :: a -> Result
+    ParseFail :: Result
 
 data Context s p e = Context
     {
@@ -44,11 +46,11 @@ data Context s p e = Context
 
 data Item p where
     ItemEnter :: p -> Parser.VarNum -> Parser.StateNum -> Item p
-    ItemHandleNot :: p -> Parser.AltNum -> Item p
+    ItemHandleNot :: Parser.AltNum -> Item p
     ItemBackpoint :: p -> Parser.StateNum -> Item p
     ItemArgument :: a -> Item p
 
-data ContResult
+data RunningResult
     = ContParse
     | CantContParse
 
@@ -65,7 +67,7 @@ initialContext p s = do
                 ctxMemoTable = ()
             }
 
-transByInput :: forall s p e m. Scanner.T p e m => Parser.TokenNum -> RunT s p e m ContResult
+transByInput :: forall s p e m. Scanner.T p e m => Parser.TokenNum -> RunT s p e m RunningResult
 transByInput tok = go where
     go = do
         ctx0 <- get
@@ -80,7 +82,7 @@ transByInput tok = go where
                 put do ctx0 { ctxState = Parser.transState trans1 }
                 goTransOps do Parser.transOps trans1
 
-    goTransOps :: [Parser.TransOp] -> RunT s p e m ContResult
+    goTransOps :: [Parser.TransOp] -> RunT s p e m RunningResult
     goTransOps = \case
         [] ->
             pure ContParse
@@ -92,7 +94,7 @@ transByInput tok = go where
                 CantContParse ->
                     pure CantContParse
 
-runTransOp :: Scanner.T p e m => Parser.TransOp ->　RunT s p e m ContResult
+runTransOp :: Scanner.T p e m => Parser.TransOp ->　RunT s p e m RunningResult
 runTransOp = \case
     Parser.TransOpEnter v enterSn -> do
         p <- lift Scanner.getMark
@@ -103,8 +105,7 @@ runTransOp = \case
         pushItem do ItemBackpoint p backSn
         pure ContParse
     Parser.TransOpHandleNot alt -> do
-        p <- lift Scanner.getMark
-        pushItem do ItemHandleNot p alt
+        pushItem do ItemHandleNot alt
         pure ContParse
     Parser.TransOpShift -> consumeIfNeeded >>= \case
         Nothing ->
@@ -119,12 +120,12 @@ runTransOp = \case
     Parser.TransOpReduce alt ->
         runReduce alt
 
-runReduce :: forall s p e m. Scanner.T p e m => Parser.AltNum -> RunT s p e m ContResult
+runReduce :: forall s p e m. Scanner.T p e m => Parser.AltNum -> RunT s p e m RunningResult
 runReduce alt = do
         stack0 <- ctxItemStack <$> get
         go HList.HNil stack0
     where
-        go :: HList.T us -> [Item p] -> RunT s p e m ContResult
+        go :: HList.T us -> [Item p] -> RunT s p e m RunningResult
         go args = \case
             [] ->
                 pure CantContParse
@@ -141,16 +142,15 @@ runReduce alt = do
                             ctxItemStack = rest
                         }
                     parseFail
-                ItemEnter p v enterSn ->
-                    goEnter args p v enterSn rest
+                ItemEnter p v enterSn -> do
+                    modify' \ctx -> ctx
+                        {
+                            ctxItemStack = rest
+                        }
+                    goEnter args p v enterSn
 
-        goEnter :: HList.T us -> p -> Parser.VarNum -> Parser.StateNum -> [Item p]
-            -> RunT s p e m ContResult
-        goEnter args p v enterSn rest = do
-            modify' \ctx -> ctx
-                {
-                    ctxItemStack = rest
-                }
+        goEnter :: HList.T us -> p -> Parser.VarNum -> Parser.StateNum -> RunT s p e m RunningResult
+        goEnter args p v enterSn = do
             saveEnterActionResult v alt args
             parser <- ctxParser <$> get
             case Parser.parserAltKind parser alt of
@@ -170,26 +170,59 @@ runReduce alt = do
                 PEG.AltNot ->
                     pure CantContParse
 
-parseFail :: forall s p e m. Scanner.T p e m => RunT s p e m ContResult
+parseFail :: forall s p e m. Scanner.T p e m => RunT s p e m RunningResult
 parseFail = do
     stack <- ctxItemStack <$> get
     go stack
     where
-        go :: [Item p] -> RunT s p e m ContResult
+        go :: [Item p] -> RunT s p e m RunningResult
         go = \case
             [] ->
                 pure CantContParse
-            ItemBackpoint p backSn:rest -> do
-                modify' \ctx -> ctx
-                    {
-                        ctxState = backSn,
-                        ctxItemStack = rest
-                    }
-                seekToMark p
-                pure ContParse
-            _:rest ->
-                go rest
+            item:rest -> case item of
+                ItemBackpoint p backSn -> do
+                    modify' \ctx -> ctx
+                        {
+                            ctxState = backSn,
+                            ctxItemStack = rest
+                        }
+                    seekToMark p
+                    pure ContParse
+                ItemHandleNot alt ->
+                    goHandleNot alt rest
+                _ ->
+                    go rest
 
+        goHandleNot alt = \case
+            [] ->
+                pure CantContParse
+            item:rest -> case item of
+                ItemEnter p v enterSn -> do
+                    modify' \ctx -> ctx
+                        {
+                            ctxItemStack = rest
+                        }
+                    goEnter alt p v enterSn
+                _ ->
+                    goHandleNot alt rest
+
+        goEnter :: Parser.AltNum -> p -> Parser.VarNum -> Parser.StateNum
+            -> RunT s p e m RunningResult
+        goEnter alt p v enterSn = do
+            saveEnterActionResult v alt HList.HNil
+            parser <- ctxParser <$> get
+            case Parser.parserAltKind parser alt of
+                PEG.AltSeq ->
+                    pure CantContParse
+                PEG.AltAnd ->
+                    pure CantContParse
+                PEG.AltNot -> do
+                    modify' \ctx -> ctx
+                        {
+                            ctxState = enterSn
+                        }
+                    seekToMark p
+                    pure ContParse
 -- TODO: memorize
 saveEnterActionResult :: Monad m => Parser.VarNum -> Parser.AltNum -> HList.T us -> RunT s p e m ()
 saveEnterActionResult _ alt args = do

@@ -114,6 +114,7 @@ library
 
         Language.Parser.Ptera.Syntax
         Language.Parser.Ptera.Scanner
+        Language.Parser.Ptera.Runner
         Language.Parser.Ptera.Runner.Parser
         Language.Parser.Ptera.Runner.RunT
 
