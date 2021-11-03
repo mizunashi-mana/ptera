@@ -18,10 +18,10 @@ module Language.Parser.Ptera.Syntax (
     tok,
 ) where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.HList as HList
-import qualified Language.Parser.Ptera.Syntax.Grammar as SyntaxGrammar
+import qualified Language.Parser.Ptera.Data.HList      as HList
+import qualified Language.Parser.Ptera.Syntax.Grammar  as SyntaxGrammar
 import qualified Language.Parser.Ptera.Syntax.SafeRule as SafeRule
 
 type T s n t e = Grammar s n t e

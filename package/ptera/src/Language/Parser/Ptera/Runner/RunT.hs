@@ -1,11 +1,11 @@
 module Language.Parser.Ptera.Runner.RunT where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
+import qualified Language.Parser.Ptera.Data.HList    as HList
+import qualified Language.Parser.Ptera.Machine.PEG   as PEG
 import qualified Language.Parser.Ptera.Runner.Parser as Parser
-import qualified Language.Parser.Ptera.Scanner as Scanner
-import qualified Language.Parser.Ptera.Data.HList as HList
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
+import qualified Language.Parser.Ptera.Scanner       as Scanner
 
 
 type RunT s p e = StateT (Context s p e)
@@ -35,11 +35,11 @@ data FinalResult where
 
 data Context s p e = Context
     {
-        ctxParser :: Parser.T s e,
-        ctxState :: Parser.StateNum,
-        ctxItemStack :: [Item p],
+        ctxParser         :: Parser.T s e,
+        ctxState          :: Parser.StateNum,
+        ctxItemStack      :: [Item p],
         ctxLookAHeadToken :: Maybe (Parser.TokenNum, e),
-        ctxMemoTable :: () -- TODO
+        ctxMemoTable      :: () -- TODO
     }
 
 data Item p where

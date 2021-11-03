@@ -1,6 +1,6 @@
 module Language.Parser.Ptera.Scanner where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
 
 type T = Scanner

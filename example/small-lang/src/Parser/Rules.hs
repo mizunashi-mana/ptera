@@ -2,9 +2,10 @@
 
 module Parser.Rules where
 
-import qualified Language.Parser.Ptera.Syntax as Syntax
-import Language.Parser.Ptera.Syntax (initial, rule, alt, (<^>), (<:>), var, tok)
-import Language.Parser.Ptera.Data.HList (HList (..))
+import           Language.Parser.Ptera.Data.HList (HList (..))
+import           Language.Parser.Ptera.Syntax     (alt, initial, rule, tok, var,
+                                                   (<:>), (<^>))
+import qualified Language.Parser.Ptera.Syntax     as Syntax
 
 
 type Grammar = Syntax.Grammar StartPoint NonTerminal Terminal Token
