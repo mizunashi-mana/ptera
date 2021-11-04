@@ -92,6 +92,7 @@ common general
 
         -- project depends
         ptera-core,
+        containers,
 
     autogen-modules:
         Paths_ptera

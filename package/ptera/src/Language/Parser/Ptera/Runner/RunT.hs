@@ -7,6 +7,9 @@ import qualified Language.Parser.Ptera.Machine.PEG   as PEG
 import qualified Language.Parser.Ptera.Runner.Parser as Parser
 import qualified Language.Parser.Ptera.Scanner       as Scanner
 import qualified Unsafe.Coerce                       as Unsafe
+import qualified Language.Parser.Ptera.Data.Alignable as Alignable
+import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
+import qualified Data.IntMap.Strict as IntMap
 
 
 type T s p e = RunT s p e
@@ -43,11 +46,19 @@ data Context s p e = Context
         ctxState          :: Parser.StateNum,
         ctxItemStack      :: [Item p],
         ctxLookAHeadToken :: Maybe (Parser.TokenNum, e),
-        ctxMemoTable      :: () -- TODO
+        ctxCurrentPosition :: Position,
+        ctxMemoTable      :: AlignableMap.T Position (IntMap.IntMap (MemoItem p))
     }
 
+newtype Position = Position Int
+    deriving (Eq, Show)
+    deriving Alignable.T via Alignable.Inst
+
+data MemoItem p where
+    MemoItem :: Position -> p -> a -> MemoItem p
+
 data Item p where
-    ItemEnter :: p -> Parser.VarNum -> Parser.StateNum -> Item p
+    ItemEnter :: Position -> p -> Parser.VarNum -> Parser.StateNum -> Item p
     ItemHandleNot :: Parser.AltNum -> Item p
     ItemBackpoint :: p -> Parser.StateNum -> Item p
     ItemArgument :: a -> Item p
@@ -55,6 +66,7 @@ data Item p where
 data RunningResult
     = ContParse
     | CantContParse
+    deriving (Eq, Show)
 
 initialContext :: Enum s => Parser.T s e -> s -> Maybe (Context s p e)
 initialContext p s = do
@@ -66,7 +78,8 @@ initialContext p s = do
                 ctxState = sn0,
                 ctxLookAHeadToken = Nothing,
                 ctxItemStack = [],
-                ctxMemoTable = ()
+                ctxCurrentPosition = Alignable.initialAlign,
+                ctxMemoTable = AlignableMap.empty
             }
 
 transByInput :: forall s p e m. Scanner.T p e m => Parser.TokenNum -> RunT s p e m RunningResult
@@ -98,13 +111,11 @@ transByInput tok = go where
 
 runTransOp :: Scanner.T p e m => Parser.TransOp ->　RunT s p e m RunningResult
 runTransOp = \case
-    Parser.TransOpEnter v enterSn -> do
-        p <- lift Scanner.getMark
-        pushItem do ItemEnter p v enterSn
-        pure ContParse
+    Parser.TransOpEnter v enterSn ->
+        runEnter v enterSn
     Parser.TransOpPushBackpoint backSn -> do
-        p <- lift Scanner.getMark
-        pushItem do ItemBackpoint p backSn
+        mark <- lift Scanner.getMark
+        pushItem do ItemBackpoint mark backSn
         pure ContParse
     Parser.TransOpHandleNot alt -> do
         pushItem do ItemHandleNot alt
@@ -121,6 +132,30 @@ runTransOp = \case
             pure ContParse
     Parser.TransOpReduce alt ->
         runReduce alt
+
+runEnter :: Scanner.T p e m => Parser.VarNum -> Parser.StateNum -> RunT s p e m RunningResult
+runEnter v enterSn = do
+    ctx <- get
+    let pos0 = ctxCurrentPosition ctx
+    let vm = case AlignableMap.lookup pos0 do ctxMemoTable ctx of
+            Nothing -> IntMap.empty
+            Just m  -> m
+    case IntMap.lookup v vm of
+        Just (MemoItem pos1 mark1 x) -> do
+            put do
+                ctx
+                    {
+                        ctxCurrentPosition = pos1,
+                        ctxState = enterSn
+                    }
+            pushItem do ItemArgument x
+            seekToMark mark1
+            pure ContParse
+        Nothing -> do
+            pos1 <- ctxCurrentPosition <$> get
+            mark1 <- lift Scanner.getMark
+            pushItem do ItemEnter pos1 mark1 v enterSn
+            pure ContParse
 
 runReduce :: forall s p e m. Scanner.T p e m => Parser.AltNum -> RunT s p e m RunningResult
 runReduce alt = do
@@ -144,30 +179,33 @@ runReduce alt = do
                             ctxItemStack = rest
                         }
                     parseFail
-                ItemEnter p v enterSn -> do
+                ItemEnter pos mark v enterSn -> do
                     modify' \ctx -> ctx
                         {
                             ctxItemStack = rest
                         }
-                    goEnter args p v enterSn
+                    goEnter args pos mark v enterSn
 
-        goEnter :: HList.T us -> p -> Parser.VarNum -> Parser.StateNum -> RunT s p e m RunningResult
-        goEnter args p v enterSn = do
-            saveEnterActionResult v alt args
+        goEnter :: HList.T us -> Position -> p -> Parser.VarNum -> Parser.StateNum
+            -> RunT s p e m RunningResult
+        goEnter args pos0 mark0 v enterSn = do
             parser <- ctxParser <$> get
             case Parser.parserAltKind parser alt of
                 PEG.AltSeq -> do
+                    mark1 <- lift Scanner.getMark
+                    saveEnterActionResult pos0 mark1 v alt args
                     modify' \ctx -> ctx
                         {
                             ctxState = enterSn
                         }
                     pure ContParse
                 PEG.AltAnd -> do
+                    seekToMark mark0
+                    saveEnterActionResult pos0 mark0 v alt args
                     modify' \ctx -> ctx
                         {
                             ctxState = enterSn
                         }
-                    seekToMark p
                     pure ContParse
                 PEG.AltNot ->
                     pure CantContParse
@@ -199,19 +237,18 @@ parseFail = do
             [] ->
                 pure CantContParse
             item:rest -> case item of
-                ItemEnter p v enterSn -> do
+                ItemEnter pos0 mark0 v enterSn -> do
                     modify' \ctx -> ctx
                         {
                             ctxItemStack = rest
                         }
-                    goEnter alt p v enterSn
+                    goEnter alt pos0 mark0 v enterSn
                 _ ->
                     goHandleNot alt rest
 
-        goEnter :: Parser.AltNum -> p -> Parser.VarNum -> Parser.StateNum
+        goEnter :: Parser.AltNum -> Position -> p -> Parser.VarNum -> Parser.StateNum
             -> RunT s p e m RunningResult
-        goEnter alt p v enterSn = do
-            saveEnterActionResult v alt HList.HNil
+        goEnter alt pos0 mark0 v enterSn = do
             parser <- ctxParser <$> get
             case Parser.parserAltKind parser alt of
                 PEG.AltSeq ->
@@ -219,21 +256,35 @@ parseFail = do
                 PEG.AltAnd ->
                     pure CantContParse
                 PEG.AltNot -> do
+                    seekToMark mark0
+                    saveEnterActionResult pos0 mark0 v alt HList.HNil
                     modify' \ctx -> ctx
                         {
                             ctxState = enterSn
                         }
-                    seekToMark p
                     pure ContParse
--- TODO: memorize
-saveEnterActionResult :: Monad m => Parser.VarNum -> Parser.AltNum -> HList.T us -> RunT s p e m ()
-saveEnterActionResult _ alt args = do
-    parser <- ctxParser <$> get
-    let item = ItemArgument do
-            Parser.runAction
-                do Parser.parserActions parser alt
-                do args
-    pushItem item
+
+saveEnterActionResult :: Monad m
+    => Position -> p -> Parser.VarNum -> Parser.AltNum -> HList.T us
+    -> RunT s p e m ()
+saveEnterActionResult pos0 mark0 v alt args = do
+    ctx <- get
+    let parser = ctxParser ctx
+    let res = Parser.runAction
+            do Parser.parserActions parser alt
+            do args
+    let pos1 = ctxCurrentPosition ctx
+    let memoItem = MemoItem pos1 mark0 res
+    put do
+        ctx
+            {
+                ctxMemoTable = AlignableMap.insert pos0
+                    do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
+                        Nothing -> IntMap.singleton v memoItem
+                        Just vm -> IntMap.insert v memoItem vm
+                    do ctxMemoTable ctx
+            }
+    pushItem do ItemArgument res
 
 consumeIfNeeded :: Scanner.T p e m => RunT s p e m (Maybe (Parser.TokenNum, e))
 consumeIfNeeded = ctxLookAHeadToken <$> get >>= \case
@@ -251,8 +302,8 @@ consumeIfNeeded = ctxLookAHeadToken <$> get >>= \case
             let tokNum = Parser.parserGetTokenNum parser tok
             let r = Just (tokNum, tok)
             modify' \ctx -> ctx
-                {
-                    ctxLookAHeadToken = r
+                { ctxCurrentPosition = Alignable.nextAlign do ctxCurrentPosition ctx
+                , ctxLookAHeadToken = r
                 }
             pure r
 
