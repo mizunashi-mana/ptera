@@ -2,14 +2,14 @@ module Language.Parser.Ptera.Runner.RunT where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.HList    as HList
-import qualified Language.Parser.Ptera.Machine.PEG   as PEG
-import qualified Language.Parser.Ptera.Runner.Parser as Parser
-import qualified Language.Parser.Ptera.Scanner       as Scanner
-import qualified Unsafe.Coerce                       as Unsafe
-import qualified Language.Parser.Ptera.Data.Alignable as Alignable
+import qualified Data.IntMap.Strict                       as IntMap
+import qualified Language.Parser.Ptera.Data.Alignable     as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
-import qualified Data.IntMap.Strict as IntMap
+import qualified Language.Parser.Ptera.Data.HList         as HList
+import qualified Language.Parser.Ptera.Machine.PEG        as PEG
+import qualified Language.Parser.Ptera.Runner.Parser      as Parser
+import qualified Language.Parser.Ptera.Scanner            as Scanner
+import qualified Unsafe.Coerce                            as Unsafe
 
 
 type T s p e = RunT s p e
