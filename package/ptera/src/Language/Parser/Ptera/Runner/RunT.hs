@@ -12,11 +12,11 @@ import qualified Language.Parser.Ptera.Scanner            as Scanner
 import qualified Unsafe.Coerce                            as Unsafe
 
 
-type T s p e = RunT s p e
+type T p e = RunT p e
 
-type RunT s p e = StateT (Context s p e)
+type RunT p e = StateT (Context p e)
 
-runT :: forall s p e m a. Scanner.T p e m => RunT s p e m (Result a)
+runT :: forall p e m a. Scanner.T p e m => RunT p e m (Result a)
 runT = go where
     go = consumeIfNeeded >>= \case
         Nothing -> transByInput Parser.eosToken >>= \case
@@ -30,7 +30,7 @@ runT = go where
             CantContParse ->
                 pure ParseFail
 
-    goResult :: RunT s p e m (Result a)
+    goResult :: RunT p e m (Result a)
     goResult = get >>= \ctx -> case ctxItemStack ctx of
         [x] -> pure do Parsed do Unsafe.unsafeCoerce x
         _   -> pure ParseFail
@@ -40,9 +40,9 @@ data Result a
     | ParseFail
     deriving (Eq, Show, Functor)
 
-data Context s p e = Context
+data Context p e = Context
     {
-        ctxParser         :: Parser.T s e,
+        ctxParser         :: Parser.T e,
         ctxState          :: Parser.StateNum,
         ctxItemStack      :: [Item p],
         ctxLookAHeadToken :: Maybe (Parser.TokenNum, e),
@@ -68,7 +68,7 @@ data RunningResult
     | CantContParse
     deriving (Eq, Show)
 
-initialContext :: Enum s => Parser.T s e -> s -> Maybe (Context s p e)
+initialContext :: Parser.T e -> Parser.StartNum -> Maybe (Context p e)
 initialContext p s = do
     sn0 <- Parser.parserInitial p s
     pure do
@@ -82,7 +82,7 @@ initialContext p s = do
                 ctxMemoTable = AlignableMap.empty
             }
 
-transByInput :: forall s p e m. Scanner.T p e m => Parser.TokenNum -> RunT s p e m RunningResult
+transByInput :: forall p e m. Scanner.T p e m => Parser.TokenNum -> RunT p e m RunningResult
 transByInput tok = go where
     go = do
         ctx0 <- get
@@ -97,7 +97,7 @@ transByInput tok = go where
                 put do ctx0 { ctxState = Parser.transState trans1 }
                 goTransOps do Parser.transOps trans1
 
-    goTransOps :: [Parser.TransOp] -> RunT s p e m RunningResult
+    goTransOps :: [Parser.TransOp] -> RunT p e m RunningResult
     goTransOps = \case
         [] ->
             pure ContParse
@@ -109,7 +109,7 @@ transByInput tok = go where
                 CantContParse ->
                     pure CantContParse
 
-runTransOp :: Scanner.T p e m => Parser.TransOp ->　RunT s p e m RunningResult
+runTransOp :: Scanner.T p e m => Parser.TransOp ->　RunT p e m RunningResult
 runTransOp = \case
     Parser.TransOpEnter v enterSn ->
         runEnter v enterSn
@@ -133,7 +133,7 @@ runTransOp = \case
     Parser.TransOpReduce alt ->
         runReduce alt
 
-runEnter :: Scanner.T p e m => Parser.VarNum -> Parser.StateNum -> RunT s p e m RunningResult
+runEnter :: Scanner.T p e m => Parser.VarNum -> Parser.StateNum -> RunT p e m RunningResult
 runEnter v enterSn = do
     ctx <- get
     let pos0 = ctxCurrentPosition ctx
@@ -157,12 +157,12 @@ runEnter v enterSn = do
             pushItem do ItemEnter pos1 mark1 v enterSn
             pure ContParse
 
-runReduce :: forall s p e m. Scanner.T p e m => Parser.AltNum -> RunT s p e m RunningResult
+runReduce :: forall p e m. Scanner.T p e m => Parser.AltNum -> RunT p e m RunningResult
 runReduce alt = do
         stack0 <- ctxItemStack <$> get
         go HList.HNil stack0
     where
-        go :: HList.T us -> [Item p] -> RunT s p e m RunningResult
+        go :: HList.T us -> [Item p] -> RunT p e m RunningResult
         go args = \case
             [] ->
                 pure CantContParse
@@ -187,7 +187,7 @@ runReduce alt = do
                     goEnter args pos mark v enterSn
 
         goEnter :: HList.T us -> Position -> p -> Parser.VarNum -> Parser.StateNum
-            -> RunT s p e m RunningResult
+            -> RunT p e m RunningResult
         goEnter args pos0 mark0 v enterSn = do
             parser <- ctxParser <$> get
             case Parser.parserAltKind parser alt of
@@ -210,12 +210,12 @@ runReduce alt = do
                 PEG.AltNot ->
                     pure CantContParse
 
-parseFail :: forall s p e m. Scanner.T p e m => RunT s p e m RunningResult
+parseFail :: forall p e m. Scanner.T p e m => RunT p e m RunningResult
 parseFail = do
     stack <- ctxItemStack <$> get
     go stack
     where
-        go :: [Item p] -> RunT s p e m RunningResult
+        go :: [Item p] -> RunT p e m RunningResult
         go = \case
             [] ->
                 pure CantContParse
@@ -247,7 +247,7 @@ parseFail = do
                     goHandleNot alt rest
 
         goEnter :: Parser.AltNum -> Position -> p -> Parser.VarNum -> Parser.StateNum
-            -> RunT s p e m RunningResult
+            -> RunT p e m RunningResult
         goEnter alt pos0 mark0 v enterSn = do
             parser <- ctxParser <$> get
             case Parser.parserAltKind parser alt of
@@ -266,7 +266,7 @@ parseFail = do
 
 saveEnterActionResult :: Monad m
     => Position -> p -> Parser.VarNum -> Parser.AltNum -> HList.T us
-    -> RunT s p e m ()
+    -> RunT p e m ()
 saveEnterActionResult pos0 mark0 v alt args = do
     ctx <- get
     let parser = ctxParser ctx
@@ -286,7 +286,7 @@ saveEnterActionResult pos0 mark0 v alt args = do
             }
     pushItem do ItemArgument res
 
-consumeIfNeeded :: Scanner.T p e m => RunT s p e m (Maybe (Parser.TokenNum, e))
+consumeIfNeeded :: Scanner.T p e m => RunT p e m (Maybe (Parser.TokenNum, e))
 consumeIfNeeded = ctxLookAHeadToken <$> get >>= \case
     mtok@(Just _) ->
         pure mtok
@@ -307,7 +307,7 @@ consumeIfNeeded = ctxLookAHeadToken <$> get >>= \case
                 }
             pure r
 
-seekToMark :: Scanner.T p e m => p -> RunT s p e m ()
+seekToMark :: Scanner.T p e m => p -> RunT p e m ()
 seekToMark p = do
     modify' \ctx -> ctx
         {
@@ -315,7 +315,7 @@ seekToMark p = do
         }
     lift do Scanner.seekToMark p
 
-pushItem :: Monad m => Item p -> RunT s p e m ()
+pushItem :: Monad m => Item p -> RunT p e m ()
 pushItem item = modify' \ctx -> ctx
     {
         ctxItemStack = item:ctxItemStack ctx

@@ -8,6 +8,7 @@ import qualified Language.Parser.Ptera.Syntax         as Syntax
 import qualified Language.Parser.Ptera.Syntax.Grammar as Grammar
 import qualified Unsafe.Coerce                        as Unsafe
 
+type StartNum = Int
 type StateNum = Int
 type TokenNum = Int
 type VarNum = Int
@@ -22,9 +23,9 @@ runAction (Grammar.Action (Syntax.SemanticAction act)) = coerceAct act where
     coerceAct :: (HList.T us1 -> a1) -> HList.T us2 -> a2
     coerceAct = Unsafe.unsafeCoerce
 
-data Parser s e = Parser
+data Parser e = Parser
     {
-        parserInitial     :: s -> Maybe StateNum,
+        parserInitial     :: StartNum -> Maybe StateNum,
         parserGetTokenNum :: e -> TokenNum,
         parserTrans       :: StateNum -> TokenNum -> Maybe Trans,
         parserAltKind     :: AltNum -> PEG.AltKind,

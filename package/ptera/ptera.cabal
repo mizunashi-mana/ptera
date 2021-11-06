@@ -123,7 +123,7 @@ library
         Language.Parser.Ptera.Runner
         Language.Parser.Ptera.Runner.Parser
         Language.Parser.Ptera.Runner.RunT
-        -- Language.Parser.Ptera.Pipeline.Grammar2Parser
+        Language.Parser.Ptera.Pipeline.Grammar2Runner
 
 test-suite doctest
     import:

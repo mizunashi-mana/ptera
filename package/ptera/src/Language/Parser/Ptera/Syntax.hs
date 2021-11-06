@@ -42,8 +42,8 @@ newtype SemanticAction us a = SemanticAction
         semanticAction :: HList.T us -> a
     }
 
-initial :: forall k h n t e r.
-    (Member.T k (TypeOps.MapFst h), r ~ TypeOps.FromJust (Record.RecordIndex k h))
+initial :: forall k h n t e r. r ~ TypeOps.FromJust (Record.RecordIndex k h)
+    => Member.T k (TypeOps.MapFst h)
     => Proxy# k -> Grammar h n t e (Rule n r) -> Grammar h n t e ()
 initial kp (Grammar g) = Grammar do
     SyntaxGrammar.initialT
