@@ -1,6 +1,6 @@
 module Language.Parser.Ptera.Data.HList where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
 type T = HList
 

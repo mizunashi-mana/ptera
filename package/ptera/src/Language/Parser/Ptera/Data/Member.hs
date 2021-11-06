@@ -2,9 +2,9 @@
 
 module Language.Parser.Ptera.Data.Member where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified GHC.TypeNats as TypeNats
+import qualified GHC.TypeNats                       as TypeNats
 import qualified Language.Parser.Ptera.Data.TypeOps as TypeOps
 
 type T = Member

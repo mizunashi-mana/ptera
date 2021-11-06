@@ -2,7 +2,7 @@
 
 module Language.Parser.Ptera.Data.OpenEnum where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Parser.Ptera.Data.Member as Member
 

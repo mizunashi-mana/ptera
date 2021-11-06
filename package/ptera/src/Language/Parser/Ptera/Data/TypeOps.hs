@@ -2,9 +2,9 @@
 
 module Language.Parser.Ptera.Data.TypeOps where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified GHC.TypeNats as TypeNats
+import qualified GHC.TypeNats                  as TypeNats
 
 type family FromJust (m :: Maybe k) :: k where
     FromJust ('Just a) = a
