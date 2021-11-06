@@ -21,6 +21,7 @@ module Language.Parser.Ptera.Prelude.Core (
     module Data.Proxy,
     module Data.Typeable,
     module Data.Word,
+    module GHC.Exts,
 ) where
 
 import           Control.Applicative
@@ -47,5 +48,6 @@ import           Data.Ord                         (Down (..))
 import           Data.Proxy                       (Proxy (..))
 import           Data.Typeable                    (Typeable)
 import           Data.Word                        (Word, Word8)
+import           GHC.Exts                         (Proxy#, proxy#)
 import           Prelude                          hiding (String, foldl, foldr,
                                                    head, pi, tail, ($))

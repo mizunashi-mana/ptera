@@ -112,12 +112,14 @@ library
         src
     exposed-modules:
         Language.Parser.Ptera.Data.HList
+        Language.Parser.Ptera.Data.OpenUnion
 
         Language.Parser.Ptera.Syntax
         Language.Parser.Ptera.Scanner
         Language.Parser.Ptera.Runner
         Language.Parser.Ptera.Runner.Parser
         Language.Parser.Ptera.Runner.RunT
+        -- Language.Parser.Ptera.Pipeline.Grammar2Parser
 
 test-suite doctest
     import:
