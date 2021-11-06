@@ -93,6 +93,7 @@ common general
         -- project depends
         ptera-core,
         containers,
+        array,
 
     autogen-modules:
         Paths_ptera
@@ -112,7 +113,10 @@ library
         src
     exposed-modules:
         Language.Parser.Ptera.Data.HList
-        Language.Parser.Ptera.Data.OpenUnion
+        Language.Parser.Ptera.Data.OpenEnum
+        Language.Parser.Ptera.Data.Member
+        Language.Parser.Ptera.Data.Record
+        Language.Parser.Ptera.Data.TypeOps
 
         Language.Parser.Ptera.Syntax
         Language.Parser.Ptera.Scanner

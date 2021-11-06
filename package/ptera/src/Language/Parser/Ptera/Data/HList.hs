@@ -1,9 +1,11 @@
 module Language.Parser.Ptera.Data.HList where
 
+import Language.Parser.Ptera.Prelude
+
 type T = HList
 
-data HList us where
+data HList :: [Type] -> Type where
     HNil :: HList '[]
-    (:*) :: u -> HList us -> HList (u ': us)
+    (:*) :: x -> HList xs -> HList (x ': xs)
 
 infixr 6 :*
