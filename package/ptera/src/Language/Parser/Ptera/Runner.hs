@@ -2,12 +2,12 @@ module Language.Parser.Ptera.Runner where
 
 import           Language.Parser.Ptera.Prelude
 
+import qualified Language.Parser.Ptera.Data.Member   as Member
+import qualified Language.Parser.Ptera.Data.Record   as Record
+import qualified Language.Parser.Ptera.Data.TypeOps  as TypeOps
 import qualified Language.Parser.Ptera.Runner.Parser as Parser
 import qualified Language.Parser.Ptera.Runner.RunT   as RunT
 import qualified Language.Parser.Ptera.Scanner       as Scanner
-import qualified Language.Parser.Ptera.Data.Member   as Member
-import qualified Language.Parser.Ptera.Data.TypeOps  as TypeOps
-import qualified Language.Parser.Ptera.Data.Record   as Record
 
 type T = Runner
 type Scanner = Scanner.T
