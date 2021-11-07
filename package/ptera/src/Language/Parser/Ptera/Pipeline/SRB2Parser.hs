@@ -1,13 +1,13 @@
 module Language.Parser.Ptera.Pipeline.SRB2Parser where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.SRB as SRB
-import qualified Language.Parser.Ptera.Machine.LAPEG as LAPEG
-import qualified Language.Parser.Ptera.Runner.Parser as Parser
-import qualified Data.EnumMap.Strict as EnumMap
+import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
+import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
+import qualified Language.Parser.Ptera.Machine.SRB          as SRB
+import qualified Language.Parser.Ptera.Runner.Parser        as Parser
 
 srb2Parser :: GenParam e -> SRB.T Int Parser.Action -> Parser.T e
 srb2Parser genParam srb = Parser.Parser

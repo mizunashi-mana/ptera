@@ -9,14 +9,20 @@ module Language.Parser.Ptera (
     genRunner,
 ) where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import Language.Parser.Ptera.Syntax (GrammarT, Rule, Alt, Expr, Unit, initial, rule, alt, (<^>), (<:>), eps, var, tok)
-import Language.Parser.Ptera.Runner (runParser, Result (..))
-import Language.Parser.Ptera.Scanner (Scanner (..))
-import qualified Language.Parser.Ptera.Runner as Runner
-import qualified Language.Parser.Ptera.Syntax as Syntax
 import qualified Language.Parser.Ptera.Pipeline.Grammar2Runner as Grammar2Runner
+import           Language.Parser.Ptera.Runner                  (Result (..),
+                                                                runParser)
+import qualified Language.Parser.Ptera.Runner                  as Runner
+import           Language.Parser.Ptera.Scanner                 (Scanner (..))
+import           Language.Parser.Ptera.Syntax                  (Alt, Expr,
+                                                                GrammarT, Rule,
+                                                                Unit, alt, eps,
+                                                                initial, rule,
+                                                                tok, var, (<:>),
+                                                                (<^>))
+import qualified Language.Parser.Ptera.Syntax                  as Syntax
 
 type Parser = Runner.T
 

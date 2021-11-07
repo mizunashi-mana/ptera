@@ -1,12 +1,12 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs     #-}
 
 module Parser.Rules where
 
+import           Data.Proxy                       (Proxy (..))
+import           Language.Parser.Ptera            hiding (Grammar, Rule)
+import qualified Language.Parser.Ptera            as Ptera
 import           Language.Parser.Ptera.Data.HList (HList (..))
-import           Language.Parser.Ptera hiding (Grammar, Rule)
-import qualified Language.Parser.Ptera as Ptera
-import           Data.Proxy (Proxy (..))
 
 
 type Grammar = Ptera.Grammar ParsePoints NonTerminal Terminal Token

@@ -3,8 +3,8 @@ module Language.Parser.Ptera.Runner.Parser where
 import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Parser.Ptera.Data.HList     as HList
+import qualified Language.Parser.Ptera.Machine.LAPEG  as LAPEG
 import qualified Language.Parser.Ptera.Machine.PEG    as PEG
-import qualified Language.Parser.Ptera.Machine.LAPEG    as LAPEG
 import qualified Language.Parser.Ptera.Syntax         as Syntax
 import qualified Language.Parser.Ptera.Syntax.Grammar as Grammar
 import qualified Unsafe.Coerce                        as Unsafe
