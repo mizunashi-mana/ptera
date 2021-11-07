@@ -16,8 +16,8 @@ data Context s n t e f = Context
         ctxRules  :: EnumMap.EnumMap n (RuleWrapper n t e f)
     }
 
-fixed :: Monad m => GrammarT s n t e f m () -> m (FixedGrammar s n t e f)
-fixed builder = do
+fixedT :: Monad m => GrammarT s n t e f m () -> m (FixedGrammar s n t e f)
+fixedT builder = do
         finalCtx <- execStateT builder initialCtx
         pure do fromCtx finalCtx
     where

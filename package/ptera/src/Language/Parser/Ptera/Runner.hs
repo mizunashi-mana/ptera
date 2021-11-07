@@ -1,4 +1,10 @@
-module Language.Parser.Ptera.Runner where
+module Language.Parser.Ptera.Runner (
+    T,
+
+    Runner (..),
+    RunT.Result (..),
+    runParser,
+) where
 
 import           Language.Parser.Ptera.Prelude
 
@@ -10,20 +16,14 @@ import qualified Language.Parser.Ptera.Runner.RunT   as RunT
 import qualified Language.Parser.Ptera.Scanner       as Scanner
 
 type T = Runner
-type Scanner = Scanner.T
-type Parser = Parser.T
-type Result = RunT.Result
 
-newtype Runner h e = Runner
-    {
-        unRunner :: Parser.T e
-    }
+newtype Runner h e = UnsafeRunner (Parser.T e)
 
 runParser :: forall k h p e m a. a ~ TypeOps.FromJust (Record.RecordIndex k h)
     => Member.T k (TypeOps.MapFst h)
     => Scanner.T p e m
-    => Proxy# k -> Runner h e -> m (Result a)
-runParser kp (Runner p) = case RunT.initialContext p pos of
+    => Proxy# k -> Runner h e -> m (RunT.Result a)
+runParser kp (UnsafeRunner p) = case RunT.initialContext p pos of
     Nothing ->
         pure do RunT.ParseFail
     Just initialCtx ->

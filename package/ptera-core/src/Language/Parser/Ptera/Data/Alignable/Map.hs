@@ -2,6 +2,7 @@ module Language.Parser.Ptera.Data.Alignable.Map (
     T,
     Map,
     empty,
+    singleton,
     insert,
     lookup,
     assocs,
@@ -21,6 +22,9 @@ newtype Map n a = Map (IntMap.IntMap a)
 
 empty :: Map n a
 empty = Map IntMap.empty
+
+singleton :: forall n a. Alignable.T n => n -> a -> Map n a
+singleton = coerce do IntMap.singleton @a
 
 insert :: forall n a. Alignable.T n => n -> a -> Map n a -> Map n a
 insert = coerce do IntMap.insert @a

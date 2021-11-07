@@ -2,7 +2,6 @@ module Language.Parser.Ptera.Runner.RunT where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Data.IntMap.Strict                       as IntMap
 import qualified Language.Parser.Ptera.Data.Alignable     as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
 import qualified Language.Parser.Ptera.Data.HList         as HList
@@ -19,21 +18,26 @@ type RunT p e = StateT (Context p e)
 runT :: forall p e m a. Scanner.T p e m => RunT p e m (Result a)
 runT = go where
     go = consumeIfNeeded >>= \case
-        Nothing -> transByInput Parser.eosToken >>= \case
-            ContParse ->
-                goResult
-            CantContParse ->
-                pure ParseFail
+        Nothing ->
+            goResult
         Just (tok, _) -> transByInput tok >>= \case
             ContParse ->
                 go
             CantContParse ->
                 pure ParseFail
 
+    goEos = transByInput Parser.eosToken >>= \case
+        ContParse ->
+            goResult
+        CantContParse ->
+            pure ParseFail
+
     goResult :: RunT p e m (Result a)
     goResult = get >>= \ctx -> case ctxItemStack ctx of
-        [x] -> pure do Parsed do Unsafe.unsafeCoerce x
-        _   -> pure ParseFail
+        [ItemArgument x] ->
+            pure do Parsed do Unsafe.unsafeCoerce x
+        _   ->
+            goEos
 
 data Result a
     = Parsed a
@@ -47,7 +51,7 @@ data Context p e = Context
         ctxItemStack      :: [Item p],
         ctxLookAHeadToken :: Maybe (Parser.TokenNum, e),
         ctxCurrentPosition :: Position,
-        ctxMemoTable      :: AlignableMap.T Position (IntMap.IntMap (MemoItem p))
+        ctxMemoTable      :: AlignableMap.T Position (AlignableMap.T Parser.VarNum (MemoItem p))
     }
 
 newtype Position = Position Int
@@ -138,9 +142,9 @@ runEnter v enterSn = do
     ctx <- get
     let pos0 = ctxCurrentPosition ctx
     let vm = case AlignableMap.lookup pos0 do ctxMemoTable ctx of
-            Nothing -> IntMap.empty
+            Nothing -> AlignableMap.empty
             Just m  -> m
-    case IntMap.lookup v vm of
+    case AlignableMap.lookup v vm of
         Just (MemoItem pos1 mark1 x) -> do
             put do
                 ctx
@@ -280,8 +284,8 @@ saveEnterActionResult pos0 mark0 v alt args = do
             {
                 ctxMemoTable = AlignableMap.insert pos0
                     do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
-                        Nothing -> IntMap.singleton v memoItem
-                        Just vm -> IntMap.insert v memoItem vm
+                        Nothing -> AlignableMap.singleton v memoItem
+                        Just vm -> AlignableMap.insert v memoItem vm
                     do ctxMemoTable ctx
             }
     pushItem do ItemArgument res

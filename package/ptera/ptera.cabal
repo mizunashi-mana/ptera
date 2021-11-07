@@ -94,6 +94,7 @@ common general
         ptera-core,
         containers,
         array,
+        enummapset-th,
 
     autogen-modules:
         Paths_ptera
@@ -112,11 +113,7 @@ library
     hs-source-dirs:
         src
     exposed-modules:
-        Language.Parser.Ptera.Data.HList
-        Language.Parser.Ptera.Data.OpenEnum
-        Language.Parser.Ptera.Data.Member
-        Language.Parser.Ptera.Data.Record
-        Language.Parser.Ptera.Data.TypeOps
+        Language.Parser.Ptera
 
         Language.Parser.Ptera.Syntax
         Language.Parser.Ptera.Scanner
@@ -124,6 +121,13 @@ library
         Language.Parser.Ptera.Runner.Parser
         Language.Parser.Ptera.Runner.RunT
         Language.Parser.Ptera.Pipeline.Grammar2Runner
+        Language.Parser.Ptera.Pipeline.SRB2Parser
+
+        Language.Parser.Ptera.Data.HList
+        Language.Parser.Ptera.Data.OpenEnum
+        Language.Parser.Ptera.Data.Member
+        Language.Parser.Ptera.Data.Record
+        Language.Parser.Ptera.Data.TypeOps
 
 test-suite doctest
     import:
