@@ -9,17 +9,17 @@ import qualified Language.Parser.Ptera.Pipeline.SRB2Parser  as SRB2Parser
 import qualified Language.Parser.Ptera.Runner               as Runner
 import qualified Language.Parser.Ptera.Syntax               as Syntax
 
-grammar2Runner :: forall h n t e. Enum n => Enum t
+grammar2Runner :: forall h n t e. Enum n => Syntax.GrammarToken e t
     => Syntax.FixedGrammar h n t e -> Maybe (Runner.T h e)
-grammar2Runner g = do
-    let peg = Grammar2PEG.grammar2Peg do Syntax.unsafeGrammarFixed g
+grammar2Runner (Syntax.UnsafeFixedGrammar g) = do
+    let peg = Grammar2PEG.grammar2Peg g
     laPeg <- case runExcept do PEG2LAPEG.peg2LaPeg peg of
         Left{}  -> Nothing
         Right x -> Just x
     let srb = LAPEG2SRB.laPeg2Srb laPeg
     let genParam = SRB2Parser.GenParam
             {
-                genParamGetToken = \t -> fromEnum do Syntax.unsafeGrammarGetToken g t
+                genParamGetToken = \tok -> fromEnum do Syntax.tokenToTerminal @e @t tok
             }
     let parser = SRB2Parser.srb2Parser genParam srb
     pure do Runner.UnsafeRunner parser

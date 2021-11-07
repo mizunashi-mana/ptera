@@ -5,7 +5,7 @@ import           Language.Parser.Ptera.Prelude
 
 type T = Scanner
 
-class (Enum e, Monad m) => Scanner p e m | m -> p, m -> e where
+class Monad m => Scanner p e m | m -> p, m -> e where
     consumeInput :: m (Maybe e)
     getMark :: m p
     seekToMark :: p -> m ()
@@ -13,11 +13,14 @@ class (Enum e, Monad m) => Scanner p e m | m -> p, m -> e where
 
 newtype ListScanner e a = ListScanner
     {
-        runListScanner :: State [e] a
+        unListScanner :: State [e] a
     }
     deriving (Functor, Applicative, Monad) via State [e]
 
-instance Enum e => Scanner [e] e (ListScanner e) where
+runListScanner :: ListScanner e a -> [e] -> a
+runListScanner (ListScanner scanner) xs = evalState scanner xs
+
+instance Scanner [e] e (ListScanner e) where
     consumeInput = ListScanner do
         get >>= \case
             [] ->

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Parser.Rules where
 
@@ -40,6 +41,15 @@ data Token
     | TokLitInteger Integer
     | TokIdentifier String
     deriving (Eq, Show)
+
+instance GrammarToken Token Terminal where
+    tokenToTerminal token = case token of
+        TokPlus{} -> TPlus
+        TokMulti{} -> TMulti
+        TokParenOpen{} -> TParenOpen
+        TokParenClose{} -> TParenClose
+        TokLitInteger{} -> TLitInteger
+        TokIdentifier{} -> TIdentifier
 
 data Ast
     = Sum Ast Ast

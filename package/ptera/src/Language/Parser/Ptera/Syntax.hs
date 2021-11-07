@@ -16,21 +16,18 @@ newtype GrammarT (h :: [(k, Type)]) n t e m a =
     deriving (Functor, Applicative, Monad) via SyntaxGrammar.T Int n t e SemanticAction m
 
 
-fixedT :: Monad m => Enum t => (e -> t) -> GrammarT h n t e m () -> m (FixedGrammar h n t e)
-fixedT getToken (UnsafeGrammarT g) = do
+fixedT :: Monad m => GrammarT h n t e m () -> m (FixedGrammar h n t e)
+fixedT (UnsafeGrammarT g) = do
     fixedG <- SyntaxGrammar.fixedT g
-    pure do
-        UnsafeFixedGrammar
-            {
-                unsafeGrammarGetToken = getToken,
-                unsafeGrammarFixed = fixedG
-            }
+    pure do UnsafeFixedGrammar fixedG
 
-data FixedGrammar (h :: [(k, Type)]) n t e = UnsafeFixedGrammar
+newtype FixedGrammar (h :: [(k, Type)]) n t e = UnsafeFixedGrammar
     {
-        unsafeGrammarGetToken :: e -> t,
-        unsafeGrammarFixed :: SyntaxGrammar.FixedGrammar Int n t e SemanticAction
+        unsafeFixedGrammar :: SyntaxGrammar.FixedGrammar Int n t e SemanticAction
     }
+
+class Enum t => GrammarToken e t where
+    tokenToTerminal :: e -> t
 
 type Rule = SyntaxGrammar.Rule
 type Alt n t e = SafeRule.Alt n t e SemanticAction

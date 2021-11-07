@@ -21,6 +21,7 @@ library
     hs-source-dirs:
         src
     exposed-modules:
+        Parser
         Parser.Rules
 
     build-depends:

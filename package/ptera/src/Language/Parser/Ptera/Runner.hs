@@ -22,12 +22,13 @@ newtype Runner h e = UnsafeRunner (Parser.T e)
 runParser :: forall k h p e m a. a ~ TypeOps.FromJust (Record.RecordIndex k h)
     => Member.T k (TypeOps.MapFst h)
     => Scanner.T p e m
-    => Proxy# k -> Runner h e -> m (RunT.Result a)
-runParser kp (UnsafeRunner p) = case RunT.initialContext p pos of
+    => Proxy k -> Runner h e -> m (RunT.Result a)
+runParser _ (UnsafeRunner p) = case RunT.initialContext p pos of
     Nothing ->
         pure do RunT.ParseFail
     Just initialCtx ->
         evalStateT RunT.runT initialCtx
     where
-        pos = Member.position kp
+        pos = Member.position
+            do proxy# :: Proxy# k
             do proxy# :: Proxy# (TypeOps.MapFst h)
