@@ -1,19 +1,20 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
 
 module Parser.Rules where
 
 import           Language.Parser.Ptera.Data.HList (HList (..))
-import           Language.Parser.Ptera.Syntax     (alt, initial, rule, tok, var,
-                                                   (<:>), (<^>))
-import qualified Language.Parser.Ptera.Syntax     as Syntax
+import           Language.Parser.Ptera hiding (Grammar, Rule)
+import qualified Language.Parser.Ptera as Ptera
+import           Data.Proxy (Proxy (..))
 
 
-type Grammar = Syntax.Grammar StartPoint NonTerminal Terminal Token
-type Rule a = Grammar (Syntax.Rule NonTerminal a)
-
-data StartPoint
-    = StartExpr
-    deriving (Eq, Show, Enum)
+type Grammar = Ptera.Grammar ParsePoints NonTerminal Terminal Token
+type ParsePoints =
+    '[
+        '("expr", Ast)
+    ]
+type Rule a = Grammar (Ptera.Rule NonTerminal a)
 
 data NonTerminal
     = NtExpr
@@ -49,7 +50,7 @@ data Ast
 
 
 grammar :: Grammar ()
-grammar = initial StartExpr rExpr
+grammar = initial (Proxy :: Proxy "expr") rExpr
 
 rExpr :: Rule Ast
 rExpr = rule NtExpr

@@ -45,10 +45,12 @@ newtype SemanticAction us a = SemanticAction
 initial :: forall k h n t e m r. Monad m
     => r ~ TypeOps.FromJust (Record.RecordIndex k h)
     => Member.T k (TypeOps.MapFst h)
-    => Proxy# k -> GrammarT h n t e m (Rule n r) -> GrammarT h n t e m ()
-initial kp (UnsafeGrammarT g) = UnsafeGrammarT do
+    => Proxy k -> GrammarT h n t e m (Rule n r) -> GrammarT h n t e m ()
+initial _ (UnsafeGrammarT g) = UnsafeGrammarT do
     SyntaxGrammar.initialT
-        do Member.position kp do proxy# :: Proxy# (TypeOps.MapFst h)
+        do Member.position
+            do proxy# :: Proxy# k
+            do proxy# :: Proxy# (TypeOps.MapFst h)
         do g
 
 rule :: Monad m => Enum n

@@ -25,8 +25,8 @@ type family Length (as :: [k]) :: TypeNats.Nat where
 
 type family MapFst (as :: [(k1, k2)]) :: [k1] where
     MapFst '[] = '[]
-    MapFst ('(n, a) ': as) = a ': MapFst as
+    MapFst ('(a, _) ': as) = a ': MapFst as
 
 type family MapSnd (as :: [(k1, k2)]) :: [k2] where
     MapSnd '[] = '[]
-    MapSnd ('(n, a) ': as) = a ': MapSnd as
+    MapSnd ('(_, a) ': as) = a ': MapSnd as
