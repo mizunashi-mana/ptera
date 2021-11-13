@@ -10,7 +10,6 @@ import qualified Language.Parser.Ptera.Runner.Parser      as Parser
 import qualified Language.Parser.Ptera.Scanner            as Scanner
 import qualified Unsafe.Coerce                            as Unsafe
 
-
 type T p e = RunT p e
 
 type RunT p e = StateT (Context p e)
@@ -33,10 +32,10 @@ runT = go where
             pure ParseFail
 
     goResult :: RunT p e m (Result a)
-    goResult = get >>= \ctx -> case ctxItemStack ctx of
+    goResult = ctxItemStack <$> get >>= \case
         [ItemArgument x] ->
             pure do Parsed do Unsafe.unsafeCoerce x
-        _   ->
+        items   ->
             goEos
 
 data Result a

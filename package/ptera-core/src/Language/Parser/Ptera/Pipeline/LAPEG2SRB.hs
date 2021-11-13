@@ -59,9 +59,9 @@ data Context s a = Context
 laPegInitialPipeline :: Enum s => s -> LAPEG.Var -> Pipeline s a ()
 laPegInitialPipeline s v = do
     m0 <- ctxInitialVarState <$> get
-    case AlignableMap.lookup v m0 of
+    newSn <- case AlignableMap.lookup v m0 of
         Just sn ->
-            liftBuilder do SRBBuilder.registerInitial s sn
+            pure sn
         Nothing -> do
             sn <- liftBuilder do SRBBuilder.genNewStateNum
             modify' \ctx -> ctx
@@ -78,6 +78,8 @@ laPegInitialPipeline s v = do
                     , stateAltItems = []
                     }
             liftBuilder do SRBBuilder.addState st
+            pure sn
+    liftBuilder do SRBBuilder.registerInitial s newSn
 
 laPegStateQueuePipeline :: Pipeline s a ()
 laPegStateQueuePipeline = do
@@ -222,8 +224,15 @@ laPegTransPipeline p0 alts0 = do
 
 genAltMapForTrans :: LAPEG.Position -> NonEmpty LAPEG.AltNum
     -> Pipeline s a (SymbolicIntMap.T AltItemsForTrans)
-genAltMapForTrans p alts0 = go SymbolicIntMap.empty alts0 where
-    go m0 (alt :| rest) = getUnitForAltItem p alt >>= \case
+genAltMapForTrans p (alt0 :| alts0) = go SymbolicIntMap.empty do alt0:alts0 where
+    go m0 = \case
+        [] ->
+            pure m0
+        alt:rest -> do
+            m1 <- goAlt m0 alt rest
+            go m1 rest
+
+    goAlt m0 alt rest = getUnitForAltItem p alt >>= \case
         Nothing -> do
             let m1 = SymbolicIntMap.alterBulk
                     do \case
@@ -324,6 +333,7 @@ data AltItemsForTrans = AltMapForTrans
         altItemsForTransRevAlts :: NonEmpty LAPEG.AltNum,
         altItemsForTransRest    :: [LAPEG.AltNum]
     }
+    deriving (Eq, Show)
 
 data AltItemsOpForTrans
     = AltItemsOpShift
@@ -334,19 +344,18 @@ data AltItemsOpForTrans
 
 getStateForAltItems :: LAPEG.Position -> NonEmpty LAPEG.AltNum -> Pipeline s a SRB.StateNum
 getStateForAltItems p alts = do
-    ctx <- get
-    case HashMap.lookup (p, alts) do ctxStateMap ctx of
-        Just s ->
-            pure s
+    m <- ctxStateMap <$> get
+    case HashMap.lookup (p, alts) m of
+        Just sn ->
+            pure sn
         Nothing -> do
-            s <- liftBuilder SRBBuilder.genNewStateNum
-            put do
-                ctx
-                    {
-                        ctxStateMap = HashMap.insert (p, alts) s
-                            do ctxStateMap ctx
-                    }
-            pure s
+            sn <- liftBuilder SRBBuilder.genNewStateNum
+            modify' \ctx -> ctx
+                { ctxStateMap = HashMap.insert (p, alts) sn
+                    do ctxStateMap ctx
+                , ctxStateQueue = (sn, p, alts):ctxStateQueue ctx
+                }
+            pure sn
 
 getUnitForAltItem :: LAPEG.Position -> LAPEG.AltNum -> Pipeline s a (Maybe LAPEG.Unit)
 getUnitForAltItem p altn = do

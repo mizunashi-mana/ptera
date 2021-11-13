@@ -17,7 +17,7 @@ data IntMap a = IntMap
         intMapStraight :: DataIntMap.IntMap (Maybe a),
         intMapNegative :: Maybe a
     }
-    deriving (Eq, Show, Functor, Foldable, Traversable)
+    deriving (Show, Functor, Foldable, Traversable)
 
 empty :: IntMap a
 empty = IntMap
@@ -26,12 +26,44 @@ empty = IntMap
         intMapNegative = Nothing
     }
 
+full :: a -> IntMap a
+full v = IntMap
+    {
+        intMapStraight = DataIntMap.empty,
+        intMapNegative = Just v
+    }
+
 singleton :: Key -> a -> IntMap a
 singleton k v = IntMap
     {
         intMapStraight = DataIntMap.singleton k do Just v,
         intMapNegative = Nothing
     }
+
+normalize :: Eq a => IntMap a -> IntMap a
+normalize m = case intMapNegative m of
+    Nothing -> m
+        {
+            intMapStraight = DataIntMap.mapMaybe
+                do \x -> Just <$> x
+                do intMapStraight m
+        }
+    Just nx -> m
+        {
+            intMapStraight = DataIntMap.mapMaybe
+                do \case
+                    Nothing ->
+                        Just Nothing
+                    Just x | x == nx ->
+                        Nothing
+                    jx@Just{} ->
+                        Just jx
+                do intMapStraight m
+        }
+
+instance Eq a => Eq (IntMap a) where
+    m1 == m2 = intMapNegative m1 == intMapNegative m2
+        && intMapStraight (normalize m1) == intMapStraight (normalize m2)
 
 insert :: Key -> a -> IntMap a -> IntMap a
 insert k v m = m
