@@ -14,6 +14,7 @@ executable small-lang-exe
     build-depends:
         base,
         small-lang,
+        bytestring,
 
 library
     default-language: Haskell2010
@@ -21,11 +22,20 @@ library
     hs-source-dirs:
         src
     exposed-modules:
+        Types
         Parser
         Parser.Rules
         Parser.Debug
+        Lexer
+        Lexer.Rules
 
     build-depends:
         base,
         ptera,
         ptera-core,
+        bytestring,
+        tlex,
+        tlex-encoding,
+        tlex-th,
+        charset,
+        template-haskell,

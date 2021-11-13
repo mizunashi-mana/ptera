@@ -6,9 +6,16 @@ module Parser where
 import           Data.Proxy            (Proxy (..))
 import qualified Language.Parser.Ptera as Ptera
 import qualified Parser.Rules          as Rules
+import qualified Language.Parser.Ptera.Scanner as Scanner
+import Types
 
-parseExpr :: Ptera.Scanner p Rules.Token m => m (Ptera.Result Rules.Ast)
-parseExpr = Ptera.runParser (Proxy :: Proxy "expr") runner where
+exprParser :: Ptera.Scanner p Token m => m (Ptera.Result Ast)
+exprParser = Ptera.runParser (Proxy :: Proxy "expr") runner where
     runner = case Ptera.genRunner Rules.grammar of
         Nothing -> error "unreachable"
         Just x  -> x
+
+parseExpr :: [Token] -> Either String Ast
+parseExpr toks = case Scanner.runListScanner exprParser toks of
+    Ptera.Parsed x -> Right x
+    Ptera.ParseFail -> Left "ParseFail"

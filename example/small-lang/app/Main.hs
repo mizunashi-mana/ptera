@@ -1,4 +1,25 @@
 module Main where
 
+import qualified Data.ByteString    as ByteString
+import qualified System.Environment as System
+import qualified System.Exit        as System
+import qualified Lexer
+import qualified Parser
+
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = do
+    args <- System.getArgs
+    f <- case args of
+        [] -> do
+            putStrLn "need input path"
+            System.exitFailure
+        x:_ -> pure x
+    s <- ByteString.readFile f
+    toks <- case Lexer.lexByteString s of
+        Left msg -> do
+            putStrLn "error: "
+            putStrLn msg
+            System.exitFailure
+        Right xs -> pure xs
+    print ("Token", toks)
+    print ("ParseResult", Parser.parseExpr toks)

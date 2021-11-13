@@ -5,6 +5,7 @@
 
 module Parser.Rules where
 
+import           Types
 import           Data.Proxy                       (Proxy (..))
 import           Language.Parser.Ptera            hiding (Grammar, Rule)
 import qualified Language.Parser.Ptera            as Ptera
@@ -25,15 +26,6 @@ data NonTerminal
     | NtValue
     deriving (Eq, Show, Enum)
 
-data Token
-    = TokPlus
-    | TokMulti
-    | TokParenOpen
-    | TokParenClose
-    | TokLitInteger Integer
-    | TokIdentifier String
-    deriving (Eq, Show)
-
 instance GrammarToken Token where
     data Terminal Token
         = TPlus
@@ -51,13 +43,6 @@ instance GrammarToken Token where
         TokParenClose{} -> TParenClose
         TokLitInteger{} -> TLitInteger
         TokIdentifier{} -> TIdentifier
-
-data Ast
-    = Sum Ast Ast
-    | Product Ast Ast
-    | Var String
-    | Value Integer
-    deriving (Eq, Show)
 
 
 grammar :: Grammar ()
