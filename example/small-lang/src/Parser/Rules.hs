@@ -5,11 +5,11 @@
 
 module Parser.Rules where
 
-import           Types
 import           Data.Proxy                       (Proxy (..))
 import           Language.Parser.Ptera            hiding (Grammar, Rule)
 import qualified Language.Parser.Ptera            as Ptera
 import           Language.Parser.Ptera.Data.HList (HList (..))
+import           Types
 
 
 type Grammar = Ptera.Grammar ParsePoints NonTerminal Token

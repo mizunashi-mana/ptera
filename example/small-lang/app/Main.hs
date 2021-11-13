@@ -1,10 +1,10 @@
 module Main where
 
 import qualified Data.ByteString    as ByteString
-import qualified System.Environment as System
-import qualified System.Exit        as System
 import qualified Lexer
 import qualified Parser
+import qualified System.Environment as System
+import qualified System.Exit        as System
 
 main :: IO ()
 main = do

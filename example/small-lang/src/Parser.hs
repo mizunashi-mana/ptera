@@ -3,11 +3,11 @@
 
 module Parser where
 
-import           Data.Proxy            (Proxy (..))
-import qualified Language.Parser.Ptera as Ptera
-import qualified Parser.Rules          as Rules
+import           Data.Proxy                    (Proxy (..))
+import qualified Language.Parser.Ptera         as Ptera
 import qualified Language.Parser.Ptera.Scanner as Scanner
-import Types
+import qualified Parser.Rules                  as Rules
+import           Types
 
 exprParser :: Ptera.Scanner p Token m => m (Ptera.Result Ast)
 exprParser = Ptera.runParser (Proxy :: Proxy "expr") runner where
@@ -17,5 +17,5 @@ exprParser = Ptera.runParser (Proxy :: Proxy "expr") runner where
 
 parseExpr :: [Token] -> Either String Ast
 parseExpr toks = case Scanner.runListScanner exprParser toks of
-    Ptera.Parsed x -> Right x
+    Ptera.Parsed x  -> Right x
     Ptera.ParseFail -> Left "ParseFail"

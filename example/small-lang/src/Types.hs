@@ -1,6 +1,6 @@
 module Types where
 
-import Data.ByteString (ByteString)
+import           Data.ByteString (ByteString)
 
 data Token
     = TokPlus

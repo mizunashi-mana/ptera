@@ -2,14 +2,14 @@
 
 module Lexer.Rules where
 
+import qualified Data.ByteString.Char8               as Char8
 import qualified Data.CharSet                        as CharSet
 import qualified Data.Word                           as Word
-import qualified Data.ByteString.Char8     as Char8
 import qualified Language.Haskell.TH                 as TH
 import qualified Language.Lexer.Tlex                 as Tlex
 import qualified Language.Lexer.Tlex.Plugin.Encoding as TlexEnc
 import qualified Language.Lexer.Tlex.Plugin.TH       as TlexTH
-import Types
+import           Types
 
 
 type LexerState = ()
@@ -40,7 +40,7 @@ lexerRules = do
     initialRule litIntegerP [||
         Just (\s -> case Char8.readInteger s of
             Just (i, _) -> TokLitInteger i
-            Nothing -> error "unreachable"
+            Nothing     -> error "unreachable"
         )
         ||]
     initialRule identifierP [||Just TokIdentifier||]

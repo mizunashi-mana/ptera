@@ -7,7 +7,7 @@ import qualified Data.ByteString     as ByteString
 import qualified GHC.Word
 import qualified Language.Lexer.Tlex as Tlex
 import qualified Lexer.Rules
-import Types
+import           Types
 
 
 $(Lexer.Rules.buildLexer)
