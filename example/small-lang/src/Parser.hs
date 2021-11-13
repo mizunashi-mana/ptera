@@ -1,11 +1,11 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Parser where
 
-import qualified Parser.Rules as Rules
+import           Data.Proxy            (Proxy (..))
 import qualified Language.Parser.Ptera as Ptera
-import           Data.Proxy                       (Proxy (..))
+import qualified Parser.Rules          as Rules
 
 parseExpr :: Ptera.Scanner p Rules.Token m => m (Ptera.Result Rules.Ast)
 parseExpr = Ptera.runParser (Proxy :: Proxy "expr") runner where

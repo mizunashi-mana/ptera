@@ -1,7 +1,7 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GADTs     #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Parser.Rules where
 
@@ -45,9 +45,9 @@ instance GrammarToken Token where
         deriving (Eq, Show, Enum)
 
     tokenToTerminal token = case token of
-        TokPlus{} -> TPlus
-        TokMulti{} -> TMulti
-        TokParenOpen{} -> TParenOpen
+        TokPlus{}       -> TPlus
+        TokMulti{}      -> TMulti
+        TokParenOpen{}  -> TParenOpen
         TokParenClose{} -> TParenClose
         TokLitInteger{} -> TLitInteger
         TokIdentifier{} -> TIdentifier

@@ -1,16 +1,16 @@
 module Parser.Debug where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Syntax as Syntax
-import qualified Language.Parser.Ptera.Runner.Parser as RunnerParser
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
-import qualified Language.Parser.Ptera.Machine.LAPEG as LAPEG
-import qualified Language.Parser.Ptera.Machine.SRB as SRB
+import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
+import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Pipeline.Grammar2PEG as Grammar2PEG
-import qualified Language.Parser.Ptera.Pipeline.PEG2LAPEG as PEG2LAPEG
-import qualified Language.Parser.Ptera.Pipeline.LAPEG2SRB as LAPEG2SRB
-import qualified Parser.Rules as Rules
+import qualified Language.Parser.Ptera.Pipeline.LAPEG2SRB   as LAPEG2SRB
+import qualified Language.Parser.Ptera.Pipeline.PEG2LAPEG   as PEG2LAPEG
+import qualified Language.Parser.Ptera.Runner.Parser        as RunnerParser
+import qualified Language.Parser.Ptera.Syntax               as Syntax
+import qualified Parser.Rules                               as Rules
 
 fixedGrammar :: Syntax.FixedGrammar Rules.ParsePoints Rules.NonTerminal Rules.Token
 fixedGrammar = runIdentity $ Syntax.fixedT Rules.grammar
