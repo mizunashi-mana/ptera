@@ -1,8 +1,9 @@
 module Language.Parser.Ptera.Data.Symbolic.IntMapSpec (spec) where
 
-import           Language.Parser.Ptera.Prelude hiding (lookup, empty)
-import           Test.Hspec
 import           Language.Parser.Ptera.Data.Symbolic.IntMap
+import           Language.Parser.Ptera.Prelude              hiding (empty,
+                                                             lookup)
+import           Test.Hspec
 
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
 
