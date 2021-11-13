@@ -13,7 +13,7 @@ type GrammarT s n t e f = StateT (Context s n t e f)
 data Context s n t e f = Context
     {
         ctxStarts :: EnumMap.EnumMap s n,
-        ctxRules  :: EnumMap.EnumMap n (RuleWrapper n t e f)
+        ctxRules  :: EnumMap.EnumMap n (Maybe (RuleWrapper n t e f))
     }
 
 fixedT :: Monad m => GrammarT s n t e f m () -> m (FixedGrammar s n t e f)
@@ -30,7 +30,9 @@ fixedT builder = do
         fromCtx ctx = FixedGrammar
             {
                 grammarStarts = ctxStarts ctx,
-                grammarRules = ctxRules ctx
+                grammarRules = EnumMap.mapMaybe
+                    do \x -> x
+                    do ctxRules ctx
             }
 
 data FixedGrammar s n t e f = FixedGrammar
@@ -65,11 +67,17 @@ ruleT v mes = do
         Just _ ->
             pure ()
         Nothing -> do
+            modify' \ctx -> ctx
+                {
+                    ctxRules = EnumMap.insert v Nothing
+                        do ctxRules ctx
+                }
             es <- sequence mes
             let r = RuleWrapper do SafeRule.Rule v es
             modify' \ctx -> ctx
                 {
-                    ctxRules = EnumMap.insert v r
+                    ctxRules = EnumMap.insert v
+                        do Just r
                         do ctxRules ctx
                 }
     pure do Rule v

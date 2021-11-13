@@ -23,7 +23,9 @@ library
     exposed-modules:
         Parser
         Parser.Rules
+        Parser.Debug
 
     build-depends:
         base,
         ptera,
+        ptera-core,

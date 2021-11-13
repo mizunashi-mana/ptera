@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Parser.Rules where
 
@@ -10,7 +11,7 @@ import qualified Language.Parser.Ptera            as Ptera
 import           Language.Parser.Ptera.Data.HList (HList (..))
 
 
-type Grammar = Ptera.Grammar ParsePoints NonTerminal Terminal Token
+type Grammar = Ptera.Grammar ParsePoints NonTerminal Token
 type ParsePoints =
     '[
         '("expr", Ast)
@@ -24,15 +25,6 @@ data NonTerminal
     | NtValue
     deriving (Eq, Show, Enum)
 
-data Terminal
-    = TPlus
-    | TMulti
-    | TParenOpen
-    | TParenClose
-    | TLitInteger
-    | TIdentifier
-    deriving (Eq, Show, Enum)
-
 data Token
     = TokPlus
     | TokMulti
@@ -42,7 +34,16 @@ data Token
     | TokIdentifier String
     deriving (Eq, Show)
 
-instance GrammarToken Token Terminal where
+instance GrammarToken Token where
+    data Terminal Token
+        = TPlus
+        | TMulti
+        | TParenOpen
+        | TParenClose
+        | TLitInteger
+        | TIdentifier
+        deriving (Eq, Show, Enum)
+
     tokenToTerminal token = case token of
         TokPlus{} -> TPlus
         TokMulti{} -> TMulti
