@@ -324,9 +324,12 @@ pushItem item = do
         , ctxNeedBackItemsCount = if isNeedBackItem item
             then ctxNeedBackItemsCount ctx + 1
             else ctxNeedBackItemsCount ctx
-        , ctxMemoTable = AlignableMap.restrictGreaterOrEqual
-            do pos
-            do ctxMemoTable ctx
+        , ctxMemoTable = case ctxNeedBackItemsCount ctx == 0 && isNeedBackItem item of
+            False -> AlignableMap.restrictGreaterOrEqual
+                do pos
+                do ctxMemoTable ctx
+            True ->
+                ctxMemoTable ctx
         }
 
 popItem :: Monad m => RunT p e m (Maybe (Item p))
