@@ -10,10 +10,12 @@ module Language.Parser.Ptera.Data.Alignable.Map (
     restrictGreaterOrEqual,
 ) where
 
-import           Language.Parser.Ptera.Prelude        hiding (empty, lookup)
+import           Language.Parser.Ptera.Prelude                        hiding
+                                                                      (empty,
+                                                                       lookup)
 
-import qualified Data.IntMap.Strict                   as IntMap
-import qualified Language.Parser.Ptera.Data.Alignable as Alignable
+import qualified Data.IntMap.Strict                                   as IntMap
+import qualified Language.Parser.Ptera.Data.Alignable                 as Alignable
 import qualified Language.Parser.Ptera.Data.IntMap.GreaterRestriction as GreaterRestriction
 
 

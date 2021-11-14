@@ -2,9 +2,9 @@ module Language.Parser.Ptera.Data.IntMap.GreaterRestriction (
     restrictGreater,
 ) where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import Data.IntMap.Internal
+import           Data.IntMap.Internal
 
 
 restrictGreater :: Key -> IntMap a -> IntMap a

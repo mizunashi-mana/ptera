@@ -4,7 +4,7 @@ import           Language.Parser.Ptera.Data.IntMap.GreaterRestriction
 import           Language.Parser.Ptera.Prelude
 import           Test.Hspec
 
-import qualified Data.IntMap as IntMap
+import qualified Data.IntMap                                          as IntMap
 
 spec :: Spec
 spec = do

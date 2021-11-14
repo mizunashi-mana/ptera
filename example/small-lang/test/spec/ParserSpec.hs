@@ -3,9 +3,9 @@ module ParserSpec (spec) where
 import           Parser
 import           Test.Hspec
 
-import Types
-import Data.Either (isLeft)
 import qualified Data.ByteString.Char8 as Char8
+import           Data.Either           (isLeft)
+import           Types
 
 spec :: Spec
 spec = do
