@@ -37,7 +37,7 @@ data Trans
     deriving (Eq, Show)
 
 data TransOp
-    = TransOpEnter LAPEG.Var (Maybe StateNum)
+    = TransOpEnter LAPEG.Var Bool (Maybe StateNum)
     | TransOpPushBackpoint StateNum
     | TransOpHandleNot LAPEG.AltNum
     | TransOpShift

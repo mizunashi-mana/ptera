@@ -7,12 +7,14 @@ module Language.Parser.Ptera.Data.Alignable.Map (
     lookup,
     assocs,
     toAscList,
+    restrictGreaterOrEqual,
 ) where
 
 import           Language.Parser.Ptera.Prelude        hiding (empty, lookup)
 
 import qualified Data.IntMap.Strict                   as IntMap
 import qualified Language.Parser.Ptera.Data.Alignable as Alignable
+import qualified Language.Parser.Ptera.Data.IntMap.GreaterRestriction as GreaterRestriction
 
 
 type T = Map
@@ -37,3 +39,7 @@ assocs = coerce do IntMap.assocs @a
 
 toAscList :: forall n a. Alignable.T n => Map n a -> [(n, a)]
 toAscList = coerce do IntMap.toAscList @a
+
+restrictGreaterOrEqual :: forall n a. Alignable.T n => n -> Map n a -> Map n a
+restrictGreaterOrEqual n (Map m) = Map do
+    GreaterRestriction.restrictGreater (coerce n - 1) m

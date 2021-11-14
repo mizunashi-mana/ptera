@@ -11,6 +11,7 @@ import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
+import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Machine.SRB.Builder  as SRBBuilder
 
@@ -49,7 +50,7 @@ data Context s a = Context
         ctxBuilder :: SRBBuilder.Context s a,
         ctxInitialVarState :: AlignableMap.T LAPEG.Var SRB.StateNum,
         ctxReduceNotState :: AlignableMap.T LAPEG.AltNum SRB.StateNum,
-        ctxVarMap  :: AlignableMap.T LAPEG.Var (SymbolicIntSet.T, SymbolicIntMap.T SRB.StateNum),
+        ctxVarMap  :: AlignableMap.T LAPEG.Var (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum)),
         ctxStateMap :: HashMap.HashMap (LAPEG.Position, NonEmpty LAPEG.AltNum) SRB.StateNum,
         ctxStateQueue :: [(SRB.StateNum, LAPEG.Position, NonEmpty LAPEG.AltNum)],
         ctxOriginalRules :: AlignableArray.T LAPEG.Var LAPEG.Rule,
@@ -73,7 +74,7 @@ laPegInitialPipeline s v = do
             let st = SRB.MState
                     { stateNum = sn
                     , stateTrans = fmap
-                        do \to -> SRB.TransWithOps [SRB.TransOpEnter v Nothing] to
+                        do \(needBack, to) -> SRB.TransWithOps [SRB.TransOpEnter v needBack Nothing] to
                         do m
                     , stateAltItems = []
                     }
@@ -92,7 +93,7 @@ laPegStateQueuePipeline = do
             laPegStatePipeline sn p alts
             laPegStateQueuePipeline
 
-laPegVarPipeline :: LAPEG.Var -> Pipeline s a (SymbolicIntSet.T, SymbolicIntMap.T SRB.StateNum)
+laPegVarPipeline :: LAPEG.Var -> Pipeline s a (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegVarPipeline v = do
     ctx <- get
     case AlignableMap.lookup v do ctxVarMap ctx of
@@ -105,7 +106,7 @@ laPegVarPipeline v = do
             laPegRulePipeline v r
 
 laPegRulePipeline :: LAPEG.Var -> LAPEG.Rule
-    -> Pipeline s a (SymbolicIntSet.T, SymbolicIntMap.T SRB.StateNum)
+    -> Pipeline s a (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegRulePipeline v r = do
     sm <- case LAPEG.ruleAlts r of
         [] ->
@@ -121,7 +122,7 @@ laPegRulePipeline v r = do
     pure ss
 
 laPegEnterStatePipeline :: NonEmpty LAPEG.AltNum
-    -> Pipeline s a (SymbolicIntMap.T SRB.StateNum)
+    -> Pipeline s a (SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegEnterStatePipeline = \alts -> go do revTails [] alts where
     revTails accs = \case
         alts@(_:|[]) -> alts:accs
@@ -132,7 +133,10 @@ laPegEnterStatePipeline = \alts -> go do revTails [] alts where
     go altss = do
         m <- go1 SymbolicIntMap.empty altss
         traverse
-            do \alts -> getStateForAltItems Alignable.initialAlign alts
+            do \alts -> do
+                needBack <- isNeedBackAlts alts
+                sn <- getStateForAltItems Alignable.initialAlign alts
+                pure (needBack, sn)
             do m
 
     go1 m = \case
@@ -160,11 +164,10 @@ laPegStatePipeline
 laPegStatePipeline sn p alts = do
         trans <- laPegTransPipeline p alts
         let st = SRB.MState
-                {
-                    stateNum = sn,
-                    stateTrans = trans,
-                    stateAltItems = case alts of
-                        alt :| alts' -> toAltItem alt:[toAltItem alt' | alt' <- alts']
+                { stateNum = sn
+                , stateTrans = trans
+                , stateAltItems = case alts of
+                    alt :| alts' -> toAltItem alt:[toAltItem alt' | alt' <- alts']
                 }
         liftBuilder do SRBBuilder.addState st
     where
@@ -203,12 +206,12 @@ laPegTransPipeline p0 alts0 = do
                         SRB.TransWithOps
                             do withBackOp [SRB.TransOpShift]
                             do sn
-                AltItemsOpEnter v enterSn -> do
+                AltItemsOpEnter v needBack enterSn -> do
                     let alts = NonEmpty.reverse do altItemsForTransRevAlts altItems
                     sn <- getStateForAltItems p1 alts
                     pure do
                         SRB.TransWithOps
-                            do withBackOp [SRB.TransOpEnter v do Just sn]
+                            do withBackOp [SRB.TransOpEnter v needBack do Just sn]
                             do enterSn
                 AltItemsOpNot -> do
                     let alts = NonEmpty.reverse do altItemsForTransRevAlts altItems
@@ -281,24 +284,25 @@ genAltMapForTrans p (alt0 :| alts0) = go SymbolicIntMap.empty do alt0:alts0 wher
         Just (LAPEG.UnitNonTerminal v) -> do
             (_, vm) <- laPegVarPipeline v
             let m1 = SymbolicIntMap.merge
-                    do \altItems sn -> case altItemsForTransOp altItems of
+                    do \altItems (needBack, sn) -> case altItemsForTransOp altItems of
                         _ | hasRest altItems ->
                             Just altItems
-                        AltItemsOpEnter v' sn' | v == v' && sn == sn' -> Just do
-                            altItems
-                                {
-                                    altItemsForTransRevAlts = NonEmpty.cons alt
-                                        do altItemsForTransRevAlts altItems
-                                }
+                        transOp@AltItemsOpEnter{} | transOp == AltItemsOpEnter v needBack sn ->
+                            Just do
+                                altItems
+                                    {
+                                        altItemsForTransRevAlts = NonEmpty.cons alt
+                                            do altItemsForTransRevAlts altItems
+                                    }
                         _ -> Just do
                             altItems
                                 {
                                     altItemsForTransRest = alt:rest
                                 }
                     do \altItems -> Just altItems
-                    do \sn -> Just do
+                    do \(needBack, sn) -> Just do
                         AltMapForTrans
-                            { altItemsForTransOp = AltItemsOpEnter v sn
+                            { altItemsForTransOp = AltItemsOpEnter v needBack sn
                             , altItemsForTransRevAlts = pure alt
                             , altItemsForTransRest = []
                             }
@@ -337,7 +341,7 @@ data AltItemsForTrans = AltMapForTrans
 
 data AltItemsOpForTrans
     = AltItemsOpShift
-    | AltItemsOpEnter LAPEG.Var SRB.StateNum
+    | AltItemsOpEnter LAPEG.Var Bool SRB.StateNum
     | AltItemsOpNot
     | AltItemsOpReduce
     deriving (Eq, Show)
@@ -356,6 +360,21 @@ getStateForAltItems p alts = do
                 , ctxStateQueue = (sn, p, alts):ctxStateQueue ctx
                 }
             pure sn
+
+isNeedBackAlts :: NonEmpty LAPEG.AltNum -> Pipeline s a Bool
+isNeedBackAlts = \(altn :| rest) -> go altn rest where
+    go altn0 rest = do
+        alt0 <- getAlt altn0
+        case LAPEG.altKind alt0 of
+            PEG.AltNot ->
+                pure True
+            PEG.AltAnd ->
+                pure True
+            PEG.AltSeq -> case rest of
+                [] ->
+                    pure False
+                altn1:alts ->
+                    go altn1 alts
 
 getUnitForAltItem :: LAPEG.Position -> LAPEG.AltNum -> Pipeline s a (Maybe LAPEG.Unit)
 getUnitForAltItem p altn = do

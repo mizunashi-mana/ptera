@@ -49,13 +49,13 @@ srb2Parser genParam srb = Parser.Parser
                         }
 
         goTransOp = \case
-            SRB.TransOpEnter v mEnterSn ->
+            SRB.TransOpEnter needBack v mEnterSn ->
                 let enterSn = case mEnterSn of
                         Nothing ->
                             -1
                         Just (SRB.StateNum x) ->
                             x
-                in Parser.TransOpEnter v enterSn
+                in Parser.TransOpEnter needBack v enterSn
             SRB.TransOpPushBackpoint (SRB.StateNum backSn) ->
                 Parser.TransOpPushBackpoint backSn
             SRB.TransOpHandleNot alt ->

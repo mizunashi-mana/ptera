@@ -39,3 +39,23 @@ library
         tlex-th,
         charset,
         template-haskell,
+
+test-suite spec
+    default-language: Haskell2010
+    type:
+        exitcode-stdio-1.0
+    hs-source-dirs:
+        test/spec
+    main-is:
+        HSpecDriver.hs
+    ghc-options:
+        -Wno-missing-home-modules
+    build-tool-depends:
+        hspec-discover:hspec-discover,
+    build-depends:
+        base,
+        small-lang,
+        bytestring,
+
+        hspec,
+        QuickCheck,

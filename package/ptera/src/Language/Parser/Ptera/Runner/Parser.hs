@@ -41,7 +41,7 @@ data Trans = Trans
     deriving (Eq, Show)
 
 data TransOp
-    = TransOpEnter VarNum StateNum
+    = TransOpEnter VarNum Bool StateNum
     | TransOpPushBackpoint StateNum
     | TransOpHandleNot AltNum
     | TransOpShift

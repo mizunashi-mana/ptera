@@ -50,7 +50,8 @@ data Context p e = Context
         ctxItemStack      :: [Item p],
         ctxLookAHeadToken :: Maybe (Position, p, Parser.TokenNum, Maybe e),
         ctxNextPosition   :: Position,
-        ctxMemoTable      :: AlignableMap.T Position (AlignableMap.T Parser.VarNum (MemoItem p))
+        ctxMemoTable      :: AlignableMap.T Position (AlignableMap.T Parser.VarNum (MemoItem p)),
+        ctxNeedBackItemsCount :: Int
     }
 
 newtype Position = Position Int
@@ -61,7 +62,7 @@ data MemoItem p where
     MemoItem :: Position -> p -> a -> MemoItem p
 
 data Item p where
-    ItemEnter :: Position -> p -> Parser.VarNum -> Parser.StateNum -> Item p
+    ItemEnter :: Bool -> Position -> p -> Parser.VarNum -> Parser.StateNum -> Item p
     ItemHandleNot :: Parser.AltNum -> Item p
     ItemBackpoint :: Position -> p -> Parser.StateNum -> Item p
     ItemArgument :: a -> Item p
@@ -82,7 +83,8 @@ initialContext p s = do
                 ctxLookAHeadToken = Nothing,
                 ctxItemStack = [],
                 ctxNextPosition = Alignable.initialAlign,
-                ctxMemoTable = AlignableMap.empty
+                ctxMemoTable = AlignableMap.empty,
+                ctxNeedBackItemsCount = 0
             }
 
 transByInput :: forall p e m. Scanner.T p e m => Parser.TokenNum -> RunT p e m RunningResult
@@ -114,8 +116,8 @@ transByInput tok = go where
 
 runTransOp :: Scanner.T p e m => Parser.TransOp ->　RunT p e m RunningResult
 runTransOp = \case
-    Parser.TransOpEnter v enterSn ->
-        runEnter v enterSn
+    Parser.TransOpEnter v needBack enterSn ->
+        runEnter needBack v enterSn
     Parser.TransOpPushBackpoint backSn -> do
         (pos, mark) <- getCurrentPosition
         pushItem do ItemBackpoint pos mark backSn
@@ -133,8 +135,8 @@ runTransOp = \case
     Parser.TransOpReduce alt ->
         runReduce alt
 
-runEnter :: Scanner.T p e m => Parser.VarNum -> Parser.StateNum -> RunT p e m RunningResult
-runEnter v enterSn = do
+runEnter :: Scanner.T p e m => Bool -> Parser.VarNum -> Parser.StateNum -> RunT p e m RunningResult
+runEnter needBack v enterSn = do
     (pos0, mark0) <- getCurrentPosition
     memoTable <- ctxMemoTable <$> get
     let vm = case AlignableMap.lookup pos0 memoTable of
@@ -147,36 +149,24 @@ runEnter v enterSn = do
             seekToMark pos1 mark1
             pure ContParse
         Nothing -> do
-            pushItem do ItemEnter pos0 mark0 v enterSn
+            pushItem do ItemEnter needBack pos0 mark0 v enterSn
             pure ContParse
 
 runReduce :: forall p e m. Scanner.T p e m => Parser.AltNum -> RunT p e m RunningResult
-runReduce alt = do
-        stack0 <- ctxItemStack <$> get
-        go HList.HNil stack0
+runReduce alt = go HList.HNil
     where
-        go :: HList.T us -> [Item p] -> RunT p e m RunningResult
-        go args = \case
-            [] ->
+        go :: HList.T us -> RunT p e m RunningResult
+        go args = popItem >>= \case
+            Nothing ->
                 pure CantContParse
-            item:rest -> case item of
+            Just item -> case item of
                 ItemArgument x ->
-                    go
-                        do x HList.:* args
-                        do rest
+                    go do x HList.:* args
                 ItemBackpoint{} ->
-                    go args rest
-                ItemHandleNot{} -> do
-                    modify' \ctx -> ctx
-                        {
-                            ctxItemStack = rest
-                        }
+                    go args
+                ItemHandleNot{} ->
                     parseFail
-                ItemEnter pos mark v enterSn -> do
-                    modify' \ctx -> ctx
-                        {
-                            ctxItemStack = rest
-                        }
+                ItemEnter _ pos mark v enterSn ->
                     goEnter args pos mark v enterSn
 
         goEnter :: HList.T us -> Position -> p -> Parser.VarNum -> Parser.StateNum
@@ -204,72 +194,64 @@ runReduce alt = do
                     pure CantContParse
 
 parseFail :: forall p e m. Scanner.T p e m => RunT p e m RunningResult
-parseFail = do
-    stack <- ctxItemStack <$> get
-    go stack
-    where
-        go :: [Item p] -> RunT p e m RunningResult
-        go = \case
-            [] ->
-                pure CantContParse
-            item:rest -> case item of
-                ItemBackpoint pos p backSn -> do
-                    modify' \ctx -> ctx
-                        {
-                            ctxState = backSn,
-                            ctxItemStack = rest
-                        }
-                    seekToMark pos p
-                    pure ContParse
-                ItemHandleNot alt ->
-                    goHandleNot alt rest
-                _ ->
-                    go rest
+parseFail = go where
+    go :: RunT p e m RunningResult
+    go = popItem >>= \case
+        Nothing ->
+            pure CantContParse
+        Just item -> case item of
+            ItemBackpoint pos p backSn -> do
+                modify' \ctx -> ctx
+                    {
+                        ctxState = backSn
+                    }
+                seekToMark pos p
+                pure ContParse
+            ItemHandleNot alt ->
+                goHandleNot alt
+            _ ->
+                go
 
-        goHandleNot alt = \case
-            [] ->
-                pure CantContParse
-            item:rest -> case item of
-                ItemEnter pos0 mark0 v enterSn -> do
-                    modify' \ctx -> ctx
-                        {
-                            ctxItemStack = rest
-                        }
-                    goEnter alt pos0 mark0 v enterSn
-                _ ->
-                    goHandleNot alt rest
+    goHandleNot alt = popItem >>= \case
+        Nothing ->
+            pure CantContParse
+        Just item -> case item of
+            ItemEnter _ pos0 mark0 v enterSn ->
+                goEnter alt pos0 mark0 v enterSn
+            _ ->
+                goHandleNot alt
 
-        goEnter :: Parser.AltNum -> Position -> p -> Parser.VarNum -> Parser.StateNum
-            -> RunT p e m RunningResult
-        goEnter alt pos0 mark0 v enterSn = do
-            parser <- ctxParser <$> get
-            case Parser.parserAltKind parser alt of
-                PEG.AltSeq ->
-                    pure CantContParse
-                PEG.AltAnd ->
-                    pure CantContParse
-                PEG.AltNot -> do
-                    seekToMark pos0 mark0
-                    saveEnterActionResult pos0 mark0 v alt HList.HNil
-                    modify' \ctx -> ctx
-                        {
-                            ctxState = enterSn
-                        }
-                    pure ContParse
+    goEnter :: Parser.AltNum -> Position -> p -> Parser.VarNum -> Parser.StateNum
+        -> RunT p e m RunningResult
+    goEnter alt pos0 mark0 v enterSn = do
+        parser <- ctxParser <$> get
+        case Parser.parserAltKind parser alt of
+            PEG.AltSeq ->
+                pure CantContParse
+            PEG.AltAnd ->
+                pure CantContParse
+            PEG.AltNot -> do
+                seekToMark pos0 mark0
+                saveEnterActionResult pos0 mark0 v alt HList.HNil
+                modify' \ctx -> ctx
+                    {
+                        ctxState = enterSn
+                    }
+                pure ContParse
 
 saveEnterActionResult :: Scanner.T p e m
     => Position -> p -> Parser.VarNum -> Parser.AltNum -> HList.T us
     -> RunT p e m ()
 saveEnterActionResult pos0 mark0 v alt args = do
-    ctx <- get
-    let parser = ctxParser ctx
+    parser <- ctxParser <$> get
     let res = Parser.runAction
             do Parser.parserActions parser alt
             do args
-    (pos1, _) <- getCurrentPosition
-    let memoItem = MemoItem pos1 mark0 res
-    put do
-        ctx
+    needBack <- isNeedBack
+    when needBack do
+        (pos1, _) <- getCurrentPosition
+        let memoItem = MemoItem pos1 mark0 res
+        modify' \ctx -> ctx
             {
                 ctxMemoTable = AlignableMap.insert pos0
                     do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
@@ -305,11 +287,7 @@ consumeIfNeeded = ctxLookAHeadToken <$> get >>= \case
             { ctxNextPosition = Alignable.nextAlign
                 do ctxNextPosition ctx
             , ctxLookAHeadToken = Just
-                ( ctxNextPosition ctx
-                , p
-                , tn
-                , mt
-                )
+                (ctxNextPosition ctx, p, tn, mt)
             }
         pure r
 
@@ -333,8 +311,47 @@ seekToMark pos p = do
         }
     lift do Scanner.seekToMark p
 
-pushItem :: Monad m => Item p -> RunT p e m ()
-pushItem item = modify' \ctx -> ctx
-    {
-        ctxItemStack = item:ctxItemStack ctx
-    }
+isNeedBack :: Monad m => RunT p e m Bool
+isNeedBack = do
+    needBackItemsCount <- ctxNeedBackItemsCount <$> get
+    pure do needBackItemsCount > 0
+
+pushItem :: Scanner.T p e m => Item p -> RunT p e m ()
+pushItem item = do
+    (pos, _) <- getCurrentPosition
+    modify' \ctx -> ctx
+        { ctxItemStack = item:ctxItemStack ctx
+        , ctxNeedBackItemsCount = if isNeedBackItem item
+            then ctxNeedBackItemsCount ctx + 1
+            else ctxNeedBackItemsCount ctx
+        , ctxMemoTable = AlignableMap.restrictGreaterOrEqual
+            do pos
+            do ctxMemoTable ctx
+        }
+
+popItem :: Monad m => RunT p e m (Maybe (Item p))
+popItem = do
+    ctx <- get
+    case ctxItemStack ctx of
+        [] ->
+            pure Nothing
+        item:rest -> do
+            put do
+                ctx
+                    { ctxItemStack = rest
+                    , ctxNeedBackItemsCount = if isNeedBackItem item
+                        then ctxNeedBackItemsCount ctx - 1
+                        else ctxNeedBackItemsCount ctx
+                    }
+            pure do Just item
+
+isNeedBackItem :: Item p -> Bool
+isNeedBackItem = \case
+    ItemHandleNot{} ->
+        True
+    ItemBackpoint{} ->
+        True
+    ItemEnter needBack _ _ _ _ ->
+        needBack
+    ItemArgument{} ->
+        False
