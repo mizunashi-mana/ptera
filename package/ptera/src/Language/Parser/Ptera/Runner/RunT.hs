@@ -59,7 +59,8 @@ newtype Position = Position Int
     deriving Alignable.T via Alignable.Inst
 
 data MemoItem p where
-    MemoItem :: Position -> p -> a -> MemoItem p
+    MemoItemParsed :: Position -> p -> a -> MemoItem p
+    MemoItemFailed :: MemoItem p
 
 data Item p where
     ItemEnter :: Bool -> Position -> p -> Parser.VarNum -> Parser.StateNum -> Item p
@@ -143,14 +144,17 @@ runEnter needBack v enterSn = do
             Nothing -> AlignableMap.empty
             Just m  -> m
     case AlignableMap.lookup v vm of
-        Just (MemoItem pos1 mark1 x) -> do
-            modify' do \ctx -> ctx { ctxState = enterSn }
-            pushItem do ItemArgument x
-            seekToMark pos1 mark1
-            pure ContParse
         Nothing -> do
             pushItem do ItemEnter needBack pos0 mark0 v enterSn
             pure ContParse
+        Just memoItem -> case memoItem of
+            MemoItemParsed pos1 mark1 x -> do
+                modify' do \ctx -> ctx { ctxState = enterSn }
+                pushItem do ItemArgument x
+                seekToMark pos1 mark1
+                pure ContParse
+            MemoItemFailed ->
+                parseFail
 
 runReduce :: forall p e m. Scanner.T p e m => Parser.AltNum -> RunT p e m RunningResult
 runReduce alt = go HList.HNil
@@ -175,8 +179,7 @@ runReduce alt = go HList.HNil
             parser <- ctxParser <$> get
             case Parser.parserAltKind parser alt of
                 PEG.AltSeq -> do
-                    mark1 <- lift Scanner.getMark
-                    saveEnterActionResult pos0 mark1 v alt args
+                    saveEnterActionResult pos0 v alt args
                     modify' \ctx -> ctx
                         {
                             ctxState = enterSn
@@ -184,7 +187,7 @@ runReduce alt = go HList.HNil
                     pure ContParse
                 PEG.AltAnd -> do
                     seekToMark pos0 mark0
-                    saveEnterActionResult pos0 mark0 v alt args
+                    saveEnterActionResult pos0 v alt args
                     modify' \ctx -> ctx
                         {
                             ctxState = enterSn
@@ -209,7 +212,10 @@ parseFail = go where
                 pure ContParse
             ItemHandleNot alt ->
                 goHandleNot alt
-            _ ->
+            ItemArgument{} ->
+                go
+            ItemEnter _ pos0 _ v _ -> do
+                saveFailedEnterAction v pos0
                 go
 
     goHandleNot alt = popItem >>= \case
@@ -232,7 +238,7 @@ parseFail = go where
                 pure CantContParse
             PEG.AltNot -> do
                 seekToMark pos0 mark0
-                saveEnterActionResult pos0 mark0 v alt HList.HNil
+                saveEnterActionResult pos0 v alt HList.HNil
                 modify' \ctx -> ctx
                     {
                         ctxState = enterSn
@@ -240,17 +246,17 @@ parseFail = go where
                 pure ContParse
 
 saveEnterActionResult :: Scanner.T p e m
-    => Position -> p -> Parser.VarNum -> Parser.AltNum -> HList.T us
+    => Position -> Parser.VarNum -> Parser.AltNum -> HList.T us
     -> RunT p e m ()
-saveEnterActionResult pos0 mark0 v alt args = do
+saveEnterActionResult pos0 v alt args = do
     parser <- ctxParser <$> get
     let res = Parser.runAction
             do Parser.parserActions parser alt
             do args
     needBack <- isNeedBack
     when needBack do
-        (pos1, _) <- getCurrentPosition
-        let memoItem = MemoItem pos1 mark0 res
+        (pos1, mark1) <- getCurrentPosition
+        let memoItem = MemoItemParsed pos1 mark1 res
         modify' \ctx -> ctx
             {
                 ctxMemoTable = AlignableMap.insert pos0
@@ -260,6 +266,18 @@ saveEnterActionResult pos0 mark0 v alt args = do
                     do ctxMemoTable ctx
             }
     pushItem do ItemArgument res
+
+saveFailedEnterAction :: Scanner.T p e m
+    => Parser.VarNum -> Position -> RunT p e m ()
+saveFailedEnterAction v pos0 = do
+    let memoItem = MemoItemFailed
+    modify' \ctx -> ctx
+        { ctxMemoTable = AlignableMap.insert pos0
+            do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
+                Nothing -> AlignableMap.singleton v memoItem
+                Just vm -> AlignableMap.insert v memoItem vm
+            do ctxMemoTable ctx
+        }
 
 getCurrentPosition :: Scanner.T p e m => RunT p e m (Position, p)
 getCurrentPosition = ctxLookAHeadToken <$> get >>= \case
