@@ -23,8 +23,8 @@ import           Language.Parser.Ptera.Syntax                  (Alt, Expr,
                                                                 alt, eps,
                                                                 fixGrammar,
                                                                 ruleExpr, tok,
-                                                                var, varA, (<:>),
-                                                                (<^>))
+                                                                var, varA,
+                                                                (<:>), (<^>))
 
 type Parser = Runner.T
 

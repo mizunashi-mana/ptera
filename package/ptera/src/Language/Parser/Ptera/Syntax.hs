@@ -1,5 +1,5 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Language.Parser.Ptera.Syntax where
 
