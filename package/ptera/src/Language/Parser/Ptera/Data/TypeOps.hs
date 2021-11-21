@@ -30,3 +30,11 @@ type family MapFst (as :: [(k1, k2)]) :: [k1] where
 type family MapSnd (as :: [(k1, k2)]) :: [k2] where
     MapSnd '[] = '[]
     MapSnd ('(_, a) ': as) = a ': MapSnd as
+
+type family MapMapFst (f :: k1 -> k3) (as :: [(k1, k2)]) :: [(k3, k2)] where
+    MapMapFst _ '[] = '[]
+    MapMapFst f ('(a1, a2) ': as) = '(f a1, a2) ': MapMapFst f as
+
+type family MapMapSnd (f :: k2 -> k3) (as :: [(k1, k2)]) :: [(k1, k3)] where
+    MapMapSnd _ '[] = '[]
+    MapMapSnd f ('(a1, a2) ': as) = '(a1, f a2) ': MapMapSnd f as

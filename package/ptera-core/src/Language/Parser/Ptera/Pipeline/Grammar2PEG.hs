@@ -6,7 +6,6 @@ import qualified Data.EnumMap.Strict                       as EnumMap
 import qualified Language.Parser.Ptera.Machine.PEG         as PEG
 import qualified Language.Parser.Ptera.Machine.PEG.Builder as PEGBuilder
 import qualified Language.Parser.Ptera.Syntax.Grammar      as Grammar
-import qualified Language.Parser.Ptera.Syntax.SafeRule     as SafeRule
 
 
 grammar2Peg :: Enum s => Enum n => Enum t
@@ -26,7 +25,7 @@ grammar2Peg g = runIdentity do PEGBuilder.build builder where
         forM_ do EnumMap.assocs do Grammar.grammarStarts g
             do \(s, v) -> grammarStartPipeline s v
         forM_ do EnumMap.assocs do Grammar.grammarRules g
-            do \(_, r) -> grammarRulePipeline r
+            do \(v, e) -> grammarRulePipeline v e
 
 type Pipeline s n f = State (Context s n f)
 
@@ -42,16 +41,16 @@ grammarStartPipeline s v = do
     liftBuilder do PEGBuilder.addInitial s newV
 
 grammarRulePipeline :: Enum n => Enum t
-    => Grammar.RuleWrapper n t e f -> Pipeline s n f ()
-grammarRulePipeline (Grammar.RuleWrapper (SafeRule.Rule v alts)) = do
+    => n -> Grammar.RuleExpr n t e f -> Pipeline s n f ()
+grammarRulePipeline v (Grammar.RuleExpr alts) = do
     newV <- getNewVar v
     newAlts <- forM alts \alt -> grammarAltPipeline alt
     let newRule = PEG.Rule newAlts
     liftBuilder do PEGBuilder.addRule newV newRule
 
 grammarAltPipeline :: Enum n => Enum t
-    => SafeRule.Alt n t e f r -> Pipeline s n f (PEG.Alt (Grammar.Action f))
-grammarAltPipeline (SafeRule.Alt e act) = do
+    => Grammar.Alt n t e f r -> Pipeline s n f (PEG.Alt (Grammar.Action f))
+grammarAltPipeline (Grammar.Alt e act) = do
     newUs <- grammarExprPipeline e
     let newAct = Grammar.Action act
     let newAlt = PEG.Alt
@@ -63,24 +62,24 @@ grammarAltPipeline (SafeRule.Alt e act) = do
     pure newAlt
 
 grammarExprPipeline :: forall s n t e f us. Enum n => Enum t
-    => SafeRule.Expr n t e us -> Pipeline s n f [PEG.Unit]
+    => Grammar.Expr n t e us -> Pipeline s n f [PEG.Unit]
 grammarExprPipeline = \e -> go [] e where
-    go :: [PEG.Unit] -> SafeRule.Expr n t e us' -> Pipeline s n f [PEG.Unit]
+    go :: [PEG.Unit] -> Grammar.Expr n t e us' -> Pipeline s n f [PEG.Unit]
     go acc = \case
-        SafeRule.Eps ->
+        Grammar.Eps ->
             pure do reverse acc
-        u SafeRule.:^ e -> do
+        u Grammar.:^ e -> do
             newU <- grammarUnitPipeline u
             go
                 do newU:acc
                 do e
 
 grammarUnitPipeline :: Enum n => Enum t
-    => SafeRule.Unit n t e u -> Pipeline s n f PEG.Unit
+    => Grammar.Unit n t e u -> Pipeline s n f PEG.Unit
 grammarUnitPipeline = \case
-    SafeRule.UnitToken t ->
+    Grammar.UnitToken t ->
         pure do PEG.UnitTerminal do fromEnum t
-    SafeRule.UnitVar v -> do
+    Grammar.UnitVar v -> do
         newV <- getNewVar v
         pure do PEG.UnitNonTerminal newV
 

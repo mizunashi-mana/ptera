@@ -13,12 +13,8 @@ import qualified Language.Parser.Ptera.Syntax               as Syntax
 import qualified Parser.Rules                               as Rules
 import qualified Types
 
-fixedGrammar :: Syntax.FixedGrammar Rules.ParsePoints Rules.NonTerminal Types.Token
-fixedGrammar = runIdentity $ Syntax.fixedT Rules.grammar
-
 peg :: PEG.T Int RunnerParser.Action
-peg = case fixedGrammar of
-    Syntax.UnsafeFixedGrammar g -> Grammar2PEG.grammar2Peg g
+peg = Grammar2PEG.grammar2Peg $ Syntax.unsafeGrammar Rules.grammar
 
 laPeg :: LAPEG.T Int RunnerParser.Action
 laPeg = case runExcept $ PEG2LAPEG.peg2LaPeg peg of

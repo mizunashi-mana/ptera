@@ -9,9 +9,9 @@ import qualified Language.Parser.Ptera.Pipeline.SRB2Parser  as SRB2Parser
 import qualified Language.Parser.Ptera.Runner               as Runner
 import qualified Language.Parser.Ptera.Syntax               as Syntax
 
-grammar2Runner :: forall h n e. Enum n => Syntax.GrammarToken e
-    => Syntax.FixedGrammar h n e -> Maybe (Runner.T h e)
-grammar2Runner (Syntax.UnsafeFixedGrammar g) = do
+grammar2Runner :: forall s h e. Syntax.GrammarToken e
+    => Syntax.Grammar s h e -> Maybe (Runner.T s h e)
+grammar2Runner (Syntax.UnsafeGrammar g) = do
     let peg = Grammar2PEG.grammar2Peg g
     laPeg <- case runExcept do PEG2LAPEG.peg2LaPeg peg of
         Left{}  -> Nothing

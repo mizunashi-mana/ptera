@@ -22,6 +22,7 @@ module Language.Parser.Ptera.Prelude.Core (
     module Data.Typeable,
     module Data.Word,
     module GHC.Exts,
+    module GHC.OverloadedLabels,
 ) where
 
 import           Control.Applicative
@@ -51,3 +52,4 @@ import           Data.Word                        (Word, Word8)
 import           GHC.Exts                         (Proxy#, proxy#)
 import           Prelude                          hiding (String, foldl, foldr,
                                                    head, pi, tail, ($))
+import           GHC.OverloadedLabels
