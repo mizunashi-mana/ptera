@@ -271,13 +271,15 @@ saveFailedEnterAction :: Scanner.T p e m
     => Parser.VarNum -> Position -> RunT p e m ()
 saveFailedEnterAction v pos0 = do
     let memoItem = MemoItemFailed
-    modify' \ctx -> ctx
-        { ctxMemoTable = AlignableMap.insert pos0
-            do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
-                Nothing -> AlignableMap.singleton v memoItem
-                Just vm -> AlignableMap.insert v memoItem vm
-            do ctxMemoTable ctx
-        }
+    needBack <- isNeedBack
+    when needBack do
+        modify' \ctx -> ctx
+            { ctxMemoTable = AlignableMap.insert pos0
+                do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
+                    Nothing -> AlignableMap.singleton v memoItem
+                    Just vm -> AlignableMap.insert v memoItem vm
+                do ctxMemoTable ctx
+            }
 
 getCurrentPosition :: Scanner.T p e m => RunT p e m (Position, p)
 getCurrentPosition = ctxLookAHeadToken <$> get >>= \case
@@ -336,40 +338,42 @@ isNeedBack = do
 
 pushItem :: Scanner.T p e m => Item p -> RunT p e m ()
 pushItem item = do
-    (pos, _) <- getCurrentPosition
+    (pos, p) <- getCurrentPosition
+    bc0 <- ctxNeedBackItemsCount <$> get
+    let bc1 = if isNeedBackItem item then bc0 + 1 else bc0
+    when do bc0 == 0 && bc1 > 0
+        do lift do Scanner.scanMode do Scanner.ScanModeNeedBack p
     modify' \ctx -> ctx
         { ctxItemStack = item:ctxItemStack ctx
-        , ctxNeedBackItemsCount = if isNeedBackItem item
-            then ctxNeedBackItemsCount ctx + 1
-            else ctxNeedBackItemsCount ctx
-        , ctxMemoTable = case ctxNeedBackItemsCount ctx == 0 && isNeedBackItem item of
-            False -> AlignableMap.restrictGreaterOrEqual
-                do pos
-                do ctxMemoTable ctx
-            True ->
+        , ctxNeedBackItemsCount = bc1
+        , ctxMemoTable = if bc0 == 0 && bc1 > 0
+            then do
+                AlignableMap.restrictGreaterOrEqual
+                    do pos
+                    do ctxMemoTable ctx
+            else
                 ctxMemoTable ctx
         }
 
-popItem :: Monad m => RunT p e m (Maybe (Item p))
-popItem = do
-    ctx <- get
-    case ctxItemStack ctx of
-        [] ->
-            pure Nothing
-        item:rest -> do
-            put do
-                ctx
-                    { ctxItemStack = rest
-                    , ctxNeedBackItemsCount = if isNeedBackItem item
-                        then ctxNeedBackItemsCount ctx - 1
-                        else ctxNeedBackItemsCount ctx
-                    }
-            pure do Just item
+popItem :: Scanner.T p e m => RunT p e m (Maybe (Item p))
+popItem = ctxItemStack <$> get >>= \case
+    [] ->
+        pure Nothing
+    item:rest -> do
+        bc0 <- ctxNeedBackItemsCount <$> get
+        let bc1 = if isNeedBackItem item then bc0 - 1 else bc0
+        when do bc1 == 0
+            do lift do Scanner.scanMode Scanner.ScanModeNoBack
+        modify' \ctx -> ctx
+            { ctxItemStack = rest
+            , ctxNeedBackItemsCount = bc1
+            }
+        pure do Just item
 
 isNeedBackItem :: Item p -> Bool
 isNeedBackItem = \case
     ItemHandleNot{} ->
-        True
+        False
     ItemBackpoint{} ->
         True
     ItemEnter needBack _ _ _ _ ->
