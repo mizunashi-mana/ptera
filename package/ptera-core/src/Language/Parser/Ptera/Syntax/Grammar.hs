@@ -2,7 +2,7 @@ module Language.Parser.Ptera.Syntax.Grammar where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Data.EnumMap.Strict                   as EnumMap
+import qualified Data.EnumMap.Strict           as EnumMap
 
 
 type T s n t e f = GrammarT s n t e f

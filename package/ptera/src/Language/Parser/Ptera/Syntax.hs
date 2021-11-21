@@ -4,13 +4,13 @@ module Language.Parser.Ptera.Syntax where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Data.Array as Array
-import qualified Language.Parser.Ptera.Data.HList      as HList
-import qualified Language.Parser.Ptera.Data.Member     as Member
-import qualified Language.Parser.Ptera.Data.Record     as Record
-import qualified Language.Parser.Ptera.Data.TypeOps    as TypeOps
-import qualified Language.Parser.Ptera.Syntax.Grammar  as SyntaxGrammar
-import qualified Unsafe.Coerce as Unsafe
+import qualified Data.Array                           as Array
+import qualified Language.Parser.Ptera.Data.HList     as HList
+import qualified Language.Parser.Ptera.Data.Member    as Member
+import qualified Language.Parser.Ptera.Data.Record    as Record
+import qualified Language.Parser.Ptera.Data.TypeOps   as TypeOps
+import qualified Language.Parser.Ptera.Syntax.Grammar as SyntaxGrammar
+import qualified Unsafe.Coerce                        as Unsafe
 
 type T = Grammar
 

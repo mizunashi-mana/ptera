@@ -16,14 +16,15 @@ import qualified Language.Parser.Ptera.Runner                  as Runner
 import           Language.Parser.Ptera.Scanner                 (ListScanner (..),
                                                                 Scanner (..),
                                                                 runListScanner)
-import           Language.Parser.Ptera.Syntax                  (Grammar, Alt, Expr,
+import           Language.Parser.Ptera.Syntax                  (Alt, Expr,
                                                                 Grammar,
                                                                 GrammarToken (..),
-                                                                Unit, RuleExpr,
-                                                                eps, alt,
-                                                                tok, var, ruleExpr,
+                                                                RuleExpr, Unit,
+                                                                alt, eps,
                                                                 fixGrammar,
-                                                                (<:>), (<^>))
+                                                                ruleExpr, tok,
+                                                                var, (<:>),
+                                                                (<^>))
 
 type Parser = Runner.T
 

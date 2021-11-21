@@ -1,16 +1,16 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE OverloadedLabels      #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Parser.Rules where
 
-import           Data.Proxy                       (Proxy (..))
-import           Language.Parser.Ptera            hiding (Grammar, RuleExpr)
-import qualified Language.Parser.Ptera            as Ptera
-import           Language.Parser.Ptera.Data.HList (HList (..))
+import           Data.Proxy                        (Proxy (..))
+import           Language.Parser.Ptera             hiding (Grammar, RuleExpr)
+import qualified Language.Parser.Ptera             as Ptera
+import           Language.Parser.Ptera.Data.HList  (HList (..))
 import qualified Language.Parser.Ptera.Data.Record as Record
 import           Types
 
