@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
 
 module Language.Parser.Ptera.Syntax where
 
@@ -119,11 +120,14 @@ infixr 5 <:>
 eps :: SemanticAction '[] r -> Alt n e r
 eps act = Alt do SyntaxGrammar.Alt SyntaxGrammar.Eps act
 
-var :: forall v r h e. Record.RecordMember v h => Proxy v -> Unit h e r
+var :: forall v h e r. Record.RecordMember v h => Proxy v -> Unit h e r
 var Proxy = Unit do SyntaxGrammar.UnitVar p where
     p = Record.unsafePosition
         do proxy# @v
         do proxy# @h
+
+varA :: forall v h e r. Record.RecordMember v h => Unit h e r
+varA = var do Proxy @v
 
 tok :: Terminal e -> Unit h e e
 tok t = Unit do SyntaxGrammar.UnitToken t

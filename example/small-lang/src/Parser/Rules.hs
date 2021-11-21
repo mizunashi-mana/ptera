@@ -54,28 +54,28 @@ instance GrammarToken Token where
 
 rExpr :: RuleExpr Ast
 rExpr = ruleExpr
-    [ alt $ var @"sum" Proxy <:> \(e :* HNil) -> e
+    [ alt $ varA @"sum" <:> \(e :* HNil) -> e
     ]
 
 rSum :: RuleExpr Ast
 rSum = ruleExpr
-    [ alt $ var @"product" Proxy <^> tok TPlus <^> var @"sum" Proxy
+    [ alt $ varA @"product" <^> tok TPlus <^> varA @"sum"
         <:> \(e1 :* _ :* e2 :* HNil) -> Sum e1 e2
-    , alt $ var @"product" Proxy
+    , alt $ varA @"product"
         <:> \(e :* HNil) -> e
     ]
 
 rProduct :: RuleExpr Ast
 rProduct = ruleExpr
-    [ alt $ var @"value" Proxy <^> tok TMulti <^> var @"product" Proxy
+    [ alt $ varA @"value" <^> tok TMulti <^> varA @"product"
         <:> \(e1 :* _ :* e2 :* HNil) -> Product e1 e2
-    , alt $ var @"value" Proxy
+    , alt $ varA @"value"
         <:> \(e :* HNil) -> e
     ]
 
 rValue :: RuleExpr Ast
 rValue = ruleExpr
-    [ alt $ tok TParenOpen <^> var @"expr" Proxy <^> tok TParenClose
+    [ alt $ tok TParenOpen <^> varA @"expr" <^> tok TParenClose
         <:> \(_ :* e :* _ :* HNil) -> e
     , alt $ tok TLitInteger <:> \(e :* HNil) -> case e of
         TokLitInteger i -> Value i
