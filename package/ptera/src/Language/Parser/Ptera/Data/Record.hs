@@ -1,4 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Language.Parser.Ptera.Data.Record where
 

@@ -25,8 +25,8 @@ module Language.Parser.Ptera.Syntax (
 
 import           Language.Parser.Ptera.Prelude
 
+import qualified Language.Parser.Ptera.Data.HEnum         as HEnum
 import qualified Language.Parser.Ptera.Data.HList         as HList
-import qualified Language.Parser.Ptera.Data.HEnum as HEnum
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 
 

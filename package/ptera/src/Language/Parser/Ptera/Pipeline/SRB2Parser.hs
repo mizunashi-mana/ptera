@@ -4,8 +4,8 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
+import qualified Language.Parser.Ptera.Data.HEnum           as HEnum
 import qualified Language.Parser.Ptera.Data.HList           as HList
-import qualified Language.Parser.Ptera.Data.HEnum as HEnum
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB

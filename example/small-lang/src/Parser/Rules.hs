@@ -1,20 +1,21 @@
 {-# LANGUAGE BlockArguments        #-}
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels      #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
-{-# LANGUAGE FlexibleInstances  #-}
 
 module Parser.Rules where
 
 import           Data.Proxy                        (Proxy (..))
-import           Language.Parser.Ptera             hiding (Grammar, RuleExpr, Rules)
+import           Language.Parser.Ptera             hiding (Grammar, RuleExpr,
+                                                    Rules)
 import qualified Language.Parser.Ptera             as Ptera
-import           Language.Parser.Ptera.Data.HList  (HList (..))
 import           Language.Parser.Ptera.Data.HEnum  (henumA)
+import           Language.Parser.Ptera.Data.HList  (HList (..))
 import qualified Language.Parser.Ptera.Data.Record as Record
 import           Types
 

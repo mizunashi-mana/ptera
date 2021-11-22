@@ -13,8 +13,8 @@ import qualified Language.Parser.Ptera.Pipeline.Grammar2Runner as Grammar2Runner
 import           Language.Parser.Ptera.Runner                  (Result (..),
                                                                 runParser)
 import qualified Language.Parser.Ptera.Runner                  as Runner
-import           Language.Parser.Ptera.Scanner hiding (T)
-import           Language.Parser.Ptera.Syntax hiding (T)
+import           Language.Parser.Ptera.Scanner                 hiding (T)
+import           Language.Parser.Ptera.Syntax                  hiding (T)
 
 type Parser = Runner.T
 
