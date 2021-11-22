@@ -30,5 +30,5 @@ runParser Proxy (UnsafeRunner p) = case RunT.initialContext p pos of
         evalStateT RunT.runT initialCtx
     where
         pos = Member.position
-            do proxy# @v
-            do proxy# @s
+            do proxy# :: Proxy# v
+            do proxy# :: Proxy# s

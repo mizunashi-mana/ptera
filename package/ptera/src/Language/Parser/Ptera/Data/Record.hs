@@ -26,12 +26,12 @@ instance IsLabel k (FieldLabel k) where
 type RecordMember k h = Member.T k (TypeOps.MapFst h)
 
 unsafePosition :: forall k h. RecordMember k h => Proxy# k -> Proxy# h -> Int
-unsafePosition kp# _ = Member.position kp# do proxy# @(TypeOps.MapFst h)
+unsafePosition kp# _ = Member.position kp# do proxy# :: Proxy# (TypeOps.MapFst h)
 
 fromFields :: forall h. FromFields h => Proxy h -> HList.T (Fields h) -> Record h
 fromFields Proxy = \xs -> go0 do
         fromFieldsGo
-            do proxy# @h
+            do proxy# :: Proxy# h
             [] xs
     where
         go0 xs = UnsafeRecord do
@@ -46,7 +46,7 @@ instance FromFields '[] where
 instance FromFields h => FromFields ('(n, a) ': h) where
     fromFieldsGo _ acc = \case
         Field x HList.:* rest -> fromFieldsGo
-            do proxy# @h
+            do proxy# :: Proxy# h
             do Unsafe.unsafeCoerce x:acc
             rest
 
@@ -72,8 +72,8 @@ index :: forall k h. RecordMember k h
     => Proxy k -> Record h -> TypeOps.FromJust (RecordIndex k h)
 index Proxy (UnsafeRecord xs) = Unsafe.unsafeCoerce do
     xs Array.! unsafePosition
-        do proxy# @k
-        do proxy# @h
+        do proxy# :: Proxy# k
+        do proxy# :: Proxy# h
 
 type family RecordIndex (n :: k) (h :: [(k, v)]) :: Maybe v where
     RecordIndex _ '[]               = 'Nothing

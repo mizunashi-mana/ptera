@@ -19,8 +19,8 @@ fixGrammar (Record.UnsafeRecord arr) = UnsafeGrammar do
     runIdentity do
         SyntaxGrammar.fixGrammarT do
             unsafeInitials
-                do proxy# @h
-                do proxy# @s
+                do proxy# :: Proxy# h
+                do proxy# :: Proxy# s
 
             forM_ do Array.assocs arr
                 \(p, e) ->
@@ -55,13 +55,13 @@ instance (Member.T v s, Record.RecordMember v h, MemberInitialsGo h s sg)
         => MemberInitialsGo h s (v ': sg) where
     unsafeInitialsGo hp# sp# _ = do
         SyntaxGrammar.initialT sn vn
-        unsafeInitialsGo hp# sp# do proxy# @sg
+        unsafeInitialsGo hp# sp# do proxy# :: Proxy# sg
         where
             sn = Member.position
-                do proxy# @v
+                do proxy# :: Proxy# v
                 sp#
             vn = Record.unsafePosition
-                do proxy# @v
+                do proxy# :: Proxy# v
                 hp#
 
 
@@ -114,8 +114,8 @@ var :: forall v h e. Record.RecordMember v h
     => Proxy v -> Unit h e (TypeOps.FromJust (Record.RecordIndex v h))
 var Proxy = Unit do SyntaxGrammar.UnitVar p where
     p = Record.unsafePosition
-        do proxy# @v
-        do proxy# @h
+        do proxy# :: Proxy# v
+        do proxy# :: Proxy# h
 
 varA :: forall v h e. Record.RecordMember v h
     => Unit h e (TypeOps.FromJust (Record.RecordIndex v h))
