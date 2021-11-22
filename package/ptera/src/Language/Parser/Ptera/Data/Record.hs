@@ -1,3 +1,5 @@
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+
 module Language.Parser.Ptera.Data.Record where
 
 import           Language.Parser.Ptera.Prelude
@@ -36,6 +38,9 @@ fromFields Proxy = \xs -> go0 do
     where
         go0 xs = UnsafeRecord do
             Array.listArray (0, length xs - 1) xs
+
+fromFieldsA :: forall h. FromFields h => HList.T (Fields h) -> Record h
+fromFieldsA = fromFields do Proxy @h
 
 class FromFields (h :: [(k, Type)]) where
     fromFieldsGo :: Proxy# h -> [e] -> HList.T (Fields h) -> [e]

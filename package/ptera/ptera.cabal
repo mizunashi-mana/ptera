@@ -125,6 +125,7 @@ library
         Language.Parser.Ptera.Pipeline.SafeGrammar2SRB
         Language.Parser.Ptera.Pipeline.SRB2Parser
 
+        Language.Parser.Ptera.Data.HEnum
         Language.Parser.Ptera.Data.HList
         Language.Parser.Ptera.Data.Member
         Language.Parser.Ptera.Data.Record

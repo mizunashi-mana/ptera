@@ -11,10 +11,11 @@ import qualified Language.Parser.Ptera.Data.Record    as Record
 import qualified Language.Parser.Ptera.Data.TypeOps   as TypeOps
 import qualified Language.Parser.Ptera.Syntax.Grammar as SyntaxGrammar
 import qualified Unsafe.Coerce                        as Unsafe
+import qualified Language.Parser.Ptera.Data.HEnum as HEnum
 
 type T = Grammar
 
-fixGrammar :: forall f s h e. MemberInitials h s => Rules f h e -> Grammar f s h e
+fixGrammar :: forall f s h q e. MemberInitials h s => Rules f h q e -> Grammar f s h q e
 fixGrammar (Record.UnsafeRecord arr) = UnsafeGrammar do
     runIdentity do
         SyntaxGrammar.fixGrammarT do
@@ -27,7 +28,7 @@ fixGrammar (Record.UnsafeRecord arr) = UnsafeGrammar do
                     let RuleExpr alts = Unsafe.unsafeCoerce e
                     in SyntaxGrammar.ruleT p do SyntaxGrammar.RuleExpr alts
 
-newtype Grammar (f :: [Type] -> Type -> Type) (s :: [n]) (h :: [(n, Type)]) e = UnsafeGrammar
+newtype Grammar (f :: [Type] -> Type -> Type) (s :: [n]) (h :: [(n, Type)]) (q :: [t]) e = UnsafeGrammar
     {
         unsafeGrammar ::
             SyntaxGrammar.FixedGrammar StartPoint NonTerminal Terminal e f
@@ -65,61 +66,66 @@ instance (Member.T v s, Record.RecordMember v h, MemberInitialsGo h s sg)
                 hp#
 
 
-type Rules f h e = Record.T (RulesTag f h e)
+type Rules f h q e = Record.T (RulesTag f h q e)
 
-type family RulesTag (f :: [Type] -> Type -> Type) (h :: [(n, Type)]) e :: [(n, Type)] where
-    RulesTag f h e = TypeOps.MapMapSnd (RuleExpr f h e) h
+type family RulesTag (f :: [Type] -> Type -> Type) (h :: [(n, Type)]) (q :: [t]) (e :: Type) :: [(n, Type)] where
+    RulesTag f h q e = TypeOps.MapMapSnd (RuleExpr f h q e) h
 
-newtype RuleExpr f (h :: [(n, Type)]) e r = RuleExpr
+newtype RuleExpr f (h :: [(n, Type)]) (q :: [t]) e r = RuleExpr
     {
         unsafeRuleExpr :: [SyntaxGrammar.Alt NonTerminal Terminal e f r]
     }
 
-newtype Alt f (h :: [(n, Type)]) e r = Alt
+newtype Alt f (h :: [(n, Type)]) (q :: [t]) e r = Alt
     {
         unsafeAlt :: SyntaxGrammar.Alt NonTerminal Terminal e f r
     }
 
-newtype Expr (h :: [(n, Type)]) e us = Expr
+newtype Expr (h :: [(n, Type)]) (q :: [t]) e us = Expr
     {
         unsafeExpr :: SyntaxGrammar.Expr NonTerminal Terminal e us
     }
 
-newtype Unit (h :: [(n, Type)]) e u = Unit
+newtype Unit (h :: [(n, Type)]) (q :: [t]) e u = Unit
     {
         unsafeUnit :: SyntaxGrammar.Unit NonTerminal Terminal e u
     }
 
-ruleExpr :: [Alt f h e r] -> RuleExpr f h e r
+ruleExpr :: [Alt f h q e r] -> RuleExpr f h q e r
 ruleExpr alts = RuleExpr do coerce alts
 
-alt ::(Expr h e us, f us r) -> Alt f h e r
+alt ::(Expr h q e us, f us r) -> Alt f h q e r
 alt (Expr us, act) = Alt do SyntaxGrammar.Alt us act
 
-(<^>) :: Unit h e u -> (Expr h e us1, f us2 r)
-    -> (Expr h e (u ': us1), f us2 r)
+(<^>) :: Unit h q e u -> (Expr h q e us1, f us2 r)
+    -> (Expr h q e (u ': us1), f us2 r)
 Unit u <^> (Expr us, act) = (Expr do u SyntaxGrammar.:^ us, act)
 
 infixr 5 <^>
 
-(<:>) :: Unit h e u -> f us2 r -> (Expr h e '[u], f us2 r)
+(<:>) :: Unit h q e u -> f us2 r -> (Expr h q e '[u], f us2 r)
 Unit u <:> act = (Expr do u SyntaxGrammar.:^ SyntaxGrammar.Eps, act)
 
 infixr 5 <:>
 
-eps :: f '[] r -> Alt f n e r
+eps :: f '[] r -> Alt f h q e r
 eps act = Alt do SyntaxGrammar.Alt SyntaxGrammar.Eps act
 
-var :: forall v h e. Record.RecordMember v h
-    => Proxy v -> Unit h e (TypeOps.FromJust (Record.RecordIndex v h))
+var :: forall v h q e. Record.RecordMember v h
+    => Proxy v -> Unit h q e (TypeOps.FromJust (Record.RecordIndex v h))
 var Proxy = Unit do SyntaxGrammar.UnitVar p where
     p = Record.unsafePosition
         do proxy# :: Proxy# v
         do proxy# :: Proxy# h
 
-varA :: forall v h e. Record.RecordMember v h
-    => Unit h e (TypeOps.FromJust (Record.RecordIndex v h))
+varA :: forall v h q e. Record.RecordMember v h
+    => Unit h q e (TypeOps.FromJust (Record.RecordIndex v h))
 varA = var do Proxy @v
 
-tok :: Terminal -> Unit h e e
-tok t = Unit do SyntaxGrammar.UnitToken t
+tok :: forall t h q e. Member.T t q => Proxy t -> Unit h q e e
+tok p = Unit
+    do SyntaxGrammar.UnitToken
+        do HEnum.unsafeHEnum do HEnum.henum p :: HEnum.T q
+
+tokA :: forall t h q e. Member.T t q => Unit h q e e
+tokA = tok do Proxy @t

@@ -5,19 +5,22 @@
 {-# LANGUAGE OverloadedLabels      #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE FlexibleInstances  #-}
 
 module Parser.Rules where
 
 import           Data.Proxy                        (Proxy (..))
-import           Language.Parser.Ptera             hiding (Grammar, RuleExpr)
+import           Language.Parser.Ptera             hiding (Grammar, RuleExpr, Rules)
 import qualified Language.Parser.Ptera             as Ptera
 import           Language.Parser.Ptera.Data.HList  (HList (..))
+import           Language.Parser.Ptera.Data.HEnum  (henumA)
 import qualified Language.Parser.Ptera.Data.Record as Record
 import           Types
 
 
-grammar :: Ptera.Grammar ParsePoints Rules Token
-grammar = fixGrammar $ Record.fromFields Proxy $
+grammar :: Ptera.Grammar ParsePoints Rules Tokens Token
+grammar = fixGrammar $ Record.fromFieldsA $
     Record.field #expr rExpr :*
     Record.field #sum rSum :*
     Record.field #product rProduct :*
@@ -32,25 +35,25 @@ type Rules =
         '("product", Ast),
         '("value", Ast)
     ]
-type RuleExpr = Ptera.RuleExpr Rules Token
+type Tokens =
+    '[
+        "Plus",
+        "Multi",
+        "ParenOpen",
+        "ParenClose",
+        "LitInteger",
+        "Identifier"
+    ]
+type RuleExpr = Ptera.RuleExpr Rules Tokens Token
 
-instance GrammarToken Token where
-    data Terminal Token
-        = TPlus
-        | TMulti
-        | TParenOpen
-        | TParenClose
-        | TLitInteger
-        | TIdentifier
-        deriving (Eq, Show, Enum)
-
-    tokenToTerminal token = case token of
-        TokPlus{}       -> TPlus
-        TokMulti{}      -> TMulti
-        TokParenOpen{}  -> TParenOpen
-        TokParenClose{} -> TParenClose
-        TokLitInteger{} -> TLitInteger
-        TokIdentifier{} -> TIdentifier
+instance GrammarToken Token Tokens where
+    tokenToTerminal Proxy token = case token of
+        TokPlus{}       -> henumA @"Plus"
+        TokMulti{}      -> henumA @"Multi"
+        TokParenOpen{}  -> henumA @"ParenOpen"
+        TokParenClose{} -> henumA @"ParenClose"
+        TokLitInteger{} -> henumA @"LitInteger"
+        TokIdentifier{} -> henumA @"Identifier"
 
 
 rExpr :: RuleExpr Ast
@@ -60,7 +63,7 @@ rExpr = ruleExpr
 
 rSum :: RuleExpr Ast
 rSum = ruleExpr
-    [ alt $ varA @"product" <^> tok TPlus <^> varA @"sum"
+    [ alt $ varA @"product" <^> tokA @"Plus" <^> varA @"sum"
         <:> SemAct \(e1 :* _ :* e2 :* HNil) -> Sum e1 e2
     , alt $ varA @"product"
         <:> SemAct \(e :* HNil) -> e
@@ -68,7 +71,7 @@ rSum = ruleExpr
 
 rProduct :: RuleExpr Ast
 rProduct = ruleExpr
-    [ alt $ varA @"value" <^> tok TMulti <^> varA @"product"
+    [ alt $ varA @"value" <^> tokA @"Multi" <^> varA @"product"
         <:> SemAct \(e1 :* _ :* e2 :* HNil) -> Product e1 e2
     , alt $ varA @"value"
         <:> SemAct \(e :* HNil) -> e
@@ -76,12 +79,12 @@ rProduct = ruleExpr
 
 rValue :: RuleExpr Ast
 rValue = ruleExpr
-    [ alt $ tok TParenOpen <^> varA @"expr" <^> tok TParenClose
+    [ alt $ tokA @"ParenOpen" <^> varA @"expr" <^> tokA @"ParenClose"
         <:> SemAct \(_ :* e :* _ :* HNil) -> e
-    , alt $ tok TLitInteger <:> SemAct \(e :* HNil) -> case e of
+    , alt $ tokA @"LitInteger" <:> SemAct \(e :* HNil) -> case e of
         TokLitInteger i -> Value i
         _               -> error "unreachable: expected integer token"
-    , alt $ tok TIdentifier <:> SemAct \(e :* HNil) -> case e of
+    , alt $ tokA @"Identifier" <:> SemAct \(e :* HNil) -> case e of
         TokIdentifier v -> Var v
         _               -> error "unreachable: expected identifier token"
     ]

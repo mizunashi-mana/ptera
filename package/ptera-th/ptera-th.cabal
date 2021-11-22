@@ -115,6 +115,7 @@ library
     hs-source-dirs:
         src
     exposed-modules:
+        Language.Parser.Ptera.TH.Syntax
 
 test-suite doctest
     import:

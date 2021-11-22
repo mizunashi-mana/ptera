@@ -19,33 +19,30 @@ module Language.Parser.Ptera.Syntax (
     SafeGrammar.eps,
     SafeGrammar.var,
     SafeGrammar.varA,
-    tok,
+    SafeGrammar.tok,
+    SafeGrammar.tokA,
 ) where
 
 import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Parser.Ptera.Data.HList         as HList
+import qualified Language.Parser.Ptera.Data.HEnum as HEnum
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 
 
 type T = Grammar
 
 type Grammar = SafeGrammar.Grammar SemAct
-type Rules h e = SafeGrammar.Rules SemAct h e
+type Rules h q e = SafeGrammar.Rules SemAct h q e
 type RuleExpr = SafeGrammar.RuleExpr SemAct
 type Alt = SafeGrammar.Alt SemAct
 
 
-class Enum (Terminal e) => GrammarToken e where
-    data Terminal e :: Type
-
-    tokenToTerminal :: e -> Terminal e
+class GrammarToken e q where
+    tokenToTerminal :: Proxy q -> e -> HEnum.T q
 
 
 newtype SemAct us a = SemAct
     {
         semanticAction :: HList.T us -> a
     }
-
-tok :: GrammarToken e => Terminal e -> SafeGrammar.Unit h e e
-tok t = SafeGrammar.tok do fromEnum t

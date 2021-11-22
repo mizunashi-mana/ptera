@@ -13,21 +13,10 @@ import qualified Language.Parser.Ptera.Pipeline.Grammar2Runner as Grammar2Runner
 import           Language.Parser.Ptera.Runner                  (Result (..),
                                                                 runParser)
 import qualified Language.Parser.Ptera.Runner                  as Runner
-import           Language.Parser.Ptera.Scanner                 (ListScanner (..),
-                                                                Scanner (..),
-                                                                runListScanner)
-import           Language.Parser.Ptera.Syntax                  (Alt, Expr,
-                                                                Grammar,
-                                                                GrammarToken (..),
-                                                                RuleExpr,
-                                                                SemAct (..),
-                                                                Unit, alt, eps,
-                                                                fixGrammar,
-                                                                ruleExpr, tok,
-                                                                var, varA,
-                                                                (<:>), (<^>))
+import           Language.Parser.Ptera.Scanner hiding (T)
+import           Language.Parser.Ptera.Syntax hiding (T)
 
 type Parser = Runner.T
 
-genRunner :: GrammarToken e => Grammar s h e -> Maybe (Parser s h e)
+genRunner :: GrammarToken e q => Grammar s h q e -> Maybe (Parser s h e)
 genRunner g = Grammar2Runner.grammar2Runner g
