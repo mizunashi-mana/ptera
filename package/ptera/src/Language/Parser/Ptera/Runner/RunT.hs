@@ -4,7 +4,6 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Parser.Ptera.Data.Alignable     as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
-import qualified Language.Parser.Ptera.Data.HList         as HList
 import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Runner.Parser      as Parser
 import qualified Language.Parser.Ptera.Scanner            as Scanner
@@ -157,15 +156,15 @@ runEnter needBack v enterSn = do
                 parseFail
 
 runReduce :: forall p e m. Scanner.T p e m => Parser.AltNum -> RunT p e m RunningResult
-runReduce alt = go HList.HNil
+runReduce alt = go []
     where
-        go :: HList.T us -> RunT p e m RunningResult
+        go :: [u] -> RunT p e m RunningResult
         go args = popItem >>= \case
             Nothing ->
                 pure CantContParse
             Just item -> case item of
                 ItemArgument x ->
-                    go do x HList.:* args
+                    go do Unsafe.unsafeCoerce x:args
                 ItemBackpoint{} ->
                     go args
                 ItemHandleNot{} ->
@@ -173,7 +172,7 @@ runReduce alt = go HList.HNil
                 ItemEnter _ pos mark v enterSn ->
                     goEnter args pos mark v enterSn
 
-        goEnter :: HList.T us -> Position -> p -> Parser.VarNum -> Parser.StateNum
+        goEnter :: [u] -> Position -> p -> Parser.VarNum -> Parser.StateNum
             -> RunT p e m RunningResult
         goEnter args pos0 mark0 v enterSn = do
             parser <- ctxParser <$> get
@@ -238,7 +237,7 @@ parseFail = go where
                 pure CantContParse
             PEG.AltNot -> do
                 seekToMark pos0 mark0
-                saveEnterActionResult pos0 v alt HList.HNil
+                saveEnterActionResult pos0 v alt []
                 modify' \ctx -> ctx
                     {
                         ctxState = enterSn
@@ -246,12 +245,12 @@ parseFail = go where
                 pure ContParse
 
 saveEnterActionResult :: Scanner.T p e m
-    => Position -> Parser.VarNum -> Parser.AltNum -> HList.T us
+    => Position -> Parser.VarNum -> Parser.AltNum -> [u]
     -> RunT p e m ()
 saveEnterActionResult pos0 v alt args = do
     parser <- ctxParser <$> get
     let res = Parser.runAction
-            do Parser.parserActions parser alt
+            do Parser.parserAction parser alt
             do args
     needBack <- isNeedBack
     when needBack do

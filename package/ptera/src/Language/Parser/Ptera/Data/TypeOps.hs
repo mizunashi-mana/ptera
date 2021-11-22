@@ -23,6 +23,10 @@ type family Length (as :: [k]) :: TypeNats.Nat where
     Length '[] = 0
     Length (_ ': as) = 1 TypeNats.+ Length as
 
+type family Map (f :: k1 -> k2) (as :: [k1]) :: [k2] where
+    Map _ '[] = '[]
+    Map f (a ': as) = f a ': Map f as
+
 type family MapFst (as :: [(k1, k2)]) :: [k1] where
     MapFst '[] = '[]
     MapFst ('(a, _) ': as) = a ': MapFst as

@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedLabels      #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE BlockArguments        #-}
 
 module Parser.Rules where
 
@@ -54,33 +55,33 @@ instance GrammarToken Token where
 
 rExpr :: RuleExpr Ast
 rExpr = ruleExpr
-    [ alt $ varA @"sum" <:> \(e :* HNil) -> e
+    [ alt $ varA @"sum" <:> SemAct \(e :* HNil) -> e
     ]
 
 rSum :: RuleExpr Ast
 rSum = ruleExpr
     [ alt $ varA @"product" <^> tok TPlus <^> varA @"sum"
-        <:> \(e1 :* _ :* e2 :* HNil) -> Sum e1 e2
+        <:> SemAct \(e1 :* _ :* e2 :* HNil) -> Sum e1 e2
     , alt $ varA @"product"
-        <:> \(e :* HNil) -> e
+        <:> SemAct \(e :* HNil) -> e
     ]
 
 rProduct :: RuleExpr Ast
 rProduct = ruleExpr
     [ alt $ varA @"value" <^> tok TMulti <^> varA @"product"
-        <:> \(e1 :* _ :* e2 :* HNil) -> Product e1 e2
+        <:> SemAct \(e1 :* _ :* e2 :* HNil) -> Product e1 e2
     , alt $ varA @"value"
-        <:> \(e :* HNil) -> e
+        <:> SemAct \(e :* HNil) -> e
     ]
 
 rValue :: RuleExpr Ast
 rValue = ruleExpr
     [ alt $ tok TParenOpen <^> varA @"expr" <^> tok TParenClose
-        <:> \(_ :* e :* _ :* HNil) -> e
-    , alt $ tok TLitInteger <:> \(e :* HNil) -> case e of
+        <:> SemAct \(_ :* e :* _ :* HNil) -> e
+    , alt $ tok TLitInteger <:> SemAct \(e :* HNil) -> case e of
         TokLitInteger i -> Value i
         _               -> error "unreachable: expected integer token"
-    , alt $ tok TIdentifier <:> \(e :* HNil) -> case e of
+    , alt $ tok TIdentifier <:> SemAct \(e :* HNil) -> case e of
         TokIdentifier v -> Var v
         _               -> error "unreachable: expected identifier token"
     ]

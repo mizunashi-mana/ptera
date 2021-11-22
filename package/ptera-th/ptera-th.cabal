@@ -1,7 +1,7 @@
 cabal-version:       3.0
 build-type:          Custom
 
-name:                ptera
+name:                ptera-th
 version:             0.1.0.0
 license:             Apache-2.0 OR MPL-2.0
 license-file:        LICENSE
@@ -92,9 +92,11 @@ common general
 
         -- project depends
         ptera-core,
+        ptera,
         containers,
         array,
         enummapset-th,
+        template-haskell,
 
     autogen-modules:
         Paths_ptera
@@ -113,22 +115,6 @@ library
     hs-source-dirs:
         src
     exposed-modules:
-        Language.Parser.Ptera
-
-        Language.Parser.Ptera.Syntax
-        Language.Parser.Ptera.Syntax.SafeGrammar
-        Language.Parser.Ptera.Scanner
-        Language.Parser.Ptera.Runner
-        Language.Parser.Ptera.Runner.Parser
-        Language.Parser.Ptera.Runner.RunT
-        Language.Parser.Ptera.Pipeline.Grammar2Runner
-        Language.Parser.Ptera.Pipeline.SafeGrammar2SRB
-        Language.Parser.Ptera.Pipeline.SRB2Parser
-
-        Language.Parser.Ptera.Data.HList
-        Language.Parser.Ptera.Data.Member
-        Language.Parser.Ptera.Data.Record
-        Language.Parser.Ptera.Data.TypeOps
 
 test-suite doctest
     import:
@@ -161,7 +147,7 @@ test-suite spec
     build-tool-depends:
         hspec-discover:hspec-discover,
     build-depends:
-        ptera,
+        ptera-th,
 
         hspec,
         QuickCheck,
