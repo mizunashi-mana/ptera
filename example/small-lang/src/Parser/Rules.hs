@@ -1,10 +1,10 @@
+{-# LANGUAGE BlockArguments        #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels      #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE BlockArguments        #-}
 
 module Parser.Rules where
 

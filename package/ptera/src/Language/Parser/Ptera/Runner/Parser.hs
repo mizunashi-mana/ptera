@@ -2,8 +2,8 @@ module Language.Parser.Ptera.Runner.Parser where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.LAPEG  as LAPEG
-import qualified Language.Parser.Ptera.Machine.PEG    as PEG
+import qualified Language.Parser.Ptera.Machine.LAPEG as LAPEG
+import qualified Language.Parser.Ptera.Machine.PEG   as PEG
 
 type StartNum = Int
 type StateNum = Int

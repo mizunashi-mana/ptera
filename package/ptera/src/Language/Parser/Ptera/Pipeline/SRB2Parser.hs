@@ -4,14 +4,14 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
+import qualified Language.Parser.Ptera.Data.HList           as HList
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Runner.Parser        as Parser
-import qualified Language.Parser.Ptera.Syntax as Syntax
+import qualified Language.Parser.Ptera.Syntax               as Syntax
 import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
-import qualified Unsafe.Coerce as Unsafe
-import qualified Language.Parser.Ptera.Data.HList as HList
+import qualified Unsafe.Coerce                              as Unsafe
 
 type Action = Grammar.Action Syntax.SemAct
 
@@ -77,5 +77,5 @@ runAction (Grammar.Action (Syntax.SemAct f)) = Parser.Action \l ->
         Unsafe.unsafeCoerce do f do goL l
     where
         goL = \case
-            [] -> Unsafe.unsafeCoerce HList.HNil
+            []   -> Unsafe.unsafeCoerce HList.HNil
             x:xs -> Unsafe.unsafeCoerce do x HList.:* goL xs
