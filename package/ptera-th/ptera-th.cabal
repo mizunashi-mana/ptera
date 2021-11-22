@@ -99,9 +99,9 @@ common general
         template-haskell,
 
     autogen-modules:
-        Paths_ptera
+        Paths_ptera_th
     other-modules:
-        Paths_ptera
+        Paths_ptera_th
 
 custom-setup
     setup-depends:
