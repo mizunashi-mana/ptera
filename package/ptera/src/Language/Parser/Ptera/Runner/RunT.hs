@@ -62,7 +62,7 @@ data MemoItem p where
     MemoItemFailed :: MemoItem p
 
 data Item p where
-    ItemEnter :: Bool -> Position -> p -> Parser.VarNum -> Parser.StateNum -> Item p
+    ItemEnter :: Position -> Maybe p -> Parser.VarNum -> Parser.StateNum -> Item p
     ItemHandleNot :: Parser.AltNum -> Item p
     ItemBackpoint :: Position -> p -> Parser.StateNum -> Item p
     ItemArgument :: a -> Item p
@@ -144,7 +144,10 @@ runEnter needBack v enterSn = do
             Just m  -> m
     case AlignableMap.lookup v vm of
         Nothing -> do
-            pushItem do ItemEnter needBack pos0 mark0 v enterSn
+            let mmark0 = if needBack
+                    then Just mark0
+                    else Nothing
+            pushItem do ItemEnter pos0 mmark0 v enterSn
             pure ContParse
         Just memoItem -> case memoItem of
             MemoItemParsed pos1 mark1 x -> do
@@ -156,35 +159,37 @@ runEnter needBack v enterSn = do
                 parseFail
 
 runReduce :: forall p e m. Scanner.T p e m => Parser.AltNum -> RunT p e m RunningResult
-runReduce alt = go []
-    where
-        go :: [u] -> RunT p e m RunningResult
-        go args = popItem >>= \case
-            Nothing ->
-                pure CantContParse
-            Just item -> case item of
-                ItemArgument x ->
-                    go do Unsafe.unsafeCoerce x:args
-                ItemBackpoint{} ->
-                    go args
-                ItemHandleNot{} ->
-                    parseFail
-                ItemEnter _ pos mark v enterSn ->
-                    goEnter args pos mark v enterSn
+runReduce alt = go [] where
+    go :: [u] -> RunT p e m RunningResult
+    go args = popItem >>= \case
+        Nothing ->
+            pure CantContParse
+        Just item -> case item of
+            ItemArgument x ->
+                go do Unsafe.unsafeCoerce x:args
+            ItemBackpoint{} ->
+                go args
+            ItemHandleNot{} ->
+                parseFail
+            ItemEnter pos mmark v enterSn ->
+                goEnter args pos mmark v enterSn
 
-        goEnter :: [u] -> Position -> p -> Parser.VarNum -> Parser.StateNum
-            -> RunT p e m RunningResult
-        goEnter args pos0 mark0 v enterSn = do
-            parser <- ctxParser <$> get
-            case Parser.parserAltKind parser alt of
-                PEG.AltSeq -> do
-                    saveEnterActionResult pos0 v alt args
-                    modify' \ctx -> ctx
-                        {
-                            ctxState = enterSn
-                        }
-                    pure ContParse
-                PEG.AltAnd -> do
+    goEnter :: [u] -> Position -> Maybe p -> Parser.VarNum -> Parser.StateNum
+        -> RunT p e m RunningResult
+    goEnter args pos0 mmark0 v enterSn = do
+        parser <- ctxParser <$> get
+        case Parser.parserAltKind parser alt of
+            PEG.AltSeq -> do
+                saveEnterActionResult pos0 v alt args
+                modify' \ctx -> ctx
+                    {
+                        ctxState = enterSn
+                    }
+                pure ContParse
+            PEG.AltAnd -> case mmark0 of
+                Nothing ->
+                    error "unreachable: no mark with and alternative"
+                Just mark0 -> do
                     seekToMark pos0 mark0
                     saveEnterActionResult pos0 v alt args
                     modify' \ctx -> ctx
@@ -192,8 +197,8 @@ runReduce alt = go []
                             ctxState = enterSn
                         }
                     pure ContParse
-                PEG.AltNot ->
-                    pure CantContParse
+            PEG.AltNot ->
+                pure CantContParse
 
 parseFail :: forall p e m. Scanner.T p e m => RunT p e m RunningResult
 parseFail = go where
@@ -213,7 +218,7 @@ parseFail = go where
                 goHandleNot alt
             ItemArgument{} ->
                 go
-            ItemEnter _ pos0 _ v _ -> do
+            ItemEnter pos0 _ v _ -> do
                 saveFailedEnterAction v pos0
                 go
 
@@ -221,28 +226,31 @@ parseFail = go where
         Nothing ->
             pure CantContParse
         Just item -> case item of
-            ItemEnter _ pos0 mark0 v enterSn ->
-                goEnter alt pos0 mark0 v enterSn
+            ItemEnter pos0 mmark0 v enterSn ->
+                goEnter alt pos0 mmark0 v enterSn
             _ ->
                 goHandleNot alt
 
-    goEnter :: Parser.AltNum -> Position -> p -> Parser.VarNum -> Parser.StateNum
+    goEnter :: Parser.AltNum -> Position -> Maybe p -> Parser.VarNum -> Parser.StateNum
         -> RunT p e m RunningResult
-    goEnter alt pos0 mark0 v enterSn = do
+    goEnter alt pos0 mmark0 v enterSn = do
         parser <- ctxParser <$> get
         case Parser.parserAltKind parser alt of
             PEG.AltSeq ->
-                pure CantContParse
+                error "unreachable: a not handling with seq alternative"
             PEG.AltAnd ->
-                pure CantContParse
-            PEG.AltNot -> do
-                seekToMark pos0 mark0
-                saveEnterActionResult pos0 v alt []
-                modify' \ctx -> ctx
-                    {
-                        ctxState = enterSn
-                    }
-                pure ContParse
+                error "unreachable: a not handling with and alternative"
+            PEG.AltNot -> case mmark0 of
+                Nothing ->
+                    error "unreachable: no mark with not alternative"
+                Just mark0 -> do
+                    seekToMark pos0 mark0
+                    saveEnterActionResult pos0 v alt []
+                    modify' \ctx -> ctx
+                        {
+                            ctxState = enterSn
+                        }
+                    pure ContParse
 
 saveEnterActionResult :: Scanner.T p e m
     => Position -> Parser.VarNum -> Parser.AltNum -> [u]
@@ -375,7 +383,10 @@ isNeedBackItem = \case
         False
     ItemBackpoint{} ->
         True
-    ItemEnter needBack _ _ _ _ ->
-        needBack
+    ItemEnter _ mmark _ _ -> case mmark of
+        Nothing ->
+            False
+        Just{} ->
+            True
     ItemArgument{} ->
         False
