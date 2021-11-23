@@ -33,8 +33,8 @@ type T = Grammar
 
 data Grammar s h q e = Grammar
     {
-        grammarMain  :: SafeGrammar.Grammar SemAct s h q e,
-        grammarToken :: Record.T (TokensTag q)
+        grammar :: SafeGrammar.Grammar SemAct s h q e,
+        tokens :: Record.T (TokensTag q)
     }
 
 type family TokensTag (q :: [t]) :: [(t, Type)] where
