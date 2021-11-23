@@ -11,8 +11,7 @@
 module Parser.Rules where
 
 import           Data.Proxy                        (Proxy (..))
-import           Language.Parser.Ptera             hiding (RuleExpr,
-                                                    Rules)
+import           Language.Parser.Ptera             hiding (RuleExpr, Rules)
 import qualified Language.Parser.Ptera             as Ptera
 import           Language.Parser.Ptera.Data.HEnum  (henumA)
 import           Language.Parser.Ptera.Data.HList  (HList (..))

@@ -4,20 +4,19 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels      #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
-{-# LANGUAGE TemplateHaskell       #-}
 
 module Parser.Rules where
 
 import           Data.Proxy                        (Proxy (..))
-import           Language.Parser.Ptera.TH          hiding (RuleExpr,
-                                                    Rules)
-import qualified Language.Parser.Ptera.TH          as Ptera
 import           Language.Parser.Ptera.Data.HEnum  (henumA)
 import           Language.Parser.Ptera.Data.HList  (HList (..))
 import qualified Language.Parser.Ptera.Data.Record as Record
+import           Language.Parser.Ptera.TH          hiding (RuleExpr, Rules)
+import qualified Language.Parser.Ptera.TH          as Ptera
 import           Types
 
 
