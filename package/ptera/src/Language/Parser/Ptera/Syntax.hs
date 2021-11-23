@@ -8,7 +8,7 @@ module Language.Parser.Ptera.Syntax (
     Alt,
     SafeGrammar.Expr,
     SafeGrammar.Unit,
-    GrammarToken (..),
+    GrammarToken.GrammarToken (..),
     SemAct (..),
 
     SafeGrammar.fixGrammar,
@@ -23,11 +23,9 @@ module Language.Parser.Ptera.Syntax (
     SafeGrammar.tokA,
 ) where
 
-import           Language.Parser.Ptera.Prelude
-
-import qualified Language.Parser.Ptera.Data.HEnum         as HEnum
 import qualified Language.Parser.Ptera.Data.HList         as HList
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
+import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
 
 
 type T = Grammar
@@ -36,10 +34,6 @@ type Grammar = SafeGrammar.Grammar SemAct
 type Rules h q e = SafeGrammar.Rules SemAct h q e
 type RuleExpr = SafeGrammar.RuleExpr SemAct
 type Alt = SafeGrammar.Alt SemAct
-
-
-class GrammarToken e q where
-    tokenToTerminal :: Proxy q -> e -> HEnum.T q
 
 
 newtype SemAct us a = SemAct
