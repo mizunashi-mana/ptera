@@ -93,10 +93,12 @@ common general
         -- project depends
         ptera-core,
         ptera,
+        ghc-prim,
         containers,
         array,
         enummapset-th,
         template-haskell,
+        unordered-containers,
 
     autogen-modules:
         Paths_ptera_th
@@ -116,7 +118,12 @@ library
         src
     exposed-modules:
         Language.Parser.Ptera.TH
+        Language.Parser.Ptera.TH.ParserLib
+
+        Language.Parser.Ptera.TH.Data.Bits.MaxBit
+
         Language.Parser.Ptera.TH.Syntax
+        Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec
 
 test-suite doctest
     import:

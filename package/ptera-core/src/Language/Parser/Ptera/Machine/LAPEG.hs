@@ -47,6 +47,7 @@ newtype Position = Position Int
 
 newtype Var = Var Int
     deriving (Eq, Show)
+    deriving Hashable via Int
     deriving Alignable.T via Alignable.Inst
 
 data Unit

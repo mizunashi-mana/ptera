@@ -2,6 +2,7 @@ module Language.Parser.Ptera.Runner.RunT where
 
 import           Language.Parser.Ptera.Prelude
 
+import qualified Data.IntMap.Strict                       as IntMap
 import qualified Language.Parser.Ptera.Data.Alignable     as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
 import qualified Language.Parser.Ptera.Machine.PEG        as PEG
@@ -49,7 +50,7 @@ data Context p e = Context
         ctxItemStack      :: [Item p],
         ctxLookAHeadToken :: Maybe (Position, p, Parser.TokenNum, Maybe e),
         ctxNextPosition   :: Position,
-        ctxMemoTable      :: AlignableMap.T Position (AlignableMap.T Parser.VarNum (MemoItem p)),
+        ctxMemoTable      :: AlignableMap.T Position (IntMap.IntMap (MemoItem p)),
         ctxNeedBackItemsCount :: Int
     }
 
@@ -91,16 +92,12 @@ transByInput :: forall p e m. Scanner.T p e m => Parser.TokenNum -> RunT p e m R
 transByInput tok = go where
     go = do
         ctx0 <- get
-        let mtrans1 = Parser.parserTrans
+        let trans1 = Parser.parserTrans
                 do ctxParser ctx0
                 do ctxState ctx0
                 do tok
-        case mtrans1 of
-            Nothing ->
-                parseFail
-            Just trans1 -> do
-                put do ctx0 { ctxState = Parser.transState trans1 }
-                goTransOps do Parser.transOps trans1
+        put do ctx0 { ctxState = Parser.transState trans1 }
+        goTransOps do Parser.transOps trans1
 
     goTransOps :: [Parser.TransOp] -> RunT p e m RunningResult
     goTransOps = \case
@@ -117,7 +114,7 @@ transByInput tok = go where
 runTransOp :: Scanner.T p e m => Parser.TransOp ->　RunT p e m RunningResult
 runTransOp = \case
     Parser.TransOpEnter v needBack enterSn ->
-        runEnter needBack v enterSn
+        runEnter v needBack enterSn
     Parser.TransOpPushBackpoint backSn -> do
         (pos, mark) <- getCurrentPosition
         pushItem do ItemBackpoint pos mark backSn
@@ -135,14 +132,15 @@ runTransOp = \case
     Parser.TransOpReduce alt ->
         runReduce alt
 
-runEnter :: Scanner.T p e m => Bool -> Parser.VarNum -> Parser.StateNum -> RunT p e m RunningResult
-runEnter needBack v enterSn = do
+runEnter :: Scanner.T p e m
+    => Parser.VarNum -> Bool -> Parser.StateNum -> RunT p e m RunningResult
+runEnter v needBack enterSn = do
     (pos0, mark0) <- getCurrentPosition
     memoTable <- ctxMemoTable <$> get
     let vm = case AlignableMap.lookup pos0 memoTable of
-            Nothing -> AlignableMap.empty
+            Nothing -> IntMap.empty
             Just m  -> m
-    case AlignableMap.lookup v vm of
+    case IntMap.lookup v vm of
         Nothing -> do
             let mmark0 = if needBack
                     then Just mark0
@@ -268,8 +266,8 @@ saveEnterActionResult pos0 v alt args = do
             {
                 ctxMemoTable = AlignableMap.insert pos0
                     do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
-                        Nothing -> AlignableMap.singleton v memoItem
-                        Just vm -> AlignableMap.insert v memoItem vm
+                        Nothing -> IntMap.singleton v memoItem
+                        Just vm -> IntMap.insert v memoItem vm
                     do ctxMemoTable ctx
             }
     pushItem do ItemArgument res
@@ -283,8 +281,8 @@ saveFailedEnterAction v pos0 = do
         modify' \ctx -> ctx
             { ctxMemoTable = AlignableMap.insert pos0
                 do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
-                    Nothing -> AlignableMap.singleton v memoItem
-                    Just vm -> AlignableMap.insert v memoItem vm
+                    Nothing -> IntMap.singleton v memoItem
+                    Just vm -> IntMap.insert v memoItem vm
                 do ctxMemoTable ctx
             }
 

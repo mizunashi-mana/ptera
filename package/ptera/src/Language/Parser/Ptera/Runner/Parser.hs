@@ -1,15 +1,30 @@
-module Language.Parser.Ptera.Runner.Parser where
+module Language.Parser.Ptera.Runner.Parser (
+    T,
+
+    StartNum,
+    StateNum,
+    TokenNum,
+    VarNum,
+    AltNum,
+    PEG.AltKind (..),
+
+    Parser (..),
+    Action (..),
+    Trans (..),
+    TransOp (..),
+
+    eosToken,
+) where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.LAPEG as LAPEG
-import qualified Language.Parser.Ptera.Machine.PEG   as PEG
+import qualified Language.Parser.Ptera.Machine.PEG as PEG
 
 type StartNum = Int
 type StateNum = Int
 type TokenNum = Int
-type VarNum = LAPEG.Var
-type AltNum = LAPEG.AltNum
+type VarNum = Int
+type AltNum = Int
 
 type T = Parser
 
@@ -22,7 +37,7 @@ data Parser e = Parser
     {
         parserInitial     :: StartNum -> Maybe StateNum,
         parserGetTokenNum :: e -> TokenNum,
-        parserTrans       :: StateNum -> TokenNum -> Maybe Trans,
+        parserTrans       :: StateNum -> TokenNum -> Trans,
         parserAltKind     :: AltNum -> PEG.AltKind,
         parserAction      :: AltNum -> Action
     }

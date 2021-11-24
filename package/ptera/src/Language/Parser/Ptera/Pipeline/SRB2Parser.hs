@@ -23,7 +23,11 @@ srb2Parser p srb = Parser.Parser
     , parserGetTokenNum = \tok ->
         HEnum.unsafeHEnum do Syntax.tokenToTerminal p tok
     , parserTrans = \s0 t -> if s0 < 0
-        then Nothing
+        then Parser.Trans
+            {
+                transState = -1,
+                transOps = []
+            }
         else
             let srbSt = AlignableArray.forceIndex
                     do SRB.states srb
@@ -32,45 +36,47 @@ srb2Parser p srb = Parser.Parser
     , parserAltKind = \alt -> LAPEG.altKind
         do AlignableArray.forceIndex
             do SRB.alts srb
-            do alt
+            do LAPEG.AltNum alt
     , parserAction = \alt -> runAction
         do LAPEG.altAction
             do AlignableArray.forceIndex
                 do SRB.alts srb
-                do alt
+                do LAPEG.AltNum alt
     }
 
-buildTrans :: Int -> SRB.MState -> Maybe Parser.Trans
+buildTrans :: Int -> SRB.MState -> Parser.Trans
 buildTrans t srbSt = case SymbolicIntMap.lookup t do SRB.stateTrans srbSt of
     Nothing ->
-        Nothing
+        Parser.Trans
+            {
+                transState = -1,
+                transOps = []
+            }
     Just (SRB.TransWithOps ops (SRB.StateNum s1)) ->
-        Just do
-            Parser.Trans
-                {
-                    transState = s1,
-                    transOps = transOp <$> ops
-                }
-    Just (SRB.TransReduce alt) ->
-        Just do
-            Parser.Trans
-                {
-                    transState = -1,
-                    transOps = [Parser.TransOpReduce alt]
-                }
+        Parser.Trans
+            {
+                transState = s1,
+                transOps = transOp <$> ops
+            }
+    Just (SRB.TransReduce (LAPEG.AltNum alt)) ->
+        Parser.Trans
+            {
+                transState = -1,
+                transOps = [Parser.TransOpReduce alt]
+            }
 
 transOp :: SRB.TransOp -> Parser.TransOp
 transOp = \case
-    SRB.TransOpEnter needBack v mEnterSn ->
+    SRB.TransOpEnter (LAPEG.Var v) needBack mEnterSn ->
         let enterSn = case mEnterSn of
                 Nothing ->
                     -1
                 Just (SRB.StateNum x) ->
                     x
-        in Parser.TransOpEnter needBack v enterSn
+        in Parser.TransOpEnter v needBack enterSn
     SRB.TransOpPushBackpoint (SRB.StateNum backSn) ->
         Parser.TransOpPushBackpoint backSn
-    SRB.TransOpHandleNot alt ->
+    SRB.TransOpHandleNot (LAPEG.AltNum alt) ->
         Parser.TransOpHandleNot alt
     SRB.TransOpShift ->
         Parser.TransOpShift

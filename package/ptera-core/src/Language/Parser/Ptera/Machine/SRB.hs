@@ -21,6 +21,7 @@ data SRB s a = SRB
 
 newtype StateNum = StateNum Int
     deriving (Eq, Show)
+    deriving Hashable via Int
     deriving Alignable.T via Alignable.Inst
 
 data MState = MState
@@ -41,7 +42,9 @@ data TransOp
     | TransOpPushBackpoint StateNum
     | TransOpHandleNot LAPEG.AltNum
     | TransOpShift
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
+
+instance Hashable TransOp
 
 data AltItem = AltItem
     {
