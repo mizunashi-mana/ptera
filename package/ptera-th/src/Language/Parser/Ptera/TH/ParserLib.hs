@@ -5,6 +5,7 @@ module Language.Parser.Ptera.TH.ParserLib (
     pteraTHLookupTable8,
     pteraTHLookupTable16,
     pteraTHLookupTable32,
+    pteraTHUnsafeCoerce,
 ) where
 
 import           Language.Parser.Ptera.Prelude
@@ -16,6 +17,7 @@ import qualified GHC.ST                              as ST
 import qualified GHC.Types                           as Types
 import           Language.Parser.Ptera.Runner.Parser (AltKind (..), Parser (..),
                                                       Trans (..), TransOp (..))
+import qualified Unsafe.Coerce as Unsafe
 
 
 pteraTHArrayIndex :: Array.Array Int e -> Int -> e
@@ -51,3 +53,6 @@ pteraTHLookupTable32 offset table# s c = do
         ST.ST \s0# -> do
             let !(# s1#, r# #) = Prim.readInt32OffAddr# table# i# s0#
             (# s1#, Types.I# r# #)
+
+pteraTHUnsafeCoerce :: a -> b
+pteraTHUnsafeCoerce = Unsafe.unsafeCoerce

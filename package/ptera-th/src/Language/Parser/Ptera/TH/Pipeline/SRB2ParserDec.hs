@@ -273,10 +273,43 @@ data OutTransOpsRepr
 instance Hashable OutTransOpsRepr
 
 outputParserAltKindFn :: TH.Name -> AlignableArray.T LAPEG.AltNum (LAPEG.Alt a) -> TH.Q TH.Dec
-outputParserAltKindFn = undefined
+outputParserAltKindFn parserAltKindFnName alts = TH.ValD
+    do TH.VarP parserAltKindFnName
+    <$> fmap TH.NormalB [e|
+        pteraTHArrayFromList $(TH.lift do length alts - 1)
+            $(TH.ListE <$> traverse altKindExp do toList alts)
+    |]
+    <*> pure []
+    where
+        altKindExp alt = case LAPEG.altKind alt of
+            AltSeq -> [e|AltSeq|]
+            AltAnd -> [e|AltAnd|]
+            AltNot -> [e|AltNot|]
 
-outputParserActionFn :: TH.Name -> AlignableArray.T LAPEG.AltNum (LAPEG.Alt a) -> TH.Q TH.Dec
-outputParserActionFn = undefined
+outputParserActionFn :: TH.Name -> AlignableArray.T LAPEG.AltNum (LAPEG.Alt Action) -> TH.Q TH.Dec
+outputParserActionFn parserActionFnName alts = TH.ValD
+    do TH.VarP parserActionFnName
+    <$> fmap TH.NormalB [e|
+         pteraTHArrayFromList $(TH.lift do length alts - 1)
+            $(pure do
+                TH.ListE
+                    [ TH.VarE do altActionForAltFnName n
+                    | (n, _) <- AlignableArray.assocs alts
+                    ]
+            )
+    |]
+    <*> traverse
+        do \(n, alt) -> TH.ValD
+            do TH.VarP do altActionForAltFnName n
+            <$> do TH.NormalB <$> altActionExp alt
+            <*> pure []
+        do AlignableArray.assocs alts
+    where
+        altActionForAltFnName (LAPEG.AltNum n) = TH.mkName
+            do "pteraTHParserActionForAlt" ++ show n
+
+        altActionExp alt = case LAPEG.altAction alt of
+            Grammar.Action act -> Syntax.unsafeSemanticAction act
 
 outputRunnerFn :: TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Q TH.Dec
 outputRunnerFn runnerFnName = \

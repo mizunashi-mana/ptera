@@ -6,7 +6,7 @@ module Language.Parser.Ptera.Runner.Parser (
     TokenNum,
     VarNum,
     AltNum,
-    PEG.AltKind (..),
+    AltKind (..),
 
     Parser (..),
     Action (..),
@@ -18,7 +18,7 @@ module Language.Parser.Ptera.Runner.Parser (
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
+import           Language.Parser.Ptera.Machine.PEG (AltKind (..))
 
 type StartNum = Int
 type StateNum = Int
@@ -38,7 +38,7 @@ data Parser e = Parser
         parserInitial     :: StartNum -> Maybe StateNum,
         parserGetTokenNum :: e -> TokenNum,
         parserTrans       :: StateNum -> TokenNum -> Trans,
-        parserAltKind     :: AltNum -> PEG.AltKind,
+        parserAltKind     :: AltNum -> AltKind,
         parserAction      :: AltNum -> Action
     }
 
