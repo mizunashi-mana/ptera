@@ -17,7 +17,7 @@ import qualified GHC.ST                              as ST
 import qualified GHC.Types                           as Types
 import           Language.Parser.Ptera.Runner.Parser (AltKind (..), Parser (..),
                                                       Trans (..), TransOp (..))
-import qualified Unsafe.Coerce as Unsafe
+import qualified Unsafe.Coerce                       as Unsafe
 
 
 pteraTHArrayIndex :: Array.Array Int e -> Int -> e
