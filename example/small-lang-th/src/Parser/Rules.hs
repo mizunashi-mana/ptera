@@ -59,35 +59,35 @@ instance GrammarToken Token Tokens where
 
 rExpr :: RuleExpr Ast
 rExpr = ruleExpr
-    [ alt $ varA @"sum" <:> SemAct \(e :* HNil) -> e
+    [ alt $ varA @"sum" <:> semAct \(e :* HNil) -> e
     ]
 
 rSum :: RuleExpr Ast
 rSum = ruleExpr
     [ alt $ varA @"product" <^> tokA @"Plus" <^> varA @"sum"
-        <:> SemAct \(e1 :* _ :* e2 :* HNil) -> [|| Sum $$(e1) $$(e2) ||]
+        <:> semAct \(e1 :* _ :* e2 :* HNil) -> [|| Sum $$(e1) $$(e2) ||]
     , alt $ varA @"product"
-        <:> SemAct \(e :* HNil) -> e
+        <:> semAct \(e :* HNil) -> e
     ]
 
 rProduct :: RuleExpr Ast
 rProduct = ruleExpr
     [ alt $ varA @"value" <^> tokA @"Multi" <^> varA @"product"
-        <:> SemAct \(e1 :* _ :* e2 :* HNil) -> [|| Product $$(e1) $$(e2) ||]
+        <:> semAct \(e1 :* _ :* e2 :* HNil) -> [|| Product $$(e1) $$(e2) ||]
     , alt $ varA @"value"
-        <:> SemAct \(e :* HNil) -> e
+        <:> semAct \(e :* HNil) -> e
     ]
 
 rValue :: RuleExpr Ast
 rValue = ruleExpr
     [ alt $ tokA @"ParenOpen" <^> varA @"expr" <^> tokA @"ParenClose"
-        <:> SemAct \(_ :* e :* _ :* HNil) -> e
-    , alt $ tokA @"LitInteger" <:> SemAct \(e :* HNil) ->
+        <:> semAct \(_ :* e :* _ :* HNil) -> e
+    , alt $ tokA @"LitInteger" <:> semAct \(e :* HNil) ->
         [|| case $$(e) of
             TokLitInteger i -> Value i
             _               -> error "unreachable: expected integer token"
         ||]
-    , alt $ tokA @"Identifier" <:> SemAct \(e :* HNil) ->
+    , alt $ tokA @"Identifier" <:> semAct \(e :* HNil) ->
         [|| case $$(e) of
             TokIdentifier v -> Var v
             _               -> error "unreachable: expected identifier token"
