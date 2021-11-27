@@ -1,24 +1,38 @@
 module Language.Parser.Ptera.TH.ParserLib (
     module Language.Parser.Ptera.Runner.Parser,
+    module Data.Proxy,
+    Parser,
+    pteraTHTokenToTerminal,
     pteraTHArrayIndex,
     pteraTHArrayFromList,
     pteraTHLookupTable8,
     pteraTHLookupTable16,
     pteraTHLookupTable32,
     pteraTHUnsafeCoerce,
+    pteraTHUnsafeRunner,
+    pteraTHAction,
 ) where
 
 import           Language.Parser.Ptera.Prelude
 
+import           Data.Proxy                          (Proxy (..))
 import qualified Data.Array                          as Array
 import qualified Data.Bits                           as Bits
 import qualified GHC.Prim                            as Prim
 import qualified GHC.ST                              as ST
 import qualified GHC.Types                           as Types
-import           Language.Parser.Ptera.Runner.Parser (AltKind (..), Parser (..),
-                                                      Trans (..), TransOp (..))
+import           Language.Parser.Ptera.Runner.Parser (AltKind (..), RunnerParser (..),
+                                                      Trans (..), TransOp (..), Action)
 import qualified Unsafe.Coerce                       as Unsafe
+import qualified Language.Parser.Ptera.Data.HEnum as HEnum
+import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
+import qualified Language.Parser.Ptera.Runner as Runner
+import qualified Language.Parser.Ptera.Runner.Parser as RunnerParser
 
+type Parser = Runner.T
+
+pteraTHTokenToTerminal :: GrammarToken.GrammarToken e q => Proxy q -> e -> Int
+pteraTHTokenToTerminal p t = HEnum.unsafeHEnum do GrammarToken.tokenToTerminal p t
 
 pteraTHArrayIndex :: Array.Array Int e -> Int -> e
 pteraTHArrayIndex arr i = arr Array.! i
@@ -56,3 +70,9 @@ pteraTHLookupTable32 offset table# s c = do
 
 pteraTHUnsafeCoerce :: a -> b
 pteraTHUnsafeCoerce = Unsafe.unsafeCoerce
+
+pteraTHUnsafeRunner :: RunnerParser e -> Parser s h e
+pteraTHUnsafeRunner p = Runner.UnsafeRunner p
+
+pteraTHAction :: ([a] -> b) -> Action
+pteraTHAction f = RunnerParser.Action do Unsafe.unsafeCoerce f

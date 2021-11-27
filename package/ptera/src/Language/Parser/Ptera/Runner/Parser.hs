@@ -8,7 +8,7 @@ module Language.Parser.Ptera.Runner.Parser (
     AltNum,
     AltKind (..),
 
-    Parser (..),
+    RunnerParser (..),
     Action (..),
     Trans (..),
     TransOp (..),
@@ -26,14 +26,14 @@ type TokenNum = Int
 type VarNum = Int
 type AltNum = Int
 
-type T = Parser
+type T = RunnerParser
 
 newtype Action = Action
     {
         runAction :: forall a b. [a] -> b
     }
 
-data Parser e = Parser
+data RunnerParser e = RunnerParser
     {
         parserInitial     :: StartNum -> Maybe StateNum,
         parserGetTokenNum :: e -> TokenNum,

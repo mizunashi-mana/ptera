@@ -18,7 +18,7 @@ type Action = Grammar.Action Syntax.SemAct
 
 srb2Parser :: forall e q. Syntax.GrammarToken e q
     => Proxy q -> SRB.T Int Action -> Parser.T e
-srb2Parser p srb = Parser.Parser
+srb2Parser p srb = Parser.RunnerParser
     { parserInitial = \s -> coerce do EnumMap.lookup s do SRB.initials srb
     , parserGetTokenNum = \tok ->
         HEnum.unsafeHEnum do Syntax.tokenToTerminal p tok

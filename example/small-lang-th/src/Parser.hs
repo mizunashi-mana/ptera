@@ -1,21 +1,29 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Parser where
 
 import           Data.Proxy                    (Proxy (..))
-import qualified Language.Parser.Ptera         as Ptera
-import qualified Language.Parser.Ptera.Scanner as Scanner
+import Language.Parser.Ptera.TH.ParserLib
+import qualified Language.Parser.Ptera.TH as PteraTH
 import qualified Parser.Rules                  as Rules
 import           Types
 
-exprParser :: Ptera.Scanner p Token m => m (Ptera.Result Ast)
-exprParser = Ptera.runParser (Proxy :: Proxy "expr") runner where
-    runner = case Ptera.genRunner Rules.grammar of
-        Nothing -> error "unreachable"
-        Just x  -> x
+$(PteraTH.genRunner
+    (PteraTH.GenParam {
+        PteraTH.startsTy = [t|Rules.ParsePoints|],
+        PteraTH.rulesTy  = [t|Rules.Rules|],
+        PteraTH.tokensTy = [t|Rules.Tokens|],
+        PteraTH.tokenTy  = [t|Token|]
+    })
+    Rules.grammar
+    )
+
+exprParser :: PteraTH.Scanner p Token m => m (PteraTH.Result Ast)
+exprParser = PteraTH.runParser (Proxy :: Proxy "expr") pteraTHRunner
 
 parseExpr :: [Token] -> Either String Ast
-parseExpr toks = case Scanner.runListScanner exprParser toks of
-    Ptera.Parsed x  -> Right x
-    Ptera.ParseFail -> Left "ParseFail"
+parseExpr toks = case PteraTH.runListScanner exprParser toks of
+    PteraTH.Parsed x  -> Right x
+    PteraTH.ParseFail -> Left "ParseFail"

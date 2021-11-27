@@ -5,16 +5,16 @@ version:            0.1.0.0
 author:             Mizunashi Mana
 maintainer:         mizunashi-mana@noreply.git
 
--- executable small-lang-th-exe
---    main-is:          Main.hs
---    hs-source-dirs:   app
---
---    default-language: Haskell2010
---
---    build-depends:
---        base,
---        small-lang-th,
---        bytestring,
+executable small-lang-th-exe
+    main-is:          Main.hs
+    hs-source-dirs:   app
+
+    default-language: Haskell2010
+
+    build-depends:
+        base,
+        small-lang-th,
+        bytestring,
 
 library
     default-language: Haskell2010
@@ -23,7 +23,9 @@ library
         src
     exposed-modules:
         Types
+        Parser
         Parser.Rules
+        Parser.Debug
         Lexer
         Lexer.Rules
 

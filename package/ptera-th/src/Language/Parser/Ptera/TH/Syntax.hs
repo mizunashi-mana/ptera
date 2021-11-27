@@ -49,7 +49,7 @@ type Rules h q e = SafeGrammar.Rules SemAct h q e
 type RuleExpr = SafeGrammar.RuleExpr SemAct
 type Alt = SafeGrammar.Alt SemAct
 
-newtype SemAct us a = UnsafeSemAct
+newtype SemAct (us :: [Type]) a = UnsafeSemAct
     {
         unsafeSemanticAction :: TH.Q TH.Exp
     }

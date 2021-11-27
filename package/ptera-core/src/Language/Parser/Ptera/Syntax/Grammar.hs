@@ -38,7 +38,7 @@ data FixedGrammar s n t e f = FixedGrammar
         grammarRules  :: EnumMap.EnumMap n (RuleExpr n t e f)
     }
 
-data Action f where
+data Action (f :: [Type] -> Type -> Type) where
     Action :: f us r -> Action f
 
 data RuleExpr n t e f where

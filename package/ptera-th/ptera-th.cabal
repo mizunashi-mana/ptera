@@ -124,6 +124,7 @@ library
 
         Language.Parser.Ptera.TH.Syntax
         Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec
+        Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec
 
 test-suite doctest
     import:
