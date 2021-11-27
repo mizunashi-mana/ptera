@@ -15,19 +15,22 @@ module Language.Parser.Ptera.TH.ParserLib (
 
 import           Language.Parser.Ptera.Prelude
 
-import           Data.Proxy                          (Proxy (..))
-import qualified Data.Array                          as Array
-import qualified Data.Bits                           as Bits
-import qualified GHC.Prim                            as Prim
-import qualified GHC.ST                              as ST
-import qualified GHC.Types                           as Types
-import           Language.Parser.Ptera.Runner.Parser (AltKind (..), RunnerParser (..),
-                                                      Trans (..), TransOp (..), Action)
-import qualified Unsafe.Coerce                       as Unsafe
-import qualified Language.Parser.Ptera.Data.HEnum as HEnum
+import qualified Data.Array                                as Array
+import qualified Data.Bits                                 as Bits
+import           Data.Proxy                                (Proxy (..))
+import qualified GHC.Prim                                  as Prim
+import qualified GHC.ST                                    as ST
+import qualified GHC.Types                                 as Types
+import qualified Language.Parser.Ptera.Data.HEnum          as HEnum
+import qualified Language.Parser.Ptera.Runner              as Runner
+import           Language.Parser.Ptera.Runner.Parser       (Action,
+                                                            AltKind (..),
+                                                            RunnerParser (..),
+                                                            Trans (..),
+                                                            TransOp (..))
+import qualified Language.Parser.Ptera.Runner.Parser       as RunnerParser
 import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
-import qualified Language.Parser.Ptera.Runner as Runner
-import qualified Language.Parser.Ptera.Runner.Parser as RunnerParser
+import qualified Unsafe.Coerce                             as Unsafe
 
 type Parser = Runner.T
 

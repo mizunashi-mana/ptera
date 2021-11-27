@@ -2,10 +2,10 @@
 
 module Parser.Debug where
 
-import qualified Language.Haskell.TH as TH
-import Language.Parser.Ptera.TH.ParserLib
-import qualified Language.Parser.Ptera.TH as PteraTH
-import qualified Parser.Rules                  as Rules
+import qualified Language.Haskell.TH                as TH
+import qualified Language.Parser.Ptera.TH           as PteraTH
+import           Language.Parser.Ptera.TH.ParserLib
+import qualified Parser.Rules                       as Rules
 import           Types
 
 showProgram :: IO String

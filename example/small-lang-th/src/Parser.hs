@@ -1,13 +1,13 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell  #-}
 
 module Parser where
 
-import           Data.Proxy                    (Proxy (..))
-import Language.Parser.Ptera.TH.ParserLib
-import qualified Language.Parser.Ptera.TH as PteraTH
-import qualified Parser.Rules                  as Rules
+import           Data.Proxy                         (Proxy (..))
+import qualified Language.Parser.Ptera.TH           as PteraTH
+import           Language.Parser.Ptera.TH.ParserLib
+import qualified Parser.Rules                       as Rules
 import           Types
 
 $(PteraTH.genRunner

@@ -4,12 +4,12 @@ module Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec      as SRB2ParserDec
-import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB as SafeGrammar2SRB
-import qualified Language.Parser.Ptera.TH.Syntax                   as Syntax
-import qualified Language.Parser.Ptera.Data.TypeOps                   as TypeOps
-import qualified Language.Haskell.TH as TH
-import qualified GHC.TypeNats as TypeNats
+import qualified GHC.TypeNats                                    as TypeNats
+import qualified Language.Haskell.TH                             as TH
+import qualified Language.Parser.Ptera.Data.TypeOps              as TypeOps
+import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB  as SafeGrammar2SRB
+import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
+import qualified Language.Parser.Ptera.TH.Syntax                 as Syntax
 
 grammar2ParserDec :: forall s h q e.
     Syntax.GrammarToken e q => TokenBounded q
@@ -40,8 +40,8 @@ instance TypeNats.KnownNat (TypeOps.Length q) => TokenBounded q where
 
 data PipelineParam = PipelineParam
     {
-        startsTy    :: TH.Q TH.Type,
-        rulesTy     :: TH.Q TH.Type,
-        tokensTy    :: TH.Q TH.Type,
-        tokenTy     :: TH.Q TH.Type
+        startsTy :: TH.Q TH.Type,
+        rulesTy  :: TH.Q TH.Type,
+        tokensTy :: TH.Q TH.Type,
+        tokenTy  :: TH.Q TH.Type
     }
