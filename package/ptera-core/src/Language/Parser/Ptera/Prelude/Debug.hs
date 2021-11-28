@@ -4,8 +4,8 @@ module Language.Parser.Ptera.Prelude.Debug (
     debugTraceShowId,
 ) where
 
-import Prelude
 import qualified Debug.Trace as Debug
+import           Prelude
 
 debugTrace :: String -> a -> a
 debugTrace = Debug.trace
