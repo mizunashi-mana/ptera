@@ -109,7 +109,9 @@ outputParserTransFn parserTransFnName (minTokBound, maxTokBound) states = if
     | otherwise ->
         TH.ValD do TH.VarP parserTransFnName
             <$> fmap TH.NormalB [e|\s0 c0 ->
-                let c1 = c0 - $(TH.lift minTokBound)
+                let c1 = if c0 >= 0
+                        then c0 - $(TH.lift minTokBound)
+                        else $(TH.lift maxTokBound) + 1
                     s1 = $(stateTableLookupFn)
                         $(TH.lift tokBitSize)
                         stateTable
@@ -131,7 +133,9 @@ outputParserTransFn parserTransFnName (minTokBound, maxTokBound) states = if
                         do sequence do reverse do outTransReprTransOps outTrans)
             |]
     where
-        tokBitSize = Bits.maxBitSize do maxTokBound - minTokBound
+        tokBitSize = Bits.maxBitSize
+            -- input tokens + special tokens (-1)
+            do maxTokBound - minTokBound + 1
         tokMax = (1 `Bits.shiftL` tokBitSize) - 1
         stateBitSize = Bits.maxBitSize do length states - 1
         stateByteSize = if

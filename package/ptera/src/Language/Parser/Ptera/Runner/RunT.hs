@@ -28,10 +28,10 @@ runT = go where
                     pure ParseFail
 
     goResult :: Parser.TokenNum -> RunT p e m (Result a)
-    goResult tok
-        | tok >= 0 =
+    goResult tok = if
+        | tok >= 0 ->
             pure ParseFail
-        | otherwise =
+        | otherwise ->
             ctxItemStack <$> get >>= \case
                 [ItemArgument x] ->
                     pure do Parsed do Unsafe.unsafeCoerce x
@@ -97,7 +97,8 @@ transByInput tok = go where
                 do ctxState ctx0
                 do tok
         put do ctx0 { ctxState = Parser.transState trans1 }
-        goTransOps do Parser.transOps trans1
+        let ops = Parser.transOps trans1
+        goTransOps ops
 
     goTransOps :: [Parser.TransOp] -> RunT p e m RunningResult
     goTransOps = \case
