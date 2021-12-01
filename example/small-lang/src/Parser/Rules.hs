@@ -37,23 +37,21 @@ type Rules =
     ]
 type Tokens =
     '[
-        "Plus",
-        "Multi",
-        "ParenOpen",
-        "ParenClose",
-        "LitInteger",
-        "Identifier"
+        "+", "*",
+        "(", ")",
+        "int",
+        "id"
     ]
 type RuleExpr = Ptera.RuleExpr Rules Tokens Token
 
 instance GrammarToken Token Tokens where
     tokenToTerminal Proxy token = case token of
-        TokPlus{}       -> henumA @"Plus"
-        TokMulti{}      -> henumA @"Multi"
-        TokParenOpen{}  -> henumA @"ParenOpen"
-        TokParenClose{} -> henumA @"ParenClose"
-        TokLitInteger{} -> henumA @"LitInteger"
-        TokIdentifier{} -> henumA @"Identifier"
+        TokPlus{}       -> henumA @"+"
+        TokMulti{}      -> henumA @"*"
+        TokParenOpen{}  -> henumA @"("
+        TokParenClose{} -> henumA @")"
+        TokLitInteger{} -> henumA @"int"
+        TokIdentifier{} -> henumA @"id"
 
 
 rExpr :: RuleExpr Ast
@@ -63,7 +61,7 @@ rExpr = ruleExpr
 
 rSum :: RuleExpr Ast
 rSum = ruleExpr
-    [ alt $ varA @"product" <^> tokA @"Plus" <^> varA @"sum"
+    [ alt $ varA @"product" <^> tokA @"+" <^> varA @"sum"
         <:> SemAct \(e1 :* _ :* e2 :* HNil) -> Sum e1 e2
     , alt $ varA @"product"
         <:> SemAct \(e :* HNil) -> e
@@ -71,7 +69,7 @@ rSum = ruleExpr
 
 rProduct :: RuleExpr Ast
 rProduct = ruleExpr
-    [ alt $ varA @"value" <^> tokA @"Multi" <^> varA @"product"
+    [ alt $ varA @"value" <^> tokA @"*" <^> varA @"product"
         <:> SemAct \(e1 :* _ :* e2 :* HNil) -> Product e1 e2
     , alt $ varA @"value"
         <:> SemAct \(e :* HNil) -> e
@@ -79,12 +77,12 @@ rProduct = ruleExpr
 
 rValue :: RuleExpr Ast
 rValue = ruleExpr
-    [ alt $ tokA @"ParenOpen" <^> varA @"expr" <^> tokA @"ParenClose"
+    [ alt $ tokA @"(" <^> varA @"expr" <^> tokA @")"
         <:> SemAct \(_ :* e :* _ :* HNil) -> e
-    , alt $ tokA @"LitInteger" <:> SemAct \(e :* HNil) -> case e of
+    , alt $ tokA @"int" <:> SemAct \(e :* HNil) -> case e of
         TokLitInteger i -> Value i
         _               -> error "unreachable: expected integer token"
-    , alt $ tokA @"Identifier" <:> SemAct \(e :* HNil) -> case e of
+    , alt $ tokA @"id" <:> SemAct \(e :* HNil) -> case e of
         TokIdentifier v -> Var v
         _               -> error "unreachable: expected identifier token"
     ]
