@@ -18,7 +18,7 @@ import qualified Language.Parser.Ptera.TH.Data.Bits.MaxBit  as Bits
 import           Language.Parser.Ptera.TH.ParserLib
 import qualified Language.Parser.Ptera.TH.Syntax            as Syntax
 
-type SemanticAction = Grammar.Action Syntax.SemAct
+type SemanticAction m = Grammar.Action (Syntax.SemActT m)
 
 data PipelineParam = PipelineParam
     {
@@ -29,7 +29,7 @@ data PipelineParam = PipelineParam
         tokenBounds :: (Int, Int)
     }
 
-srb2QParser :: PipelineParam -> SRB.T Int SemanticAction -> TH.Q [TH.Dec]
+srb2QParser :: PipelineParam -> SRB.T Int (SemanticAction m) -> TH.Q [TH.Dec]
 srb2QParser param srb = do
     let runnerFnName = TH.mkName "pteraTHRunner"
     let parserInitialFnName = TH.mkName "pteraTHParserInitial"

@@ -28,18 +28,24 @@ type AltNum = Int
 
 type T = RunnerParser
 
-newtype Action = Action
+newtype Action feed = Action
     {
-        runAction :: forall a b. [a] -> b
+        runAction :: forall a b. [a] -> ActionResult feed b
     }
 
-data RunnerParser e = RunnerParser
+data ActionResult feed a = ActionResult
+    {
+        actionFeed :: Maybe feed,
+        actionResult :: a
+    }
+
+data RunnerParser feed elem = RunnerParser
     {
         parserInitial     :: StartNum -> Maybe StateNum,
-        parserGetTokenNum :: e -> TokenNum,
+        parserGetTokenNum :: elem -> TokenNum,
         parserTrans       :: StateNum -> TokenNum -> Trans,
         parserAltKind     :: AltNum -> AltKind,
-        parserAction      :: AltNum -> Action
+        parserAction      :: AltNum -> Action feed
     }
 
 data Trans = Trans

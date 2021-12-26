@@ -10,11 +10,20 @@ import qualified Language.Parser.Ptera.Runner.Parser      as Parser
 import qualified Language.Parser.Ptera.Scanner            as Scanner
 import qualified Unsafe.Coerce                            as Unsafe
 
-type T p e = RunT p e
+type T = RunT
 
-type RunT p e = StateT (Context p e)
+newtype RunT feed posMark elem m a = RunT
+    {
+        unRunT :: StateT (Context feed posMark elem) m a
+    }
+    deriving Functor
+    deriving (Applicative, Monad) via (StateT (Context feed posMark elem) m)
 
-runT :: forall p e m a. Scanner.T p e m => RunT p e m (Result a)
+instance MonadTrans (RunT feed posMark elem) where
+    lift mx = RunT do lift mx
+
+runT :: forall feed posMark elem m a. Scanner.T feed posMark elem m
+    => RunT feed posMark elem m (Result a)
 runT = go where
     go = do
         (tok, _) <- consumeIfNeeded
@@ -43,14 +52,14 @@ data Result a
     | ParseFail
     deriving (Eq, Show, Functor)
 
-data Context p e = Context
+data Context feed posMark elem = Context
     {
-        ctxParser         :: Parser.T e,
+        ctxParser         :: Parser.T feed elem,
         ctxState          :: Parser.StateNum,
-        ctxItemStack      :: [Item p],
-        ctxLookAHeadToken :: Maybe (Position, p, Parser.TokenNum, Maybe e),
+        ctxItemStack      :: [Item posMark],
+        ctxLookAHeadToken :: Maybe (Position, posMark, Parser.TokenNum, Maybe elem),
         ctxNextPosition   :: Position,
-        ctxMemoTable      :: AlignableMap.T Position (IntMap.IntMap (MemoItem p)),
+        ctxMemoTable      :: AlignableMap.T Position (IntMap.IntMap (MemoItem posMark)),
         ctxNeedBackItemsCount :: Int
     }
 
@@ -58,22 +67,22 @@ newtype Position = Position Int
     deriving (Eq, Show)
     deriving Alignable.T via Alignable.Inst
 
-data MemoItem p where
-    MemoItemParsed :: Position -> p -> a -> MemoItem p
-    MemoItemFailed :: MemoItem p
+data MemoItem posMark where
+    MemoItemParsed :: Position -> posMark -> a -> MemoItem posMark
+    MemoItemFailed :: MemoItem posMark
 
-data Item p where
-    ItemEnter :: Position -> Maybe p -> Parser.VarNum -> Parser.StateNum -> Item p
-    ItemHandleNot :: Parser.AltNum -> Item p
-    ItemBackpoint :: Position -> p -> Parser.StateNum -> Item p
-    ItemArgument :: a -> Item p
+data Item posMark where
+    ItemEnter :: Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum -> Item posMark
+    ItemHandleNot :: Parser.AltNum -> Item posMark
+    ItemBackpoint :: Position -> posMark -> Parser.StateNum -> Item posMark
+    ItemArgument :: a -> Item posMark
 
 data RunningResult
     = ContParse
     | CantContParse
     deriving (Eq, Show)
 
-initialContext :: Parser.T e -> Parser.StartNum -> Maybe (Context p e)
+initialContext :: Parser.T feed elem -> Parser.StartNum -> Maybe (Context feed posMark elem)
 initialContext p s = do
     sn0 <- Parser.parserInitial p s
     pure do
@@ -88,7 +97,8 @@ initialContext p s = do
                 ctxNeedBackItemsCount = 0
             }
 
-transByInput :: forall p e m. Scanner.T p e m => Parser.TokenNum -> RunT p e m RunningResult
+transByInput :: forall feed posMark elem m. Scanner.T feed posMark elem m
+    => Parser.TokenNum -> RunT feed posMark elem m RunningResult
 transByInput tok = go where
     go = do
         ctx0 <- get
@@ -251,132 +261,149 @@ parseFail = go where
                         }
                     pure ContParse
 
-saveEnterActionResult :: Scanner.T p e m
+runAction :: Scanner.T feed posMark elem m
     => Position -> Parser.VarNum -> Parser.AltNum -> [u]
-    -> RunT p e m ()
-saveEnterActionResult pos0 v alt args = do
-    parser <- ctxParser <$> get
-    let res = Parser.runAction
+    -> RunT feed posMark elem m ()
+runAction pos0 v alt args = do
+    parser <- getCtx ctxParser
+    let ActionResult feedOpt res = Parser.runAction
             do Parser.parserAction parser alt
             do args
+    case feedOpt of
+        Nothing ->
+            pure ()
+        Just feed ->
+            lift do Scanner.feedback feed
+    insertMemoItemIfNeeded v pos0 do
+        (pos1, pm1) <- getCurrentPosition
+        pure do MemoItemParsed pos1 pm1 res
+    pushItem do ItemArgument res
+
+saveFailedEnterAction :: Scanner.T feed posMark elem m
+    => Parser.VarNum -> Position -> RunT feed posMark elem m ()
+saveFailedEnterAction v pos = insertMemoItemIfNeeded v pos do
+    pure MemoItemFailed
+
+insertMemoItemIfNeeded :: Monad m
+    => Parser.VarNum -> Position -> RunT feed posMark elem m (MemoItem posMark)
+    -> RunT feed posMark elem m ()
+insertMemoItemIfNeeded v pos mitem = do
     needBack <- isNeedBack
     when needBack do
-        (pos1, mark1) <- getCurrentPosition
-        let memoItem = MemoItemParsed pos1 mark1 res
-        modify' \ctx -> ctx
-            {
-                ctxMemoTable = AlignableMap.insert pos0
-                    do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
+        memoItem <- mitem
+        RunT do
+            modify' \ctx -> ctx
+                { ctxMemoTable = AlignableMap.insert pos
+                    do case AlignableMap.lookup pos do ctxMemoTable ctx of
                         Nothing -> IntMap.singleton v memoItem
                         Just vm -> IntMap.insert v memoItem vm
                     do ctxMemoTable ctx
-            }
-    pushItem do ItemArgument res
+                }
 
-saveFailedEnterAction :: Scanner.T p e m
-    => Parser.VarNum -> Position -> RunT p e m ()
-saveFailedEnterAction v pos0 = do
-    let memoItem = MemoItemFailed
-    needBack <- isNeedBack
-    when needBack do
-        modify' \ctx -> ctx
-            { ctxMemoTable = AlignableMap.insert pos0
-                do case AlignableMap.lookup pos0 do ctxMemoTable ctx of
-                    Nothing -> IntMap.singleton v memoItem
-                    Just vm -> IntMap.insert v memoItem vm
-                do ctxMemoTable ctx
-            }
+getCtx :: Monad m
+    => (Context feed posMark elem -> a) -> RunT feed posMark elem m a
+getCtx f = RunT do f <$> get
+{-# INLINE getCtx #-}
 
-getCurrentPosition :: Scanner.T p e m => RunT p e m (Position, p)
-getCurrentPosition = ctxLookAHeadToken <$> get >>= \case
-    Just (pos, p, _, _) ->
-        pure (pos, p)
+getCurrentPosition :: Scanner.T feed posMark elem m
+    => RunT feed posMark elem m (Position, posMark)
+getCurrentPosition = getCtx ctxLookAHeadToken >>= \case
+    Just (pos, pm, _, _) ->
+        pure (pos, pm)
     Nothing -> do
-        p <- lift Scanner.getMark
-        pos <- ctxNextPosition <$> get
-        pure (pos, p)
+        pm <- lift Scanner.getMark
+        pos <- getCtx ctxNextPosition
+        pure (pos, pm)
 
-consumeIfNeeded :: Scanner.T p e m => RunT p e m (Parser.TokenNum, Maybe e)
-consumeIfNeeded = ctxLookAHeadToken <$> get >>= \case
+consumeIfNeeded :: Scanner.T feed posMark elem m
+    => RunT feed posMark elem m (Parser.TokenNum, Maybe elem)
+consumeIfNeeded = getCtx ctxLookAHeadToken >>= \case
     Just (_, _, tn, mt) ->
         pure (tn, mt)
     Nothing -> do
-        p <- lift Scanner.getMark
+        pm <- lift Scanner.getMark
         r@(tn, mt) <- lift Scanner.consumeInput >>= \case
             Nothing ->
                 pure (Parser.eosToken, Nothing)
             Just t -> do
-                parser <- ctxParser <$> get
+                parser <- getCtx ctxParser
                 let tn = Parser.parserGetTokenNum parser t
                 pure (tn, Just t)
-        modify' \ctx -> ctx
-            { ctxNextPosition = Alignable.nextAlign
-                do ctxNextPosition ctx
-            , ctxLookAHeadToken = Just
-                (ctxNextPosition ctx, p, tn, mt)
-            }
+        RunT do
+            modify' \ctx -> ctx
+                { ctxNextPosition = Alignable.nextAlign
+                    do ctxNextPosition ctx
+                , ctxLookAHeadToken = Just
+                    (ctxNextPosition ctx, pm, tn, mt)
+                }
         pure r
 
-shift :: Monad m => RunT p e m ()
-shift = ctxLookAHeadToken <$> get >>= \case
+shift :: Monad m => RunT feed posMark elem m ()
+shift = getCtx ctxLookAHeadToken >>= \case
     Nothing ->
         error "Must consume before shift"
     Just (_, _, _, Nothing) ->
         error "No more shift"
     Just (_, _, _, Just{}) ->
+        RunT do
+            modify' \ctx -> ctx
+                {
+                    ctxLookAHeadToken = Nothing
+                }
+
+seekToMark :: Scanner.T feed posMark elem m
+    => Position -> posMark -> RunT feed posMark elem m ()
+seekToMark pos pm = do
+    RunT do
         modify' \ctx -> ctx
-            {
-                ctxLookAHeadToken = Nothing
+            { ctxLookAHeadToken = Nothing
+            , ctxNextPosition = pos
             }
+    lift do Scanner.seekToPosMark pm
 
-seekToMark :: Scanner.T p e m => Position -> p -> RunT p e m ()
-seekToMark pos p = do
-    modify' \ctx -> ctx
-        { ctxLookAHeadToken = Nothing
-        , ctxNextPosition = pos
-        }
-    lift do Scanner.seekToMark p
-
-isNeedBack :: Monad m => RunT p e m Bool
+isNeedBack :: Monad m => RunT feed posMark elem m Bool
 isNeedBack = do
-    needBackItemsCount <- ctxNeedBackItemsCount <$> get
+    needBackItemsCount <- getCtx ctxNeedBackItemsCount
     pure do needBackItemsCount > 0
 
-pushItem :: Scanner.T p e m => Item p -> RunT p e m ()
+pushItem :: Scanner.T feed posMark elem m
+    => Item posMark -> RunT feed posMark elem m ()
 pushItem item = do
     (pos, p) <- getCurrentPosition
-    bc0 <- ctxNeedBackItemsCount <$> get
+    bc0 <- getCtx ctxNeedBackItemsCount
     let bc1 = if isNeedBackItem item then bc0 + 1 else bc0
     when do bc0 == 0 && bc1 > 0
         do lift do Scanner.scanMode do Scanner.ScanModeNeedBack p
-    modify' \ctx -> ctx
-        { ctxItemStack = item:ctxItemStack ctx
-        , ctxNeedBackItemsCount = bc1
-        , ctxMemoTable = if bc0 == 0 && bc1 > 0
-            then do
-                AlignableMap.restrictGreaterOrEqual
-                    do pos
-                    do ctxMemoTable ctx
-            else
-                ctxMemoTable ctx
-        }
+    RunT do
+        modify' \ctx -> ctx
+            { ctxItemStack = item:ctxItemStack ctx
+            , ctxNeedBackItemsCount = bc1
+            , ctxMemoTable = if bc0 == 0 && bc1 > 0
+                then do
+                    AlignableMap.restrictGreaterOrEqual
+                        do pos
+                        do ctxMemoTable ctx
+                else
+                    ctxMemoTable ctx
+            }
 
-popItem :: Scanner.T p e m => RunT p e m (Maybe (Item p))
-popItem = ctxItemStack <$> get >>= \case
+popItem :: Scanner.T feed posMark elem m => RunT feed posMark elem m (Maybe (Item posMark))
+popItem = getCtx ctxItemStack >>= \case
     [] ->
         pure Nothing
     item:rest -> do
-        bc0 <- ctxNeedBackItemsCount <$> get
+        bc0 <- getCtx ctxNeedBackItemsCount
         let bc1 = if isNeedBackItem item then bc0 - 1 else bc0
         when do bc1 == 0
             do lift do Scanner.scanMode Scanner.ScanModeNoBack
-        modify' \ctx -> ctx
-            { ctxItemStack = rest
-            , ctxNeedBackItemsCount = bc1
-            }
+        RunT do
+            modify' \ctx -> ctx
+                { ctxItemStack = rest
+                , ctxNeedBackItemsCount = bc1
+                }
         pure do Just item
 
-isNeedBackItem :: Item p -> Bool
+isNeedBackItem :: Item posMark -> Bool
 isNeedBackItem = \case
     ItemHandleNot{} ->
         False

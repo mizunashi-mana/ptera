@@ -11,10 +11,10 @@ import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB  as SafeGrammar2
 import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
 import qualified Language.Parser.Ptera.TH.Syntax                 as Syntax
 
-grammar2ParserDec :: forall s h q e.
+grammarT2ParserDec :: forall m s h q e.
     Syntax.GrammarToken e q => TokenBounded q
-    => PipelineParam -> Syntax.Grammar s h q e -> Maybe (TH.Q [TH.Dec])
-grammar2ParserDec param g = do
+    => PipelineParam -> Syntax.GrammarT m s h q e -> Maybe (TH.Q [TH.Dec])
+grammarT2ParserDec param g = do
     srb <- SafeGrammar2SRB.safeGrammar2Srb g
     pure
         do SRB2ParserDec.srb2QParser
