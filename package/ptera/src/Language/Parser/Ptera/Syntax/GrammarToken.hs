@@ -7,5 +7,5 @@ import qualified Language.Parser.Ptera.Data.HEnum as HEnum
 
 type T = GrammarToken
 
-class GrammarToken e q where
-    tokenToTerminal :: Proxy q -> e -> HEnum.T q
+class GrammarToken elem tokens where
+    tokenToTerminal :: Proxy tokens -> elem -> HEnum.T tokens

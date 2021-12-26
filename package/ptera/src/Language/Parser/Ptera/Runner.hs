@@ -1,8 +1,9 @@
 module Language.Parser.Ptera.Runner (
     T,
 
-    Runner (..),
+    RunnerM (..),
     RunT.Result (..),
+    runParserM,
     runParser,
 ) where
 
@@ -15,20 +16,33 @@ import qualified Language.Parser.Ptera.Runner.Parser as Parser
 import qualified Language.Parser.Ptera.Runner.RunT   as RunT
 import qualified Language.Parser.Ptera.Scanner       as Scanner
 
-type T = Runner
+type T = RunnerM
 
-newtype Runner s h e = UnsafeRunner (Parser.T e)
+newtype RunnerM ctx vars rules elem = UnsafeRunnerM (Parser.T ctx elem)
+type Runner = RunnerM ()
 
-runParser :: forall v s h p e m a. a ~ TypeOps.FromJust (Record.RecordIndex v h)
-    => Member.T v s
-    => Scanner.T p e m
-    => Proxy v -> Runner s h e -> m (RunT.Result a)
-runParser Proxy (UnsafeRunner p) = case RunT.initialContext p pos of
-    Nothing ->
-        pure do RunT.ParseFail
-    Just initialCtx ->
-        evalStateT RunT.runT initialCtx
+runParserM :: forall v vars rules ctx posMark elem m a.
+    a ~ TypeOps.FromJust (Record.RecordIndex v rules)
+    => Member.T v vars
+    => Scanner.T posMark elem m
+    => Proxy v -> RunnerM ctx vars rules elem -> ctx -> m (RunT.Result a)
+runParserM Proxy (UnsafeRunnerM p) customCtx0 =
+    case RunT.initialContext p customCtx0 pos of
+        Nothing ->
+            pure do RunT.ParseFail
+        Just initialCtx ->
+            evalStateT runner initialCtx
     where
+        runner :: StateT (RunT.Context ctx posMark elem) m (RunT.Result a)
+        runner = RunT.unRunT RunT.runT
+
         pos = Member.position
             do proxy# :: Proxy# v
-            do proxy# :: Proxy# s
+            do proxy# :: Proxy# vars
+
+runParser :: forall v vars rules posMark elem m a.
+    a ~ TypeOps.FromJust (Record.RecordIndex v rules)
+    => Member.T v vars
+    => Scanner.T posMark elem m
+    => Proxy v -> Runner vars rules elem -> m (RunT.Result a)
+runParser p r = runParserM p r ()

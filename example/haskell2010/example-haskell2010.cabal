@@ -5,16 +5,16 @@ version:            0.1.0.0
 author:             Mizunashi Mana
 maintainer:         mizunashi-mana@noreply.git
 
-executable haskell2010-exe
-    main-is:          Main.hs
-    hs-source-dirs:   app
-
-    default-language: Haskell2010
-
-    build-depends:
-        base,
-        example-haskell2010,
-        bytestring,
+--executable haskell2010-exe
+--    main-is:          Main.hs
+--    hs-source-dirs:   app
+--
+--    default-language: Haskell2010
+--
+--    build-depends:
+--        base,
+--        example-haskell2010,
+--        bytestring,
 
 library
     default-language: Haskell2010

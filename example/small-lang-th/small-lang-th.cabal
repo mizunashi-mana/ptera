@@ -55,7 +55,7 @@ test-suite spec
         hspec-discover:hspec-discover,
     build-depends:
         base,
-        small-lang,
+        small-lang-th,
         bytestring,
 
         hspec,

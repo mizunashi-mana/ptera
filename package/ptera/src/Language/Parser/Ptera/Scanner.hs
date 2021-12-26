@@ -5,12 +5,11 @@ import           Language.Parser.Ptera.Prelude
 
 type T = Scanner
 
-class Monad m => Scanner feed posMark elem m | m -> pos, m -> elem, m -> feed where
+class Monad m => Scanner posMark elem m | m -> posMark, m -> elem where
     consumeInput :: m (Maybe elem)
     getPosMark :: m posMark
     seekToPosMark :: posMark -> m ()
     scanMode :: ScanMode posMark -> m ()
-    feedback :: feed -> m ()
 
 data ScanMode posMark
     = ScanModeNoBack
@@ -27,7 +26,7 @@ newtype ListScanner e a = ListScanner
 runListScanner :: ListScanner e a -> [e] -> a
 runListScanner (ListScanner scanner) xs = evalState scanner xs
 
-instance Scanner Void [e] e (ListScanner e) where
+instance Scanner [e] e (ListScanner e) where
     consumeInput = ListScanner do
         get >>= \case
             [] ->
@@ -41,5 +40,3 @@ instance Scanner Void [e] e (ListScanner e) where
     seekToPosMark xs = ListScanner do put xs
 
     scanMode _ = pure ()
-
-    feedback = \case {}

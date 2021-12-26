@@ -14,10 +14,10 @@ import qualified Language.Parser.Ptera.Syntax               as Syntax
 import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
 import qualified Unsafe.Coerce                              as Unsafe
 
-type Action = Grammar.Action Syntax.SemAct
+type Action ctx = Grammar.Action (Syntax.SemActM ctx)
 
-srb2Parser :: forall e q. Syntax.GrammarToken e q
-    => Proxy q -> SRB.T Int Action -> Parser.T e
+srb2Parser :: forall ctx elem tokens. Syntax.GrammarToken elem tokens
+    => Proxy tokens -> SRB.T Int (Action ctx) -> Parser.T ctx elem
 srb2Parser p srb = Parser.RunnerParser
     { parserInitial = \s -> coerce do EnumMap.lookup s do SRB.initials srb
     , parserGetTokenNum = \tok ->
@@ -81,10 +81,16 @@ transOp = \case
     SRB.TransOpShift ->
         Parser.TransOpShift
 
-runAction :: Grammar.Action Syntax.SemAct -> Parser.Action
-runAction (Grammar.Action (Syntax.SemAct f)) = Parser.Action \l ->
-        Unsafe.unsafeCoerce do f do goL l
+runAction :: Action ctx -> Parser.ActionM ctx
+runAction (Grammar.Action (Syntax.SemActM f)) = Parser.ActionM \l ->
+        unsafeCoerceActionTask do f do goL l
     where
         goL = \case
-            []   -> Unsafe.unsafeCoerce HList.HNil
-            x:xs -> Unsafe.unsafeCoerce do x HList.:* goL xs
+            []   -> unsafeCoerceHList HList.HNil
+            x:xs -> unsafeCoerceHList do x HList.:* goL xs
+
+        unsafeCoerceHList :: HList.T us1 -> HList.T us2
+        unsafeCoerceHList = Unsafe.unsafeCoerce
+
+        unsafeCoerceActionTask :: Syntax.ActionTask ctx a -> Syntax.ActionTask ctx b
+        unsafeCoerceActionTask = Unsafe.unsafeCoerce

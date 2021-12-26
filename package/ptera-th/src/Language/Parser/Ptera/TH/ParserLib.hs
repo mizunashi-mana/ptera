@@ -23,7 +23,8 @@ import qualified GHC.ST                                    as ST
 import qualified GHC.Types                                 as Types
 import qualified Language.Parser.Ptera.Data.HEnum          as HEnum
 import qualified Language.Parser.Ptera.Runner              as Runner
-import           Language.Parser.Ptera.Runner.Parser       (Action,
+import           Language.Parser.Ptera.Runner.Parser       (ActionM,
+                                                            ActionTask,
                                                             AltKind (..),
                                                             RunnerParser (..),
                                                             Trans (..),
@@ -34,7 +35,7 @@ import qualified Unsafe.Coerce                             as Unsafe
 
 type Parser = Runner.T
 
-pteraTHTokenToTerminal :: GrammarToken.GrammarToken e q => Proxy q -> e -> Int
+pteraTHTokenToTerminal :: GrammarToken.GrammarToken elem tokens => Proxy tokens -> elem -> Int
 pteraTHTokenToTerminal p t = HEnum.unsafeHEnum do GrammarToken.tokenToTerminal p t
 
 pteraTHArrayIndex :: Array.Array Int e -> Int -> e
@@ -74,8 +75,8 @@ pteraTHLookupTable32 offset table# s c = do
 pteraTHUnsafeCoerce :: a -> b
 pteraTHUnsafeCoerce = Unsafe.unsafeCoerce
 
-pteraTHUnsafeRunner :: RunnerParser e -> Parser s h e
-pteraTHUnsafeRunner p = Runner.UnsafeRunner p
+pteraTHUnsafeRunner :: RunnerParser ctx elem -> Parser ctx vars rules elem
+pteraTHUnsafeRunner p = Runner.UnsafeRunnerM p
 
-pteraTHAction :: ([a] -> b) -> Action
-pteraTHAction f = RunnerParser.Action do Unsafe.unsafeCoerce f
+pteraTHAction :: ([a] -> ActionTask ctx b) -> ActionM ctx
+pteraTHAction f = RunnerParser.ActionM do Unsafe.unsafeCoerce f

@@ -15,48 +15,51 @@ import qualified Unsafe.Coerce                        as Unsafe
 
 type T = Grammar
 
-fixGrammar :: forall f s h q e. MemberInitials h s => Rules f h q e -> Grammar f s h q e
+fixGrammar :: forall action vars rules tokens elem.
+    MemberInitials rules vars
+    => Rules action rules tokens elem -> Grammar action vars rules tokens elem
 fixGrammar (Record.UnsafeRecord arr) = UnsafeGrammar do
     runIdentity do
         SyntaxGrammar.fixGrammarT do
             unsafeInitials
-                do proxy# :: Proxy# h
-                do proxy# :: Proxy# s
+                do proxy# :: Proxy# rules
+                do proxy# :: Proxy# vars
 
             forM_ do Array.assocs arr
                 \(p, e) ->
                     let RuleExpr alts = Unsafe.unsafeCoerce e
                     in SyntaxGrammar.ruleT p do SyntaxGrammar.RuleExpr alts
 
-newtype Grammar (f :: [Type] -> Type -> Type) (s :: [n]) (h :: [(n, Type)]) (q :: [t]) e = UnsafeGrammar
+type Grammar :: ([Type] -> Type -> Type) -> [n] -> [(n, Type)] -> [t] -> Type -> Type
+newtype Grammar action vars rules tokens elem = UnsafeGrammar
     {
         unsafeGrammar ::
-            SyntaxGrammar.FixedGrammar StartPoint NonTerminal Terminal e f
+            SyntaxGrammar.FixedGrammar StartPoint NonTerminal Terminal elem action
     }
 
 type StartPoint = Int
 type Terminal = Int
 type NonTerminal = Int
 
-type MemberInitials h s = MemberInitialsGo h s s
+type MemberInitials rules vars = MemberInitialsGo rules vars vars
 
-unsafeInitials :: MemberInitials h s
-    => Proxy# h -> Proxy# s
-    -> SyntaxGrammar.GrammarT StartPoint NonTerminal Terminal e f Identity ()
+unsafeInitials :: MemberInitials rules vars
+    => Proxy# rules -> Proxy# vars
+    -> SyntaxGrammar.GrammarT StartPoint NonTerminal Terminal elem action Identity ()
 unsafeInitials hp# sp# = unsafeInitialsGo hp# sp# sp#
 
-class MemberInitialsGo (h :: [(n, Type)]) (s :: [n]) (sg :: [n]) where
-    unsafeInitialsGo :: Proxy# h -> Proxy# s -> Proxy# sg
-        -> SyntaxGrammar.GrammarT StartPoint NonTerminal Terminal e f Identity ()
+class MemberInitialsGo (rules :: [(n, Type)]) (vars1 :: [n]) (vars2 :: [n]) where
+    unsafeInitialsGo :: Proxy# rules -> Proxy# vars1 -> Proxy# vars2
+        -> SyntaxGrammar.GrammarT StartPoint NonTerminal Terminal elem action Identity ()
 
-instance MemberInitialsGo h s '[] where
+instance MemberInitialsGo rules vars1 '[] where
     unsafeInitialsGo _ _ _ = pure ()
 
-instance (Member.T v s, Record.RecordMember v h, MemberInitialsGo h s sg)
-        => MemberInitialsGo h s (v ': sg) where
+instance (Member.T v vars1, Record.RecordMember v rules, MemberInitialsGo rules vars1 vars2)
+        => MemberInitialsGo rules vars1 (v ': vars2) where
     unsafeInitialsGo hp# sp# _ = do
         SyntaxGrammar.initialT sn vn
-        unsafeInitialsGo hp# sp# do proxy# :: Proxy# sg
+        unsafeInitialsGo hp# sp# do proxy# :: Proxy# vars2
         where
             sn = Member.position
                 do proxy# :: Proxy# v
@@ -66,39 +69,44 @@ instance (Member.T v s, Record.RecordMember v h, MemberInitialsGo h s sg)
                 hp#
 
 
-type Rules f h q e = Record.T (RulesTag f h q e)
+type Rules action rules tokens elem = Record.T (RulesTag action rules tokens elem)
 
-type family RulesTag (f :: [Type] -> Type -> Type) (h :: [(n, Type)]) (q :: [t]) (e :: Type) :: [(n, Type)] where
-    RulesTag f h q e = TypeOps.MapMapSnd (RuleExpr f h q e) h
+type RulesTag :: ([Type] -> Type -> Type) -> [(n, Type)] -> [t] -> Type -> [(n, Type)]
+type family RulesTag action rules tokens elem where
+    RulesTag action rules tokens elem = TypeOps.MapMapSnd (RuleExpr action rules tokens elem) rules
 
-newtype RuleExpr f (h :: [(n, Type)]) (q :: [t]) e r = RuleExpr
+type RuleExpr :: ([Type] -> Type -> Type) -> [(n, Type)] -> [t] -> Type -> Type -> Type
+newtype RuleExpr action rules tokens elem a = RuleExpr
     {
-        unsafeRuleExpr :: [SyntaxGrammar.Alt NonTerminal Terminal e f r]
+        unsafeRuleExpr :: [SyntaxGrammar.Alt NonTerminal Terminal elem action a]
     }
 
-newtype Alt f (h :: [(n, Type)]) (q :: [t]) e r = Alt
+type Alt :: ([Type] -> Type -> Type) -> [(n, Type)] -> [t] -> Type -> Type -> Type
+newtype Alt action rules tokens elem a = Alt
     {
-        unsafeAlt :: SyntaxGrammar.Alt NonTerminal Terminal e f r
+        unsafeAlt :: SyntaxGrammar.Alt NonTerminal Terminal elem action a
     }
 
-newtype Expr (h :: [(n, Type)]) (q :: [t]) e us = Expr
+type Expr :: [(n, Type)] -> [t] -> Type -> [Type] -> Type
+newtype Expr rules tokens elem us = Expr
     {
-        unsafeExpr :: SyntaxGrammar.Expr NonTerminal Terminal e us
+        unsafeExpr :: SyntaxGrammar.Expr NonTerminal Terminal elem us
     }
 
-newtype Unit (h :: [(n, Type)]) (q :: [t]) e u = Unit
+type Unit :: [(n, Type)] -> [t] -> Type -> Type -> Type
+newtype Unit rules tokens elem u = Unit
     {
-        unsafeUnit :: SyntaxGrammar.Unit NonTerminal Terminal e u
+        unsafeUnit :: SyntaxGrammar.Unit NonTerminal Terminal elem u
     }
 
-ruleExpr :: [Alt f h q e r] -> RuleExpr f h q e r
+ruleExpr :: [Alt action rules tokens elem a] -> RuleExpr action rules tokens elem a
 ruleExpr alts = RuleExpr do coerce alts
 
-alt ::(Expr h q e us, f us r) -> Alt f h q e r
+alt ::(Expr rules tokens elem us, action us a) -> Alt action rules tokens elem a
 alt (Expr us, act) = Alt do SyntaxGrammar.Alt us act
 
-(<^>) :: Unit h q e u -> (Expr h q e us1, f us2 r)
-    -> (Expr h q e (u ': us1), f us2 r)
+(<^>) :: Unit rules tokens elem u -> (Expr rules tokens elem us1, action us2 a)
+    -> (Expr rules tokens elem (u ': us1), action us2 a)
 Unit u <^> (Expr us, act) = (Expr do u SyntaxGrammar.:^ us, act)
 
 infixr 5 <^>

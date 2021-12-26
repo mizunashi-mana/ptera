@@ -18,7 +18,7 @@ import qualified Language.Parser.Ptera.TH.Data.Bits.MaxBit  as Bits
 import           Language.Parser.Ptera.TH.ParserLib
 import qualified Language.Parser.Ptera.TH.Syntax            as Syntax
 
-type SemanticAction m = Grammar.Action (Syntax.SemActT m)
+type SemanticAction ctx = Grammar.Action (Syntax.SemActM ctx)
 
 data PipelineParam = PipelineParam
     {
@@ -26,10 +26,11 @@ data PipelineParam = PipelineParam
         rulesTy     :: TH.Q TH.Type,
         tokensTy    :: TH.Q TH.Type,
         tokenTy     :: TH.Q TH.Type,
+        customCtxTy :: TH.Q TH.Type,
         tokenBounds :: (Int, Int)
     }
 
-srb2QParser :: PipelineParam -> SRB.T Int (SemanticAction m) -> TH.Q [TH.Dec]
+srb2QParser :: PipelineParam -> SRB.T Int (SemanticAction ctx) -> TH.Q [TH.Dec]
 srb2QParser param srb = do
     let runnerFnName = TH.mkName "pteraTHRunner"
     let parserInitialFnName = TH.mkName "pteraTHParserInitial"
@@ -62,11 +63,11 @@ srb2QParser param srb = do
         , outputParserAltKindFn parserAltKindFnName do SRB.alts srb
 
         , TH.SigD parserActionFnName <$>
-            [t|Int -> Action|]
+            [t|Int -> ActionM $(customCtxTy param)|]
         , outputParserActionFn parserActionFnName do SRB.alts srb
 
         , TH.SigD runnerFnName <$>
-            [t|Parser $(startsTy param) $(rulesTy param) $(tokenTy param)|]
+            [t|Parser $(customCtxTy param) $(startsTy param) $(rulesTy param) $(tokenTy param)|]
         , outputRunnerFn runnerFnName
             parserInitialFnName
             parserGetTokenNumFnName
@@ -288,7 +289,7 @@ outputParserAltKindFn parserAltKindFnName alts = TH.ValD
             AltNot -> [e|AltNot|]
 
 outputParserActionFn :: TH.Name
-    -> AlignableArray.T LAPEG.AltNum (LAPEG.Alt SemanticAction) -> TH.Q TH.Dec
+    -> AlignableArray.T LAPEG.AltNum (LAPEG.Alt (SemanticAction ctx)) -> TH.Q TH.Dec
 outputParserActionFn parserActionFnName alts = TH.ValD
     do TH.VarP parserActionFnName
     <$> fmap TH.NormalB [e|

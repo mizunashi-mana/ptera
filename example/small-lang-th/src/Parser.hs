@@ -11,16 +11,18 @@ import qualified Parser.Rules                       as Rules
 import           Types
 
 $(PteraTH.genRunner
-    (PteraTH.GenParam {
-        PteraTH.startsTy = [t|Rules.ParsePoints|],
-        PteraTH.rulesTy  = [t|Rules.Rules|],
-        PteraTH.tokensTy = [t|Rules.Tokens|],
-        PteraTH.tokenTy  = [t|Token|]
-    })
+    (PteraTH.GenParam
+        {
+            PteraTH.startsTy = [t|Rules.ParsePoints|],
+            PteraTH.rulesTy  = [t|Rules.Rules|],
+            PteraTH.tokensTy = [t|Rules.Tokens|],
+            PteraTH.tokenTy  = [t|Token|],
+            PteraTH.customCtxTy = PteraTH.defaultCustomCtxTy
+        })
     Rules.grammar
     )
 
-exprParser :: PteraTH.Scanner p Token m => m (PteraTH.Result Ast)
+exprParser :: PteraTH.Scanner posMark Token m => m (PteraTH.Result Ast)
 exprParser = PteraTH.runParser (Proxy :: Proxy "expr") pteraTHRunner
 
 parseExpr :: [Token] -> Either String Ast

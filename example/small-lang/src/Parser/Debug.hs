@@ -14,13 +14,13 @@ import qualified Language.Parser.Ptera.Syntax.SafeGrammar   as SafeGrammar
 import qualified Parser.Rules                               as Rules
 import qualified Types
 
-peg :: PEG.T Int SRB2Parser.Action
+peg :: PEG.T Int (SRB2Parser.Action ())
 peg = Grammar2PEG.grammar2Peg $ SafeGrammar.unsafeGrammar Rules.grammar
 
-laPeg :: LAPEG.T Int SRB2Parser.Action
+laPeg :: LAPEG.T Int (SRB2Parser.Action ())
 laPeg = case runExcept $ PEG2LAPEG.peg2LaPeg peg of
     Right x -> x
     Left vs -> error $ "unreachable: " ++ show vs
 
-srb :: SRB.T Int SRB2Parser.Action
+srb :: SRB.T Int (SRB2Parser.Action ())
 srb = LAPEG2SRB.laPeg2Srb laPeg

@@ -3,16 +3,23 @@
 module Language.Parser.Ptera.TH.Syntax (
     T,
 
-    Grammar,
+    GrammarM,
     SafeGrammar.MemberInitials,
-    Rules,
-    RuleExpr,
-    Alt,
+    RulesM,
+    RuleExprM,
+    AltM,
     SafeGrammar.Expr,
     SafeGrammar.Unit,
     GrammarToken.GrammarToken (..),
-    SemAct (..),
+    SemActM (..),
     SemActArgs (..),
+    semActM,
+
+    Grammar,
+    Rules,
+    RuleExpr,
+    Alt,
+    SemAct,
     semAct,
 
     SafeGrammar.fixGrammar,
@@ -32,39 +39,41 @@ import           Language.Parser.Ptera.Prelude
 import qualified Language.Haskell.TH                       as TH
 import qualified Language.Haskell.TH.Syntax                as TH
 import qualified Language.Parser.Ptera.Data.HList          as HList
+import qualified Language.Parser.Ptera.Syntax as Syntax
 import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar  as SafeGrammar
 import           Language.Parser.Ptera.TH.ParserLib
 
 
-type T = GrammarT
+type T ctx = GrammarM ctx
 
-type GrammarT m = SafeGrammar.Grammar (SemActT m)
-type Grammar = GrammarT Identity
+type GrammarM ctx = SafeGrammar.Grammar (SemActM ctx)
+type Grammar = GrammarM ()
 
-type family TokensTag (q :: [t]) :: [(t, Type)] where
+type family TokensTag (tokens :: [t]) :: [(t, Type)] where
     TokensTag '[] = '[]
     TokensTag (n ': ns) = '(n, TH.Q TH.Pat) ': TokensTag ns
 
-type RulesT m h q e = SafeGrammar.Rules (SemActT m) h q e
-type Rules h q e = RulesT Identity h q e
+type RulesM ctx rules tokens elem = SafeGrammar.Rules (SemActM ctx) rules tokens elem
+type Rules rules tokens elem = RulesM () rules tokens elem
 
-type RuleExprT m = SafeGrammar.RuleExpr (SemActT m)
-type Rule = RuleExprT Identity
+type RuleExprM ctx = SafeGrammar.RuleExpr (SemActM ctx)
+type RuleExpr = RuleExprM ()
 
-type AltT m = SafeGrammar.Alt (SemActT m)
-type Alt = AltT Identity
+type AltM ctx = SafeGrammar.Alt (SemActM ctx)
+type Alt = AltM ()
 
-newtype SemActT (m :: Type -> Type) (us :: [Type]) a = UnsafeSemAct
+type SemActM :: Type -> [Type] -> Type -> Type
+newtype SemActM ctx us a = UnsafeSemActM
     {
         unsafeSemanticAction :: TH.Q TH.Exp
     }
 
-type SemAct = SemActT Identity
+type SemAct = SemActM ()
 
-semActT :: forall m us a. SemActArgs us
-    => (HList.T (ActArgs us) -> TH.Q (TH.TExp (m a))) -> SemActT m us a
-semActT f = UnsafeSemAct do
+semActM :: forall ctx us a. SemActArgs us
+    => (HList.T (ActArgs us) -> TH.Q (TH.TExp (Syntax.ActionTask ctx a))) -> SemActM ctx us a
+semActM f = UnsafeSemActM do
     (ns, args) <- unsafeSemActArgs do proxy# :: Proxy# us
     l <- TH.newName "pteraTHSemActArgs"
     let lp = pure do TH.VarP l
@@ -79,7 +88,7 @@ semActT f = UnsafeSemAct do
 
 semAct :: forall us a. SemActArgs us
     => (HList.T (ActArgs us) -> TH.Q (TH.TExp a)) -> SemAct us a
-semAct f = semActT \us -> [||pure $$(f us)||]
+semAct f = semActM \us -> [||pure $$(f us)||]
 
 class SemActArgs (us :: [Type]) where
     type ActArgs us :: [Type]

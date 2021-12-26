@@ -11,10 +11,10 @@ import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB  as SafeGrammar2
 import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
 import qualified Language.Parser.Ptera.TH.Syntax                 as Syntax
 
-grammarT2ParserDec :: forall m s h q e.
-    Syntax.GrammarToken e q => TokenBounded q
-    => PipelineParam -> Syntax.GrammarT m s h q e -> Maybe (TH.Q [TH.Dec])
-grammarT2ParserDec param g = do
+grammar2ParserDec :: forall vars rules tokens ctx elem.
+    Syntax.GrammarToken elem tokens => TokenBounded tokens
+    => PipelineParam -> Syntax.GrammarM ctx vars rules tokens elem -> Maybe (TH.Q [TH.Dec])
+grammar2ParserDec param g = do
     srb <- SafeGrammar2SRB.safeGrammar2Srb g
     pure
         do SRB2ParserDec.srb2QParser
@@ -24,18 +24,19 @@ grammarT2ParserDec param g = do
                     rulesTy = rulesTy param,
                     tokensTy = tokensTy param,
                     tokenTy = tokenTy param,
-                    tokenBounds = tokenBounds do Proxy @q
+                    customCtxTy = customCtxTy param,
+                    tokenBounds = tokenBounds do Proxy @tokens
                 }
             do srb
 
-class TokenBounded q where
-    tokenBounds :: Proxy q -> (Int, Int)
+class TokenBounded tokens where
+    tokenBounds :: Proxy tokens -> (Int, Int)
 
-instance TypeNats.KnownNat (TypeOps.Length q) => TokenBounded q where
+instance TypeNats.KnownNat (TypeOps.Length tokens) => TokenBounded tokens where
     tokenBounds Proxy = do
         let tokMax = fromInteger do
                 toInteger do
-                    TypeNats.natVal' do proxy# :: Proxy# (TypeOps.Length q)
+                    TypeNats.natVal' do proxy# :: Proxy# (TypeOps.Length tokens)
         (0, tokMax)
 
 data PipelineParam = PipelineParam
@@ -43,5 +44,6 @@ data PipelineParam = PipelineParam
         startsTy :: TH.Q TH.Type,
         rulesTy  :: TH.Q TH.Type,
         tokensTy :: TH.Q TH.Type,
-        tokenTy  :: TH.Q TH.Type
+        tokenTy  :: TH.Q TH.Type,
+        customCtxTy :: TH.Q TH.Type
     }

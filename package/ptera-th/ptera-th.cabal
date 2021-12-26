@@ -67,6 +67,7 @@ common general
         RankNTypes
         ScopedTypeVariables
         StandaloneDeriving
+        StandaloneKindSignatures
         Strict
         TypeApplications
         TypeFamilies
@@ -88,7 +89,7 @@ common general
             -dcore-lint
 
     build-depends:
-        base                 >= 4.12.0 && < 5,
+        base                 >= 4.14.0 && < 5,
 
         -- project depends
         ptera-core,

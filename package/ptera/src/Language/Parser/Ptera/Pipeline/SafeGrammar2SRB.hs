@@ -9,7 +9,8 @@ import qualified Language.Parser.Ptera.Pipeline.PEG2LAPEG   as PEG2LAPEG
 import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar   as SafeGrammar
 
-safeGrammar2Srb :: SafeGrammar.Grammar f s h q e -> Maybe (SRB.T Int (Grammar.Action f))
+safeGrammar2Srb :: SafeGrammar.Grammar action vars rules tokens elem
+    -> Maybe (SRB.T Int (Grammar.Action action))
 safeGrammar2Srb (SafeGrammar.UnsafeGrammar g) = do
     let peg = Grammar2PEG.grammar2Peg g
     laPeg <- case runExcept do PEG2LAPEG.peg2LaPeg peg of
