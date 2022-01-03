@@ -86,8 +86,8 @@ semActM f = UnsafeSemActM do
             error "unreachable: unexpected arguments"
         |]
 
-semAct :: forall us a. SemActArgs us
-    => (HList.T (ActArgs us) -> TH.Q (TH.TExp a)) -> SemAct us a
+semAct :: forall ctx us a. SemActArgs us
+    => (HList.T (ActArgs us) -> TH.Q (TH.TExp a)) -> SemActM ctx us a
 semAct f = semActM \us -> [||pure $$(f us)||]
 
 class SemActArgs (us :: [Type]) where

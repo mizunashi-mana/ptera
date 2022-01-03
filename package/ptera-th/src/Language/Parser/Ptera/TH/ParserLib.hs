@@ -25,6 +25,9 @@ import qualified Language.Parser.Ptera.Data.HEnum          as HEnum
 import qualified Language.Parser.Ptera.Runner              as Runner
 import           Language.Parser.Ptera.Runner.Parser       (ActionM,
                                                             ActionTask,
+                                                            getAction,
+                                                            modifyAction,
+                                                            failAction,
                                                             AltKind (..),
                                                             RunnerParser (..),
                                                             Trans (..),

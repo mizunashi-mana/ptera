@@ -191,16 +191,22 @@ runReduce alt = go [] where
     goEnter args pos0 mmark0 v enterSn = do
         parser <- getCtx ctxParser
         case Parser.parserAltKind parser alt of
-            PEG.AltSeq -> do
-                runAction pos0 v alt args
-                setNextState enterSn
-                pure ContParse
-            PEG.AltAnd -> case mmark0 of
-                Nothing ->
-                    error "unreachable: no mark with and alternative"
-                Just mark0 -> do
+            PEG.AltSeq -> runActionAndSaveEnterResult v pos0 alt args >>= \case
+                False ->
+                    parseFail
+                True -> do
+                    setNextState enterSn
+                    pure ContParse
+            PEG.AltAnd -> runActionAndSaveEnterResult v pos0 alt args >>= \case
+                False ->
+                    parseFail
+                True -> do
+                    let mark0 = case mmark0 of
+                            Nothing ->
+                                error "unreachable: no mark with and alternative"
+                            Just x ->
+                                x
                     seekToMark pos0 mark0
-                    runAction pos0 v alt args
                     setNextState enterSn
                     pure ContParse
             PEG.AltNot ->
@@ -244,25 +250,47 @@ parseFail = go where
                 error "unreachable: a not handling with seq alternative"
             PEG.AltAnd ->
                 error "unreachable: a not handling with and alternative"
-            PEG.AltNot -> case mmark0 of
-                Nothing ->
-                    error "unreachable: no mark with not alternative"
-                Just mark0 -> do
+            PEG.AltNot -> runActionAndSaveEnterResult v pos0 alt [] >>= \case
+                False ->
+                    go
+                True -> do
+                    let mark0 = case mmark0 of
+                            Nothing ->
+                                error "unreachable: no mark with not alternative"
+                            Just x ->
+                                x
                     seekToMark pos0 mark0
-                    runAction pos0 v alt []
                     setNextState enterSn
                     pure ContParse
 
+runActionAndSaveEnterResult :: Scanner.T posMark elem m
+    => Parser.VarNum -> Position -> Parser.AltNum -> [u] -> RunT ctx posMark elem m Bool
+runActionAndSaveEnterResult v pos0 alt args = runAction alt args >>= \case
+    Syntax.ActionTaskFail -> do
+        saveFailedEnterAction v pos0
+        pure False
+    Syntax.ActionTaskResult res -> do
+        saveParsedEnterAction v pos0 Nothing res
+        pure True
+    Syntax.ActionTaskModifyResult ctx1 res -> do
+        saveParsedEnterAction v pos0 (Just ctx1) res
+        pure True
+
 runAction :: Scanner.T posMark elem m
-    => Position -> Parser.VarNum -> Parser.AltNum -> [u]
-    -> RunT ctx posMark elem m ()
-runAction pos0 v alt args = do
+    => Parser.AltNum -> [u]
+    -> RunT ctx posMark elem m (Syntax.ActionTaskResult ctx a)
+runAction alt args = do
     parser <- getCtx ctxParser
     ctx0 <- getCtx ctxCustomContext
     let actionTask = Parser.runActionM
             do Parser.parserAction parser alt
             do args
-    let (mctx1, res) = Syntax.runActionTask actionTask ctx0
+    pure do Syntax.runActionTask actionTask ctx0
+
+saveParsedEnterAction :: Scanner.T posMark elem m
+    => Parser.VarNum -> Position -> Maybe ctx -> a
+    -> RunT ctx posMark elem m ()
+saveParsedEnterAction v pos0 mctx1 res = do
     forM_ mctx1 \ctx1 -> updateCustomContext ctx1
     insertMemoItemIfNeeded v pos0 do
         (pos1, pm1) <- getCurrentPosition

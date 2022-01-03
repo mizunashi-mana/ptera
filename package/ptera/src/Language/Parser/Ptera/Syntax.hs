@@ -11,6 +11,10 @@ module Language.Parser.Ptera.Syntax (
     GrammarToken.GrammarToken (..),
     SemActM (..),
     ActionTask (..),
+    ActionTaskResult (..),
+    getAction,
+    modifyAction,
+    failAction,
 
     Grammar,
     Rules,
@@ -59,31 +63,55 @@ newtype SemActM ctx us a = SemActM
 
 type SemAct = SemActM ()
 
-semAct :: (HList.T us -> a) -> SemAct us a
+semAct :: (HList.T us -> a) -> SemActM ctx us a
 semAct f = SemActM \l -> pure do f l
 
 newtype ActionTask ctx a = ActionTask
     {
-        runActionTask :: ctx -> (Maybe ctx, a)
+        runActionTask :: ctx -> ActionTaskResult ctx a
     }
     deriving Functor
 
+data ActionTaskResult ctx a
+    = ActionTaskFail
+    | ActionTaskResult a
+    | ActionTaskModifyResult ctx a
+    deriving (Eq, Show, Functor)
+
+getAction :: ActionTask ctx ctx
+getAction = ActionTask \ctx0 -> ActionTaskResult ctx0
+
+modifyAction :: (ctx -> ctx) -> ActionTask ctx ()
+modifyAction f = ActionTask \ctx0 -> ActionTaskModifyResult (f ctx0) ()
+
+failAction :: ActionTask ctx a
+failAction = ActionTask \_ -> ActionTaskFail
+
 instance Applicative (ActionTask ctx) where
-    pure x = ActionTask \_ -> (Nothing, x)
-    ActionTask mf <*> ActionTask mx = ActionTask \ctx0 ->
-        let (mctx1, f) = mf ctx0
-            ctx1 = case mctx1 of
-                Nothing   -> ctx0
-                Just ctx  -> ctx
-            (mctx2, x) = mx ctx1
-        in (mctx2, f x)
+    pure x = ActionTask \_ -> ActionTaskResult x
+    ActionTask mf <*> ActionTask mx = ActionTask \ctx0 -> case mf ctx0 of
+        ActionTaskFail ->
+            ActionTaskFail
+        ActionTaskResult f -> case mx ctx0 of
+            ActionTaskFail ->
+                ActionTaskFail
+            ActionTaskResult x ->
+                ActionTaskResult do f x
+            ActionTaskModifyResult ctx1 x ->
+                ActionTaskModifyResult ctx1 do f x
+        ActionTaskModifyResult ctx1 f -> case mx ctx1 of
+            ActionTaskFail ->
+                ActionTaskFail
+            ActionTaskResult x ->
+                ActionTaskModifyResult ctx1 do f x
+            ActionTaskModifyResult ctx2 x ->
+                ActionTaskModifyResult ctx2 do f x
 
 instance Monad (ActionTask ctx) where
-    ActionTask mx >>= f = ActionTask \ctx0 ->
-        let (mctx1, x1) = mx ctx0
-            ctx1 = case mctx1 of
-                Nothing   -> ctx0
-                Just ctx  -> ctx
-        in runActionTask
-            do f x1
-            do ctx1
+    ActionTask mx >>= f = ActionTask \ctx0 -> case mx ctx0 of
+        ActionTaskFail ->
+            ActionTaskFail
+        ActionTaskResult x ->
+            runActionTask (f x) ctx0
+        ActionTaskModifyResult ctx1 x ->
+            runActionTask (f x) ctx1

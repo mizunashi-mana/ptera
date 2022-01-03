@@ -11,6 +11,9 @@ module Language.Parser.Ptera.Runner.Parser (
     RunnerParser (..),
     ActionM (..),
     Syntax.ActionTask (..),
+    Syntax.getAction,
+    Syntax.modifyAction,
+    Syntax.failAction,
     Trans (..),
     TransOp (..),
 

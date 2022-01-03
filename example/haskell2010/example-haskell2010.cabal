@@ -26,18 +26,20 @@ library
         Lexer
         Lexer.Rules
         --Parser
-        --Parser.Rules
+        Parser.Rules
 
     build-depends:
         base,
         ptera-th,
         ptera,
+        ptera-util,
         ptera-core,
         bytestring,
         tlex,
         tlex-encoding,
         tlex-th,
         charset,
+        containers,
         template-haskell,
 
 test-suite spec
