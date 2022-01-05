@@ -67,7 +67,13 @@ srb2QParser param srb = do
         , outputParserActionFn parserActionFnName do SRB.alts srb
 
         , TH.SigD runnerFnName <$>
-            [t|Parser $(customCtxTy param) $(startsTy param) $(rulesTy param) $(tokenTy param)|]
+            [t|Parser
+                $(customCtxTy param)
+                $(rulesTy param)
+                $(tokensTy param)
+                $(tokenTy param)
+                $(startsTy param)
+            |]
         , outputRunnerFn runnerFnName
             parserInitialFnName
             parserGetTokenNumFnName

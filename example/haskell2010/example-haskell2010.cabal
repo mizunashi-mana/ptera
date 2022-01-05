@@ -33,7 +33,6 @@ library
         base,
         ptera-th,
         ptera,
-        ptera-util,
         ptera-core,
         bytestring,
         tlex,

@@ -19,16 +19,15 @@ import qualified Type.Membership.Internal as MembershipInternal
 
 type T = RunnerM
 
-type RunnerM :: Type -> Type -> [t] -> Type -> [Symbol] -> Type
-newtype RunnerM ctx rules tokens elem initials = UnsafeRunnerM (Parser.T ctx elem)
+type RunnerM :: Type -> Type -> Type -> [Symbol] -> Type
+newtype RunnerM ctx rules elem initials = UnsafeRunnerM (Parser.T ctx elem)
 
 type Runner = RunnerM ()
 
-runParserM :: forall v initials ctx posMark m a rules tokens elem proxy.
-    a ~ Syntax.RuleExprReturnType (Syntax.SemActM ctx) rules tokens elem v
-    => Membership.Member initials v => Scanner.T posMark elem m
-    => proxy v -> RunnerM ctx rules tokens elem initials -> ctx
-    -> m (RunT.Result a)
+runParserM :: forall v initials ctx posMark m rules elem proxy
+    .  Membership.Member initials v => Scanner.T posMark elem m
+    => proxy v -> RunnerM ctx rules elem initials -> ctx
+    -> m (RunT.Result (Syntax.RuleExprReturnType rules v))
 runParserM _ (UnsafeRunnerM p) customCtx0 =
     case RunT.initialContext p customCtx0 pos of
         Nothing ->
@@ -42,9 +41,8 @@ runParserM _ (UnsafeRunnerM p) customCtx0 =
         pos = SafeGrammar.genStartPoint
             do MembershipInternal.membership @initials @v
 
-runParser :: forall v initials posMark m a rules tokens elem proxy.
-    a ~ Syntax.RuleExprReturnType Syntax.SemAct rules tokens elem v
-    => Membership.Member initials v => Scanner.T posMark elem m
-    => proxy v -> Runner rules tokens elem initials
-    -> m (RunT.Result a)
+runParser :: forall v initials posMark m rules elem proxy
+    .  Membership.Member initials v => Scanner.T posMark elem m
+    => proxy v -> Runner rules elem initials
+    -> m (RunT.Result (Syntax.RuleExprReturnType rules v))
 runParser p r = runParserM p r ()

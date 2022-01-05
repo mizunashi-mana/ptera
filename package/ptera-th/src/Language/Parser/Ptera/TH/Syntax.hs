@@ -3,8 +3,12 @@
 module Language.Parser.Ptera.TH.Syntax (
     T,
 
+    HasField (..),
+    SafeGrammar.HasRuleExprField (..),
+    SafeGrammar.RulesTag,
+
     GrammarM,
-    SafeGrammar.MemberInitials,
+    MemberInitialsM,
     RulesM,
     RuleExprM,
     AltM,
@@ -12,12 +16,17 @@ module Language.Parser.Ptera.TH.Syntax (
     SafeGrammar.Unit,
     GrammarToken.GrammarToken (..),
     SemActM (..),
-    SemActArgs (..),
     semActM,
     semActM',
     semActM_,
+    Syntax.ActionTask (..),
+    Syntax.ActionTaskResult (..),
+    Syntax.getAction,
+    Syntax.modifyAction,
+    Syntax.failAction,
 
     Grammar,
+    MemberInitials,
     Rules,
     RuleExpr,
     Alt,
@@ -52,19 +61,15 @@ import           Language.Parser.Ptera.TH.ParserLib
 type T ctx = GrammarM ctx
 
 type GrammarM ctx = SafeGrammar.Grammar (SemActM ctx)
-type Grammar = GrammarM ()
-
-type family TokensTag (tokens :: [t]) :: [(t, Type)] where
-    TokensTag '[] = '[]
-    TokensTag (n ': ns) = '(n, TH.Q TH.Pat) ': TokensTag ns
-
-type RulesM ctx rules tokens elem = SafeGrammar.Rules (SemActM ctx) rules tokens elem
-type Rules rules tokens elem = RulesM () rules tokens elem
-
+type MemberInitialsM ctx = SafeGrammar.MemberInitials (SemActM ctx)
+type RulesM ctx = SafeGrammar.Rules (SemActM ctx)
 type RuleExprM ctx = SafeGrammar.RuleExpr (SemActM ctx)
-type RuleExpr = RuleExprM ()
-
 type AltM ctx = SafeGrammar.Alt (SemActM ctx)
+
+type Grammar = GrammarM ()
+type MemberInitials = MemberInitialsM ()
+type Rules = RulesM ()
+type RuleExpr = RuleExprM ()
 type Alt = AltM ()
 
 type SemActM :: Type -> [Type] -> Type -> Type

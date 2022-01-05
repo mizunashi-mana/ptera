@@ -97,6 +97,7 @@ common general
         ghc-prim,
         containers,
         array,
+        membership,
         enummapset-th,
         template-haskell,
         unordered-containers,
@@ -124,6 +125,7 @@ library
         Language.Parser.Ptera.TH.Data.Bits.MaxBit
 
         Language.Parser.Ptera.TH.Syntax
+        Language.Parser.Ptera.TH.Util
         Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec
         Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec
 

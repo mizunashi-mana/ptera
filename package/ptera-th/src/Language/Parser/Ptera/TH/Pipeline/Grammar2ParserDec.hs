@@ -4,16 +4,16 @@ module Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified GHC.TypeNats                                    as TypeNats
 import qualified Language.Haskell.TH                             as TH
-import qualified Language.Parser.Ptera.Data.TypeOps              as TypeOps
 import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB  as SafeGrammar2SRB
 import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
 import qualified Language.Parser.Ptera.TH.Syntax                 as Syntax
+import qualified Type.Membership as Membership
 
-grammar2ParserDec :: forall vars rules tokens ctx elem.
-    Syntax.GrammarToken elem tokens => TokenBounded tokens
-    => PipelineParam -> Syntax.GrammarM ctx vars rules tokens elem -> Maybe (TH.Q [TH.Dec])
+grammar2ParserDec
+    :: forall initials rules tokens ctx elem
+    .  Syntax.GrammarToken elem tokens => Membership.Generate tokens
+    => PipelineParam -> Syntax.GrammarM ctx rules tokens elem initials -> Maybe (TH.Q [TH.Dec])
 grammar2ParserDec param g = do
     srb <- SafeGrammar2SRB.safeGrammar2Srb g
     pure
@@ -25,19 +25,9 @@ grammar2ParserDec param g = do
                     tokensTy = tokensTy param,
                     tokenTy = tokenTy param,
                     customCtxTy = customCtxTy param,
-                    tokenBounds = tokenBounds do Proxy @tokens
+                    tokenBounds = (0, Membership.hcount do Proxy @tokens)
                 }
             do srb
-
-class TokenBounded tokens where
-    tokenBounds :: Proxy tokens -> (Int, Int)
-
-instance TypeNats.KnownNat (TypeOps.Length tokens) => TokenBounded tokens where
-    tokenBounds Proxy = do
-        let tokMax = fromInteger do
-                toInteger do
-                    TypeNats.natVal' do proxy# :: Proxy# (TypeOps.Length tokens)
-        (0, tokMax)
 
 data PipelineParam = PipelineParam
     {

@@ -7,6 +7,7 @@ module Language.Parser.Ptera.Syntax.SafeGrammar (
 
     Grammar (..),
     RulesTag,
+    RuleExprType,
     fixGrammar,
 
     StartPoint,
@@ -52,17 +53,13 @@ newtype Grammar action rules tokens elem initials = UnsafeGrammar
     }
 
 type family RulesTag (rules :: Type) :: [Symbol]
+type family RuleExprType (rules :: Type) :: Type -> Type
 
-type RuleExprType :: ([Type] -> Type -> Type) -> Type -> [t] -> Type -> Symbol -> Type
-type RuleExprType action rules tokens elem v =
-    RuleExpr action rules tokens elem
-        (RuleExprReturnType action rules tokens elem v)
+class (KnownSymbol v, HasField v rules ((RuleExprType rules) (RuleExprReturnType rules v))) =>
+        HasRuleExprField rules v where
+    type RuleExprReturnType rules v :: Type
 
-class (KnownSymbol v, HasField v rules (RuleExprType action rules tokens elem v)) =>
-        HasRuleExprField action rules tokens elem v where
-    type RuleExprReturnType action rules tokens elem v :: Type
-
-    nonTerminalName :: Proxy# '(action, rules, tokens, elem) -> Proxy# v -> String
+    nonTerminalName :: Proxy# rules -> Proxy# v -> String
     nonTerminalName _ p# = symbolVal' p#
 
 type GrammarMForFixGrammar elem action =
@@ -70,24 +67,24 @@ type GrammarMForFixGrammar elem action =
 
 fixGrammar
     :: forall initials action rules tokens elem
-    .  MemberInitials action rules tokens elem initials
-    => Rules action rules tokens elem
+    .  MemberInitials rules initials
+    => Rules rules => RuleExprType rules ~ RuleExpr action rules tokens elem
     => rules -> Grammar action rules tokens elem initials
 fixGrammar ruleDefs = UnsafeGrammar do
     runIdentity do
         SyntaxGrammar.fixGrammarT do
             Membership.henumerateFor
-                do Proxy @(HasRuleExprField action rules tokens elem)
+                do Proxy @(HasRuleExprField rules)
                 do Proxy @initials
                 do fixInitial
                 do pure ()
             Membership.henumerateFor
-                do Proxy @(HasRuleExprField action rules tokens elem)
+                do Proxy @(HasRuleExprField rules)
                 do Proxy @(RulesTag rules)
                 do fixRule
                 do pure ()
     where
-        fixInitial :: forall v. HasRuleExprField action rules tokens elem v
+        fixInitial :: forall v. HasRuleExprField rules v
             => Membership.Membership initials v
             -> GrammarMForFixGrammar elem action ()
             -> GrammarMForFixGrammar elem action ()
@@ -95,18 +92,18 @@ fixGrammar ruleDefs = UnsafeGrammar do
             let sn = genStartPoint m
             let vn = genNewV
                     do nonTerminalName
-                        do proxy# @'(action, rules, tokens, elem)
+                        do proxy# @rules
                         do proxy# @v
             SyntaxGrammar.initialT sn vn
 
-        fixRule :: forall v. HasRuleExprField action rules tokens elem v
+        fixRule :: forall v. HasRuleExprField rules v
             => Membership.Membership (RulesTag rules) v
             -> GrammarMForFixGrammar elem action ()
             -> GrammarMForFixGrammar elem action ()
         fixRule _ g = g >> do
             let vn = genNewV
                     do nonTerminalName
-                        do proxy# @'(action, rules, tokens, elem)
+                        do proxy# @rules
                         do proxy# @v
             SyntaxGrammar.ruleT vn do
                 fixRuleExpr do getField @v ruleDefs
@@ -123,7 +120,7 @@ fixGrammar ruleDefs = UnsafeGrammar do
                 do coerce fixExpr e
                 do act
 
-        fixExpr :: Expr action rules tokens elem us
+        fixExpr :: Expr rules tokens elem us
             -> SyntaxGrammar.Expr NonTerminal Terminal elem us
         fixExpr (UnsafeExpr e) = case e of
             SyntaxGrammar.Eps ->
@@ -131,7 +128,7 @@ fixGrammar ruleDefs = UnsafeGrammar do
             u1 SyntaxGrammar.:^ e2 ->
                 coerce fixUnit u1 SyntaxGrammar.:^ coerce fixExpr e2
 
-        fixUnit :: Unit action rules tokens elem u
+        fixUnit :: Unit rules tokens elem u
             -> SyntaxGrammar.Unit NonTerminal Terminal elem u
         fixUnit (UnsafeUnit u) = case u of
             SyntaxGrammar.UnitToken t ->
@@ -139,7 +136,7 @@ fixGrammar ruleDefs = UnsafeGrammar do
             SyntaxGrammar.UnitVar v ->
                 SyntaxGrammar.UnitVar do genNewV v
 
-        rulesTag = genRulesTagMap do proxy# @'(action, rules, tokens, elem)
+        rulesTag = genRulesTagMap do proxy# @rules
 
         genNewV v = case HashMap.lookup v rulesTag of
             Just newV ->
@@ -152,29 +149,28 @@ type Terminal = Int
 type NonTerminal = Int
 type IntermNonTerminal = String
 
-class Membership.Forall (HasRuleExprField action rules tokens elem) initials
-        => MemberInitials action rules tokens elem initials
-instance Membership.Forall (HasRuleExprField action rules tokens elem) initials
-        => MemberInitials action rules tokens elem initials
+class Membership.Forall (HasRuleExprField rules) initials
+        => MemberInitials rules initials
+instance Membership.Forall (HasRuleExprField rules) initials
+        => MemberInitials rules initials
 
-class Membership.Forall (HasRuleExprField action rules tokens elem) (RulesTag rules)
-        => Rules action rules tokens elem
-instance Membership.Forall (HasRuleExprField action rules tokens elem) (RulesTag rules)
-        => Rules action rules tokens elem
+class Membership.Forall (HasRuleExprField rules) (RulesTag rules)
+        => Rules rules
+instance Membership.Forall (HasRuleExprField rules) (RulesTag rules)
+        => Rules rules
 
 genStartPoint :: forall initials v. Membership.Membership initials v -> StartPoint
 genStartPoint m = Membership.getMemberId m
 
-genRulesTagMap :: forall action rules tokens elem.
-    Rules action rules tokens elem
-    => Proxy# '(action, rules, tokens, elem) -> HashMap.HashMap IntermNonTerminal NonTerminal
+genRulesTagMap :: forall rules.
+    Rules rules => Proxy# rules -> HashMap.HashMap IntermNonTerminal NonTerminal
 genRulesTagMap _ = Membership.henumerateFor
-    do Proxy @(HasRuleExprField action rules tokens elem)
+    do Proxy @(HasRuleExprField rules)
     do Proxy @(RulesTag rules)
     do go
     do HashMap.empty
     where
-        go :: forall v. HasRuleExprField action rules tokens elem v
+        go :: forall v. HasRuleExprField rules v
             => Membership.Membership (RulesTag rules) v
             -> HashMap.HashMap IntermNonTerminal NonTerminal
             -> HashMap.HashMap IntermNonTerminal NonTerminal
@@ -195,14 +191,14 @@ newtype Alt action rules tokens elem a = UnsafeAlt
         unsafeAlt :: SyntaxGrammar.Alt IntermNonTerminal Terminal elem action a
     }
 
-type Expr :: ([Type] -> Type -> Type) -> Type -> [t] -> Type -> [Type] -> Type
-newtype Expr action rules tokens elem us = UnsafeExpr
+type Expr :: Type -> [t] -> Type -> [Type] -> Type
+newtype Expr rules tokens elem us = UnsafeExpr
     {
         unsafeExpr :: SyntaxGrammar.Expr IntermNonTerminal Terminal elem us
     }
 
-type Unit :: ([Type] -> Type -> Type) -> Type -> [t] -> Type -> Type -> Type
-newtype Unit action rules tokens elem u = UnsafeUnit
+type Unit :: Type -> [t] -> Type -> Type -> Type
+newtype Unit rules tokens elem u = UnsafeUnit
     {
         unsafeUnit :: SyntaxGrammar.Unit IntermNonTerminal Terminal elem u
     }
@@ -210,16 +206,16 @@ newtype Unit action rules tokens elem u = UnsafeUnit
 ruleExpr :: [Alt action rules tokens elem a] -> RuleExpr action rules tokens elem a
 ruleExpr alts = UnsafeRuleExpr do coerce alts
 
-alt :: (Expr action rules tokens elem us, action us a) -> Alt action rules tokens elem a
+alt :: (Expr rules tokens elem us, action us a) -> Alt action rules tokens elem a
 alt (UnsafeExpr us, act) = UnsafeAlt do SyntaxGrammar.Alt us act
 
-(<^>) :: Unit action rules tokens elem u -> (Expr action rules tokens elem us1, action us2 a)
-    -> (Expr action rules tokens elem (u ': us1), action us2 a)
+(<^>) :: Unit rules tokens elem u -> (Expr rules tokens elem us1, action us2 a)
+    -> (Expr rules tokens elem (u ': us1), action us2 a)
 UnsafeUnit u <^> (UnsafeExpr us, act) = (UnsafeExpr do u SyntaxGrammar.:^ us, act)
 
 infixr 5 <^>
 
-(<:>) :: Unit action rules tokens elem u -> f us2 a -> (Expr action rules tokens elem '[u], f us2 a)
+(<:>) :: Unit rules tokens elem u -> action us2 a -> (Expr rules tokens elem '[u], action us2 a)
 UnsafeUnit u <:> act = (UnsafeExpr do u SyntaxGrammar.:^ SyntaxGrammar.Eps, act)
 
 infixr 5 <:>
@@ -227,20 +223,20 @@ infixr 5 <:>
 eps :: action '[] a -> Alt action rules tokens elem a
 eps act = UnsafeAlt do SyntaxGrammar.Alt SyntaxGrammar.Eps act
 
-var :: forall v action rules tokens elem a proxy.
-    HasRuleExprField action rules tokens elem v
-    => proxy v -> Unit action rules tokens elem a
+var :: forall v rules tokens elem a proxy.
+    HasRuleExprField rules v
+    => proxy v -> Unit rules tokens elem a
 var p = UnsafeUnit do SyntaxGrammar.UnitVar do symbolVal p
 
-varA :: forall v action rules tokens elem a.
-    HasRuleExprField action rules tokens elem v => Unit action rules tokens elem a
+varA :: forall v rules tokens elem a.
+    HasRuleExprField rules v => Unit rules tokens elem a
 varA = var do Proxy @v
 
-tok :: Membership.Membership tokens t -> Unit action rules tokens elem elem
+tok :: Membership.Membership tokens t -> Unit rules tokens elem elem
 tok p = UnsafeUnit
     do SyntaxGrammar.UnitToken
         do HEnum.unsafeHEnum do HEnum.henum p
 
-tokA :: forall t action rules tokens elem.
-    Membership.Member tokens t => Unit action rules tokens elem elem
+tokA :: forall t rules tokens elem.
+    Membership.Member tokens t => Unit rules tokens elem elem
 tokA = tok do MembershipInternal.membership @tokens @t

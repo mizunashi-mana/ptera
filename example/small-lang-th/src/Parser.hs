@@ -21,7 +21,7 @@ $(PteraTH.genRunner
         })
     Rules.grammar
     )
-
+{-
 exprParser :: PteraTH.Scanner posMark Token m => m (PteraTH.Result Ast)
 exprParser = PteraTH.runParser (Proxy :: Proxy "expr") pteraTHRunner
 
@@ -29,3 +29,4 @@ parseExpr :: [Token] -> Either String Ast
 parseExpr toks = case PteraTH.runListScanner exprParser toks of
     PteraTH.Parsed x  -> Right x
     PteraTH.ParseFail -> Left "ParseFail"
+-}

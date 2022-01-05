@@ -5,7 +5,7 @@ module Language.Parser.Ptera.TH (
     module Language.Parser.Ptera.Scanner,
     module Language.Parser.Ptera.Runner,
     module Language.Parser.Ptera.TH.ParserLib,
-    module Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec,
+    module Language.Parser.Ptera.TH.Util,
     genRunner,
     GenParam (..),
     defaultCustomCtxTy,
@@ -18,15 +18,18 @@ import           Language.Parser.Ptera.Runner                        (Result (..
                                                                       runParser)
 import           Language.Parser.Ptera.Scanner                       hiding (T)
 import           Language.Parser.Ptera.TH.ParserLib
-import           Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec (TokenBounded)
 import qualified Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec as Grammar2ParserDec
 import           Language.Parser.Ptera.TH.Syntax                     hiding (T,
                                                                       UnsafeSemActM,
                                                                       unsafeSemanticAction)
+import qualified Type.Membership as Membership
+import           Language.Parser.Ptera.TH.Util (genGrammarToken,
+    GenRulesTypes (..),
+    genRules)
 
-genRunner :: forall vars rules tokens ctx elem.
-    GrammarToken elem tokens => TokenBounded tokens
-    => GenParam -> GrammarM ctx vars rules tokens elem -> TH.Q [TH.Dec]
+genRunner :: forall initials rules tokens ctx elem
+    .  GrammarToken elem tokens => Membership.Generate tokens
+    => GenParam -> GrammarM ctx rules tokens elem initials -> TH.Q [TH.Dec]
 genRunner param g = case mdecs of
         Nothing ->
             fail "Failed to generate parser"

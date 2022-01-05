@@ -54,17 +54,17 @@ instance HasField "product" Rules (RuleExpr Ast) where
 instance HasField "value" Rules (RuleExpr Ast) where
     getField = rvalue
 
-instance HasRuleExprField SemAct Rules Tokens Token "expr" where
-    type RuleExprReturnType SemAct Rules Tokens Token "expr" = Ast
+instance HasRuleExprField Rules "expr" where
+    type RuleExprReturnType Rules "expr" = Ast
 
-instance HasRuleExprField SemAct Rules Tokens Token "sum" where
-    type RuleExprReturnType SemAct Rules Tokens Token "sum" = Ast
+instance HasRuleExprField Rules "sum" where
+    type RuleExprReturnType Rules "sum" = Ast
 
-instance HasRuleExprField SemAct Rules Tokens Token "product" where
-    type RuleExprReturnType SemAct Rules Tokens Token "product" = Ast
+instance HasRuleExprField Rules "product" where
+    type RuleExprReturnType Rules "product" = Ast
 
-instance HasRuleExprField SemAct Rules Tokens Token "value" where
-    type RuleExprReturnType SemAct Rules Tokens Token "value" = Ast
+instance HasRuleExprField Rules "value" where
+    type RuleExprReturnType Rules "value" = Ast
 
 type Tokens =
     '[
@@ -74,6 +74,7 @@ type Tokens =
         "id"
     ]
 type RuleExpr = Ptera.RuleExpr Rules Tokens Token
+type instance RuleExprType Rules = RuleExpr
 
 instance GrammarToken Token Tokens where
     tokenToTerminal Proxy token = case token of

@@ -12,12 +12,10 @@
 module Parser.Rules where
 
 import           Data.Proxy                        (Proxy (..))
-import           Language.Parser.Ptera.Data.HEnum  (henum)
+import           Language.Parser.Ptera.Data.HEnum  (henumA)
 import           Language.Parser.Ptera.Data.HList  (HList (..))
-import qualified Language.Parser.Ptera.Data.Record as Record
 import           Language.Parser.Ptera.TH          hiding (RuleExpr, Rules)
 import qualified Language.Parser.Ptera.TH          as Ptera
-import qualified Language.Parser.Ptera.Util        as Ptera
 import           Types
 import qualified Language.Haskell.TH as TH
 
@@ -31,22 +29,30 @@ $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
     , ("id", [p|TokIdentifier{}|])
     ])
 
-grammar :: Grammar ParsePoints Rules Tokens Token
-grammar = fixGrammar $ Record.fromFieldsA $
-    Record.field #expr rExpr :*
-    Record.field #sum rSum :*
-    Record.field #product rProduct :*
-    Record.field #value rValue :*
-    HNil
+$(Ptera.genRules
+    do TH.mkName "Rules"
+    do GenRulesTypes
+        { genRulesCtxTy = [t|()|]
+        , genRulesTokensTy = [t|Tokens|]
+        , genRulesTokenTy = [t|Token|]
+        }
+    [ (TH.mkName "rexpr", "expr", [t|Ast|])
+    , (TH.mkName "rsum", "sum", [t|Ast|])
+    , (TH.mkName "rproduct", "product", [t|Ast|])
+    , (TH.mkName "rvalue", "value", [t|Ast|])
+    ]
+    )
+
+grammar :: Grammar Rules Tokens Token ParsePoints
+grammar = fixGrammar $ Rules
+    { rexpr = rExpr
+    , rsum = rSum
+    , rproduct = rProduct
+    , rvalue = rValue
+    }
 
 type ParsePoints = '[ "expr" ]
-type Rules =
-    '[
-        '("expr", Ast),
-        '("sum", Ast),
-        '("product", Ast),
-        '("value", Ast)
-    ]
+
 type RuleExpr = Ptera.RuleExpr Rules Tokens Token
 
 

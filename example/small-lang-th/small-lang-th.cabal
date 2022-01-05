@@ -32,7 +32,6 @@ library
     build-depends:
         base,
         ptera-th,
-        ptera-util,
         ptera,
         ptera-core,
         bytestring,
