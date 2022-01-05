@@ -4,7 +4,8 @@ module Language.Parser.Ptera.Data.HEnum where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.Member as Member
+import qualified Type.Membership as Membership
+import qualified Type.Membership.Internal as MembershipInternal
 
 type T = HEnum
 
@@ -14,16 +15,11 @@ newtype HEnum (as :: [k]) = UnsafeHEnum
     }
     deriving (Eq, Show)
 
-henum :: forall a as. Member.T a as => Proxy a -> HEnum as
-henum Proxy = UnsafeHEnum
-    do Member.position
-        do proxy# :: Proxy# a
-        do proxy# :: Proxy# as
+henum :: forall a as. Membership.Membership as a -> HEnum as
+henum m = UnsafeHEnum do Membership.getMemberId m
 
-henumA :: forall a as. Member.T a as => HEnum as
-henumA = henum do Proxy @a
+henumA :: forall a as. Membership.Member as a => HEnum as
+henumA = henum do MembershipInternal.membership @as @a
 
-unHEnum :: forall a as. Member.T a as => Proxy a -> HEnum as -> Bool
-unHEnum Proxy (UnsafeHEnum i) = i == Member.position
-    do proxy# :: Proxy# a
-    do proxy# :: Proxy# as
+unHEnum :: forall a as. Membership.Membership as a -> HEnum as -> Bool
+unHEnum m (UnsafeHEnum i) = Membership.getMemberId m == i

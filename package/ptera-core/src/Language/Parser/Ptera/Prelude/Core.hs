@@ -24,6 +24,8 @@ module Language.Parser.Ptera.Prelude.Core (
     module GHC.Exts,
     module GHC.Generics,
     module GHC.OverloadedLabels,
+    module GHC.Records,
+    module GHC.TypeLits,
 ) where
 
 import           Control.Applicative
@@ -44,7 +46,7 @@ import           Data.Functor.Compose
 import           Data.Functor.Identity
 import           Data.Hashable                    (Hashable)
 import           Data.Ix                          (Ix)
-import           Data.Kind                        (Type)
+import           Data.Kind                        (Type, Constraint)
 import           Data.List.NonEmpty               (NonEmpty (..))
 import           Data.Ord                         (Down (..))
 import           Data.Proxy                       (Proxy (..))
@@ -53,5 +55,7 @@ import           Data.Word                        (Word, Word8)
 import           GHC.Exts                         (Proxy#, proxy#)
 import           GHC.Generics                     (Generic)
 import           GHC.OverloadedLabels
+import           GHC.Records
+import           GHC.TypeLits                     (Nat, KnownNat, natVal, natVal', Symbol, KnownSymbol, symbolVal, symbolVal')
 import           Prelude                          hiding (String, foldl, foldr,
                                                    head, pi, tail, ($))

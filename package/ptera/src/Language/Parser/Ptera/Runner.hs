@@ -9,24 +9,27 @@ module Language.Parser.Ptera.Runner (
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.Member   as Member
-import qualified Language.Parser.Ptera.Data.Record   as Record
-import qualified Language.Parser.Ptera.Data.TypeOps  as TypeOps
+import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 import qualified Language.Parser.Ptera.Runner.Parser as Parser
 import qualified Language.Parser.Ptera.Runner.RunT   as RunT
 import qualified Language.Parser.Ptera.Scanner       as Scanner
+import qualified Language.Parser.Ptera.Syntax               as Syntax
+import qualified Type.Membership as Membership
+import qualified Type.Membership.Internal as MembershipInternal
 
 type T = RunnerM
 
-newtype RunnerM ctx vars rules elem = UnsafeRunnerM (Parser.T ctx elem)
+type RunnerM :: Type -> Type -> [t] -> Type -> [Symbol] -> Type
+newtype RunnerM ctx rules tokens elem initials = UnsafeRunnerM (Parser.T ctx elem)
+
 type Runner = RunnerM ()
 
-runParserM :: forall v vars rules ctx posMark elem m a.
-    a ~ TypeOps.FromJust (Record.RecordIndex v rules)
-    => Member.T v vars
-    => Scanner.T posMark elem m
-    => Proxy v -> RunnerM ctx vars rules elem -> ctx -> m (RunT.Result a)
-runParserM Proxy (UnsafeRunnerM p) customCtx0 =
+runParserM :: forall v initials ctx posMark m a rules tokens elem proxy.
+    a ~ Syntax.RuleExprReturnType (Syntax.SemActM ctx) rules tokens elem v
+    => Membership.Member initials v => Scanner.T posMark elem m
+    => proxy v -> RunnerM ctx rules tokens elem initials -> ctx
+    -> m (RunT.Result a)
+runParserM _ (UnsafeRunnerM p) customCtx0 =
     case RunT.initialContext p customCtx0 pos of
         Nothing ->
             pure do RunT.ParseFail
@@ -36,13 +39,12 @@ runParserM Proxy (UnsafeRunnerM p) customCtx0 =
         runner :: StateT (RunT.Context ctx posMark elem) m (RunT.Result a)
         runner = RunT.unRunT RunT.runT
 
-        pos = Member.position
-            do proxy# :: Proxy# v
-            do proxy# :: Proxy# vars
+        pos = SafeGrammar.genStartPoint
+            do MembershipInternal.membership @initials @v
 
-runParser :: forall v vars rules posMark elem m a.
-    a ~ TypeOps.FromJust (Record.RecordIndex v rules)
-    => Member.T v vars
-    => Scanner.T posMark elem m
-    => Proxy v -> Runner vars rules elem -> m (RunT.Result a)
+runParser :: forall v initials posMark m a rules tokens elem proxy.
+    a ~ Syntax.RuleExprReturnType Syntax.SemAct rules tokens elem v
+    => Membership.Member initials v => Scanner.T posMark elem m
+    => proxy v -> Runner rules tokens elem initials
+    -> m (RunT.Result a)
 runParser p r = runParserM p r ()

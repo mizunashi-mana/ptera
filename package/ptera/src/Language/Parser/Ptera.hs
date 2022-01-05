@@ -19,5 +19,6 @@ import           Language.Parser.Ptera.Syntax                  hiding (T)
 type Parser = Runner.T
 
 genRunner :: GrammarToken elem tokens
-    => GrammarM ctx vars rules tokens elem -> Maybe (Parser ctx vars rules elem)
+    => GrammarM ctx rules tokens elem initials
+    -> Maybe (Parser ctx rules tokens elem initials)
 genRunner g = Grammar2Runner.grammar2Runner g

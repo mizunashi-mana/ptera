@@ -14,6 +14,8 @@ module Language.Parser.Ptera.TH.Syntax (
     SemActM (..),
     SemActArgs (..),
     semActM,
+    semActM',
+    semActM_,
 
     Grammar,
     Rules,
@@ -21,6 +23,8 @@ module Language.Parser.Ptera.TH.Syntax (
     Alt,
     SemAct,
     semAct,
+    semAct',
+    semAct_,
 
     SafeGrammar.fixGrammar,
     SafeGrammar.ruleExpr,
@@ -72,8 +76,24 @@ newtype SemActM ctx us a = UnsafeSemActM
 type SemAct = SemActM ()
 
 semActM :: forall ctx us a. SemActArgs us
-    => (HList.T (ActArgs us) -> TH.Q (TH.TExp (Syntax.ActionTask ctx a))) -> SemActM ctx us a
-semActM f = UnsafeSemActM do
+    => (HList.T (TypedActArgs us) -> TH.Q (TH.TExp (Syntax.ActionTask ctx a))) -> SemActM ctx us a
+semActM f = semActM_ \us -> [e|$(TH.unType <$> f us)|]
+
+semAct :: forall ctx us a. SemActArgs us
+    => (HList.T (TypedActArgs us) -> TH.Q (TH.TExp a)) -> SemActM ctx us a
+semAct f = semActM_ \us -> [e|pure $(TH.unType <$> f us)|]
+
+semActM' :: forall ctx us a. SemActArgs us
+    => (HList.T (UntypedActArgs us) -> TH.Q TH.Exp) -> SemActM ctx us a
+semActM' f = semActM_ \us -> [e|$(f do unTypeArgs @us proxy# us)|]
+
+semAct' :: forall ctx us a. SemActArgs us
+    => (HList.T (UntypedActArgs us) -> TH.Q TH.Exp) -> SemActM ctx us a
+semAct' f = semActM_ \us -> [e|pure $(f do unTypeArgs @us proxy# us)|]
+
+semActM_ :: forall ctx us a. SemActArgs us
+    => (HList.T (TypedActArgs us) -> TH.Q TH.Exp) -> SemActM ctx us a
+semActM_ f = UnsafeSemActM do
     (ns, args) <- unsafeSemActArgs do proxy# :: Proxy# us
     l <- TH.newName "pteraTHSemActArgs"
     let lp = pure do TH.VarP l
@@ -81,27 +101,32 @@ semActM f = UnsafeSemActM do
     let lp0 = pure do TH.ListP [TH.VarP n | n <- ns]
     [e|\ $(lp) -> case $(le) of
         $(lp0) ->
-            $(TH.unType <$> f args)
+            $(f args)
         _ ->
             error "unreachable: unexpected arguments"
         |]
 
-semAct :: forall ctx us a. SemActArgs us
-    => (HList.T (ActArgs us) -> TH.Q (TH.TExp a)) -> SemActM ctx us a
-semAct f = semActM \us -> [||pure $$(f us)||]
+semAct_ :: forall ctx us a. SemActArgs us
+    => (HList.T (TypedActArgs us) -> TH.Q TH.Exp) -> SemActM ctx us a
+semAct_ f = semActM_ \us -> [e|pure $(f us)|]
 
 class SemActArgs (us :: [Type]) where
-    type ActArgs us :: [Type]
+    type TypedActArgs us :: [Type]
+    type UntypedActArgs us :: [Type]
 
-    unsafeSemActArgs :: Proxy# us -> TH.Q ([TH.Name], HList.T (ActArgs us))
+    unsafeSemActArgs :: Proxy# us -> TH.Q ([TH.Name], HList.T (TypedActArgs us))
+    unTypeArgs :: Proxy# us -> HList.T (TypedActArgs us) -> HList.T (UntypedActArgs us)
 
 instance SemActArgs '[] where
-    type ActArgs '[] = '[]
+    type TypedActArgs '[] = '[]
+    type UntypedActArgs '[] = '[]
 
     unsafeSemActArgs _ = pure ([], HList.HNil)
+    unTypeArgs _ HList.HNil = HList.HNil
 
 instance SemActArgs us => SemActArgs (u ': us) where
-    type ActArgs (u ': us) = TH.Q (TH.TExp u) ': ActArgs us
+    type TypedActArgs (u ': us) = TH.Q (TH.TExp u) ': TypedActArgs us
+    type UntypedActArgs (u ': us) = TH.Q TH.Exp ': UntypedActArgs us
 
     unsafeSemActArgs _ = do
         n <- TH.newName "pteraTHSemActArg"
@@ -109,3 +134,7 @@ instance SemActArgs us => SemActArgs (u ': us) where
         let arg = [|| pteraTHUnsafeCoerce $$(ne) ||]
         (ns, args) <- unsafeSemActArgs do proxy# :: Proxy# us
         pure (n:ns, arg HList.:* args)
+    unTypeArgs _ = \case
+        u HList.:* us -> fmap TH.unType u HList.:* unTypeArgs
+            do proxy# :: Proxy# us
+            us

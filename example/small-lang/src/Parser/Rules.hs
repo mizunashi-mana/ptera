@@ -15,26 +15,57 @@ import           Language.Parser.Ptera             hiding (RuleExpr, Rules)
 import qualified Language.Parser.Ptera             as Ptera
 import           Language.Parser.Ptera.Data.HEnum  (henumA)
 import           Language.Parser.Ptera.Data.HList  (HList (..))
-import qualified Language.Parser.Ptera.Data.Record as Record
 import           Types
 
 
-grammar :: Grammar ParsePoints Rules Tokens Token
-grammar = fixGrammar $ Record.fromFieldsA $
-    Record.field #expr rExpr :*
-    Record.field #sum rSum :*
-    Record.field #product rProduct :*
-    Record.field #value rValue :*
-    HNil
+grammar :: Grammar Rules Tokens Token ParsePoints
+grammar = fixGrammar $ Rules
+    { rexpr = rExpr
+    , rsum = rSum
+    , rproduct = rProduct
+    , rvalue = rValue
+    }
 
 type ParsePoints = '[ "expr" ]
-type Rules =
+data Rules = Rules
+    { rexpr :: RuleExpr Ast
+    , rsum :: RuleExpr Ast
+    , rproduct :: RuleExpr Ast
+    , rvalue :: RuleExpr Ast
+    }
+
+type instance RulesTag Rules =
     '[
-        '("expr", Ast),
-        '("sum", Ast),
-        '("product", Ast),
-        '("value", Ast)
+      "expr"
+    , "sum"
+    , "product"
+    , "value"
     ]
+
+instance HasField "expr" Rules (RuleExpr Ast) where
+    getField = rexpr
+
+instance HasField "sum" Rules (RuleExpr Ast) where
+    getField = rsum
+
+instance HasField "product" Rules (RuleExpr Ast) where
+    getField = rproduct
+
+instance HasField "value" Rules (RuleExpr Ast) where
+    getField = rvalue
+
+instance HasRuleExprField SemAct Rules Tokens Token "expr" where
+    type RuleExprReturnType SemAct Rules Tokens Token "expr" = Ast
+
+instance HasRuleExprField SemAct Rules Tokens Token "sum" where
+    type RuleExprReturnType SemAct Rules Tokens Token "sum" = Ast
+
+instance HasRuleExprField SemAct Rules Tokens Token "product" where
+    type RuleExprReturnType SemAct Rules Tokens Token "product" = Ast
+
+instance HasRuleExprField SemAct Rules Tokens Token "value" where
+    type RuleExprReturnType SemAct Rules Tokens Token "value" = Ast
+
 type Tokens =
     '[
         "+", "*",

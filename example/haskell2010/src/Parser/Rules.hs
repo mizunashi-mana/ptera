@@ -92,7 +92,7 @@ $(genGrammarToken (TH.mkName "Tokens") [t|Token|]
 
 grammar :: GrammarM GrammarContext ParsePoints Rules Tokens Token
 grammar = fixGrammar $ Record.fromFieldsA $
-    Record.field #module rModule :*
+    {-Record.field #module rModule :*
     Record.field #body rBody :*
     Record.field #bodyinl rBodyInL :*
 
@@ -133,7 +133,7 @@ grammar = fixGrammar $ Record.fromFieldsA $
     Record.field #ideclsinl rIdeclsInL :*
     Record.field #ideclsinl1 rIdeclsInL1 :*
     Record.field #idecl rIdecl :*
-    Record.field #gendecl rGenDecl :*
+    Record.field #gendecl rGenDecl :*-}
     Record.field #ops rOps :*
     Record.field #vars rVars :*
     Record.field #fixity rFixity :*
@@ -173,7 +173,7 @@ grammar = fixGrammar $ Record.fromFieldsA $
     Record.field #dclass rDclass :*
     Record.field #inst rInst :*
     Record.field #tyvars2 rTyVars2 :*
-
+{-
     Record.field #fdecl rFdecl :*
     Record.field #callconv rCallConv :*
     Record.field #safetyopt rSafetyOpt :*
@@ -184,8 +184,8 @@ grammar = fixGrammar $ Record.fromFieldsA $
     Record.field #frtype rFrtype :*
     Record.field #fatype rFatype :*
 
-    Record.field #funlhs rFunlhs :*
-    Record.field #apats1 rApats1 :*
+    Record.field #funlhs rFunlhs :*-}
+    Record.field #apats1 rApats1 :*{-
     Record.field #rhs rRhs :*
     Record.field #wheredeclsopt rWhereDeclsOpt :*
     Record.field #gdrhs rGdrhs :*
@@ -217,7 +217,7 @@ grammar = fixGrammar $ Record.fromFieldsA $
     Record.field #stmts rStmts :*
     Record.field #stmts0 rStmts0 :*
     Record.field #stmt rStmt :*
-    Record.field #fbind rFbind :*
+    Record.field #fbind rFbind :*-}
 
     Record.field #pat rPat :*
     Record.field #lpat rLpat :*
@@ -272,10 +272,11 @@ grammar = fixGrammar $ Record.fromFieldsA $
 
     HNil
 
-type ParsePoints = '[ "module" ]
+-- type ParsePoints = '[ "module" ]
+type ParsePoints = '[ "varid" ]
 type Rules =
     '[
-        '("module", Program),
+        {-'("module", Program),
         '("body", ProgramBody),
         '("bodyinl", ProgramBody),
 
@@ -316,7 +317,7 @@ type Rules =
         '("ideclsinl", [Decl]),
         '("ideclsinl1", Seq.Seq Decl),
         '("idecl", Seq.Seq Decl),
-        '("gendecl", Seq.Seq Decl),
+        '("gendecl", Seq.Seq Decl),-}
         '("ops", Seq.Seq Id),
         '("vars", Seq.Seq Id),
         '("fixity", Fixity),
@@ -356,7 +357,7 @@ type Rules =
         '("dclass", Type),
         '("inst", Type),
         '("tyvars2", Seq.Seq Type),
-
+{-
         '("fdecl", Decl),
         '("callconv", ForeignCallConv),
         '("safetyopt", Maybe Safety),
@@ -367,8 +368,8 @@ type Rules =
         '("frtype", Type),
         '("fatype", Type),
 
-        '("funlhs", (Id, Seq.Seq Pat)),
-        '("apats1", Seq.Seq Pat),
+        '("funlhs", (Id, Seq.Seq Pat)),-}
+        '("apats1", Seq.Seq Pat),{-
         '("rhs", Rhs),
         '("wheredeclsopt", [Decl]),
         '("gdrhs", Seq.Seq ([Guard], Exp)),
@@ -400,7 +401,7 @@ type Rules =
         '("stmts", ([Stmt], Exp)),
         '("stmts0", Seq.Seq Stmt),
         '("stmt", Seq.Seq Stmt),
-        '("fbind", (QualifiedId, Exp)),
+        '("fbind", (QualifiedId, Exp)),-}
 
         '("pat", Pat),
         '("lpat", Pat),
@@ -458,7 +459,7 @@ type RuleExpr = Ptera.RuleExprM GrammarContext Rules Tokens Token
 type Unit = Ptera.Unit Rules Tokens Token
 
 type GrammarContext = [Int]
-
+{-
 rModule :: RuleExpr Program
 rModule = ruleExpr
     [ alt $ tokA @"module" <^> varA @"modid" <^> varA @"exports" <^> tokA @"where" <^> varA @"body"
@@ -906,45 +907,45 @@ rGenDecl = ruleExpr
         $ semAct \HNil ->
             [||Seq.empty||]
     ]
-
+-}
 rOps :: RuleExpr (Seq.Seq Id)
 rOps = ruleExpr
     [ alt $ varA @"op" <^> tokA @"," <^> varA @"ops"
-        <:> semAct \(op :* _ :* ops :* HNil) ->
-            [||$$(op) Seq.:<| $$(ops)||]
+        <:> semAct' \(op :* _ :* ops :* HNil) ->
+            [|$(op) Seq.:<| $(ops)|]
     , alt $ varA @"op"
-        <:> semAct \(op :* HNil) ->
-            [||pure $$(op)||]
+        <:> semAct' \(op :* HNil) ->
+            [|pure $(op)|]
     ]
 
 rVars :: RuleExpr (Seq.Seq Id)
 rVars = ruleExpr
     [ alt $ varA @"var" <^> tokA @"," <^> varA @"vars"
-        <:> semAct \(var :* _ :* vars :* HNil) ->
-            [||$$(var) Seq.:<| $$(vars)||]
+        <:> semAct' \(var :* _ :* vars :* HNil) ->
+            [|$(var) Seq.:<| $(vars)|]
     , alt $ varA @"var"
-        <:> semAct \(var :* HNil) ->
-            [||pure $$(var)||]
+        <:> semAct' \(var :* HNil) ->
+            [|pure $(var)|]
     ]
 
 rFixity :: RuleExpr Fixity
 rFixity = ruleExpr
     [ alt $ tokA @"infixl"
-        <:> semAct \(_ :* HNil) ->
-            [||FixityInfixL||]
+        <:> semAct' \(_ :* HNil) ->
+            [|FixityInfixL|]
     , alt $ tokA @"infixr"
-        <:> semAct \(_ :* HNil) ->
-            [||FixityInfixR||]
+        <:> semAct' \(_ :* HNil) ->
+            [|FixityInfixR|]
     , alt $ tokA @"infix"
-        <:> semAct \(_ :* HNil) ->
-            [||FixityInfix||]
+        <:> semAct' \(_ :* HNil) ->
+            [|FixityInfix|]
     ]
 
 rType :: RuleExpr Type
 rType = ruleExpr
     [ alt $ varA @"btype" <^> tokA @"->" <^> varA @"type"
-        <:> semAct \(btype :* _ :* ty :* HNil) ->
-            [||TypeArrow $$(btype) $$(ty)||]
+        <:> semAct' \(btype :* _ :* ty :* HNil) ->
+            [|TypeArrow $(btype) $(ty)|]
     , alt $ varA @"btype"
         <:> semAct \(btype :* HNil) ->
             btype
@@ -953,18 +954,18 @@ rType = ruleExpr
 rBtype :: RuleExpr Type
 rBtype = ruleExpr
     [ alt $ varA @"atype" <^> varA @"atypes"
-        <:> semAct \(atype :* atypes :* HNil) ->
-            [||TypeApp $$(atype) (toList $$(atypes))||]
+        <:> semAct' \(atype :* atypes :* HNil) ->
+            [|TypeApp $(atype) (toList $(atypes))|]
     ]
 
 rAtypes :: RuleExpr (Seq.Seq Type)
 rAtypes = ruleExpr
     [ alt $ varA @"atype" <^> varA @"atypes"
-        <:> semAct \(atype :* atypes :* HNil) ->
-            [||$$(atype) Seq.:<| $$(atypes)||]
+        <:> semAct' \(atype :* atypes :* HNil) ->
+            [|$(atype) Seq.:<| $(atypes)|]
     , eps
-        $ semAct \HNil ->
-            [||Seq.empty||]
+        $ semAct' \HNil ->
+            [|Seq.empty|]
     ]
 
 rAtype :: RuleExpr Type
@@ -973,14 +974,14 @@ rAtype = ruleExpr
         <:> semAct \(gtycon :* HNil) ->
             gtycon
     , alt $ varA @"tyvar"
-        <:> semAct \(tyvar :* HNil) ->
-            [||TypeId (nonQualifiedId $$(tyvar))||]
+        <:> semAct' \(tyvar :* HNil) ->
+            [|TypeId (nonQualifiedId $(tyvar))|]
     , alt $ tokA @"(" <^> varA @"types2" <^> tokA @")"
-        <:> semAct \(_ :* types2 :* _ :* HNil) ->
-            [||TypeTuple (toList $$(types2))||]
+        <:> semAct' \(_ :* types2 :* _ :* HNil) ->
+            [|TypeTuple (toList $(types2))|]
     , alt $ tokA @"[" <^> varA @"type" <^> tokA @"]"
-        <:> semAct \(_ :* ty :* _ :* HNil) ->
-            [||TypeList $$(ty)||]
+        <:> semAct' \(_ :* ty :* _ :* HNil) ->
+            [|TypeList $(ty)|]
     , alt $ tokA @"(" <^> varA @"type" <^> tokA @")"
         <:> semAct \(_ :* ty :* _ :* HNil) ->
             ty
@@ -989,103 +990,103 @@ rAtype = ruleExpr
 rTypes2 :: RuleExpr (Seq.Seq Type)
 rTypes2 = ruleExpr
     [ alt $ varA @"type" <^> tokA @"," <^> varA @"types2"
-        <:> semAct \(ty :* _ :* types2 :* HNil) ->
-            [||$$(ty) Seq.:<| $$(types2)||]
+        <:> semAct' \(ty :* _ :* types2 :* HNil) ->
+            [|$(ty) Seq.:<| $(types2)|]
     , alt $ varA @"type" <^> tokA @"," <^> varA @"type"
-        <:> semAct \(ty1 :* _ :* ty2 :* HNil) ->
-            [||Seq.fromList [$$(ty1), $$(ty2)]||]
+        <:> semAct' \(ty1 :* _ :* ty2 :* HNil) ->
+            [|Seq.fromList [$(ty1), $(ty2)]|]
     ]
 
 rGtycon :: RuleExpr Type
 rGtycon = ruleExpr
     [ alt $ varA @"qtycon"
-        <:> semAct \(qtycon :* HNil) ->
-            [||TypeId $$(qtycon)||]
+        <:> semAct' \(qtycon :* HNil) ->
+            [|TypeId $(qtycon)|]
     , alt $ tokA @"(" <^> tokA @")"
-        <:> semAct \(_ :* _ :* HNil) ->
-            [||TypeId $ nonQualifiedId $ mkId "()"||]
+        <:> semAct' \(_ :* _ :* HNil) ->
+            [|TypeId $ nonQualifiedId $ mkId "()"|]
     , alt $ tokA @"[" <^> tokA @"]"
-        <:> semAct \(_ :* _ :* HNil) ->
-            [||TypeId $ nonQualifiedId $ mkId "[]"||]
+        <:> semAct' \(_ :* _ :* HNil) ->
+            [|TypeId $ nonQualifiedId $ mkId "[]"|]
     , alt $ tokA @"(" <^> tokA @"->" <^> tokA @")"
-        <:> semAct \(_ :* _ :* _ :* HNil) ->
-            [||TypeId $ nonQualifiedId $ mkId "->"||]
+        <:> semAct' \(_ :* _ :* _ :* HNil) ->
+            [|TypeId $ nonQualifiedId $ mkId "->"|]
     , alt $ tokA @"(" <^> varA @"commas1" <^> tokA @")"
-        <:> semAct \(_ :* i :* _ :* HNil) ->
-            [||TypeTupleCon $$(i)||]
+        <:> semAct' \(_ :* i :* _ :* HNil) ->
+            [|TypeTupleCon $(i)|]
     ]
 
 rCommas1 :: RuleExpr Int
 rCommas1 = ruleExpr
     [ alt $ tokA @"," <^> varA @"commas1"
-        <:> semAct \(_ :* i :* HNil) ->
-            [||$$(i) + 1||]
+        <:> semAct' \(_ :* i :* HNil) ->
+            [|$(i) + 1|]
     , alt $ tokA @","
-        <:> semAct \(_ :* HNil) ->
-            [||1||]
+        <:> semAct' \(_ :* HNil) ->
+            [|1|]
     ]
 
 rContext :: RuleExpr Context
 rContext = ruleExpr
     [ alt $ varA @"class"
-        <:> semAct \(cls :* HNil) ->
-            [||Context [$$(cls)]||]
+        <:> semAct' \(cls :* HNil) ->
+            [|Context [$(cls)]|]
     , alt $ tokA @"(" <^> varA @"classes" <^> tokA @")"
-        <:> semAct \(_ :* classes :* _ :* HNil) ->
-            [||Context $$(classes)||]
+        <:> semAct' \(_ :* classes :* _ :* HNil) ->
+            [|Context $(classes)|]
     ]
 
 rClasses :: RuleExpr [Type]
 rClasses = ruleExpr
     [ alt $ varA @"classes1"
-        <:> semAct \(classes1 :* HNil) ->
-            [||toList $$(classes1)||]
+        <:> semAct' \(classes1 :* HNil) ->
+            [|toList $(classes1)|]
     , eps
-        $ semAct \HNil ->
-            [||[]||]
+        $ semAct' \HNil ->
+            [|[]|]
     ]
 
 rClasses1 :: RuleExpr (Seq.Seq Type)
 rClasses1 = ruleExpr
     [ alt $ varA @"class" <^> tokA @"," <^> varA @"classes1"
-        <:> semAct \(cls :* _ :* classes1 :* HNil) ->
-            [||$$(cls) Seq.:<| $$(classes1)||]
+        <:> semAct' \(cls :* _ :* classes1 :* HNil) ->
+            [|$(cls) Seq.:<| $(classes1)|]
     , alt $ varA @"class"
-        <:> semAct \(cls :* HNil) ->
-            [||pure $$(cls)||]
+        <:> semAct' \(cls :* HNil) ->
+            [|pure $(cls)|]
     ]
 
 rClass :: RuleExpr Type
 rClass = ruleExpr
     [ alt $ varA @"qtycon" <^> varA @"tyvar"
-        <:> semAct \(qtycon :* tyvar :* HNil) ->
-            [||TypeApp (TypeId $$(qtycon)) [TypeId (nonQualifiedId $$(tyvar))]||]
+        <:> semAct' \(qtycon :* tyvar :* HNil) ->
+            [|TypeApp (TypeId $(qtycon)) [TypeId (nonQualifiedId $(tyvar))]|]
     , alt $ varA @"qtycon" <^> tokA @"(" <^> varA @"tyvar" <^> varA @"atypes1" <^> tokA @")"
-        <:> semAct \(qtycon :* _ :* tyvar :* atypes1 :* _ :* HNil) ->
-            [||TypeApp
-                (TypeId $$(qtycon))
-                [TypeApp (TypeId (nonQualifiedId $$(tyvar))) (toList $$(atypes1))]
-            ||]
+        <:> semAct' \(qtycon :* _ :* tyvar :* atypes1 :* _ :* HNil) ->
+            [|TypeApp
+                (TypeId $(qtycon))
+                [TypeApp (TypeId (nonQualifiedId $(tyvar))) (toList $(atypes1))]
+            |]
     ]
 
 rAtypes1 :: RuleExpr (Seq.Seq Type)
 rAtypes1 = ruleExpr
     [ alt $ varA @"atype" <^> varA @"atypes1"
-        <:> semAct \(atype :* atypes1 :* HNil) ->
-            [||$$(atype) Seq.:<| $$(atypes1)||]
+        <:> semAct' \(atype :* atypes1 :* HNil) ->
+            [|$(atype) Seq.:<| $(atypes1)|]
     , alt $ varA @"atype"
-        <:> semAct \(atype :* HNil) ->
-            [||pure $$(atype)||]
+        <:> semAct' \(atype :* HNil) ->
+            [|pure $(atype)|]
     ]
 
 rScontext :: RuleExpr Context
 rScontext = ruleExpr
     [ alt $ varA @"simpleclass"
-        <:> semAct \(simpleclass :* HNil) ->
-            [||Context [$$(simpleclass)]||]
+        <:> semAct' \(simpleclass :* HNil) ->
+            [|Context [$(simpleclass)]|]
     , alt $ tokA @"(" <^> varA @"simpleclasses" <^> tokA @")"
-        <:> semAct \(_ :* simpleclasses :* _ :* HNil) ->
-            [||Context $$(simpleclasses)||]
+        <:> semAct' \(_ :* simpleclasses :* _ :* HNil) ->
+            [|Context $(simpleclasses)|]
     ]
 
 rSimpleClasses :: RuleExpr [Type]
@@ -1178,122 +1179,122 @@ rFieldDecls1 = ruleExpr
 rAbctype :: RuleExpr (Strictness, Type)
 rAbctype = ruleExpr
     [ alt $ varA @"btype"
-        <:> semAct \(btype :* HNil) ->
-            [||(Unstrict, $$(btype))||]
+        <:> semAct' \(btype :* HNil) ->
+            [|(Unstrict, $(btype))|]
     , alt $ varA @"!" <^> varA @"atype"
-        <:> semAct \(_ :* atype :* HNil) ->
-            [||(Strict, $$(atype))||]
+        <:> semAct' \(_ :* atype :* HNil) ->
+            [|(Strict, $(atype))|]
     ]
 
 rActypes :: RuleExpr (Seq.Seq (Strictness, Type))
 rActypes = ruleExpr
     [ alt $ varA @"actype" <^> varA @"actypes"
-        <:> semAct \(actype :* actypes :* HNil) ->
-            [||$$(actype) Seq.:<| $$(actypes)||]
+        <:> semAct' \(actype :* actypes :* HNil) ->
+            [|$(actype) Seq.:<| $(actypes)|]
     , eps
-        $ semAct \HNil ->
-            [||Seq.empty||]
+        $ semAct' \HNil ->
+            [|Seq.empty|]
     ]
 
 rActype :: RuleExpr (Strictness, Type)
 rActype = ruleExpr
     [ alt $ varA @"!" <^> varA @"atype"
-        <:> semAct \(_ :* atype :* HNil) ->
-            [||(Strict, $$(atype))||]
+        <:> semAct' \(_ :* atype :* HNil) ->
+            [|(Strict, $(atype))|]
     , alt $ varA @"atype"
-        <:> semAct \(atype :* HNil) ->
-            [||(Unstrict, $$(atype))||]
+        <:> semAct' \(atype :* HNil) ->
+            [|(Unstrict, $(atype))|]
     ]
 
 rNewConstr :: RuleExpr Constr
 rNewConstr = ruleExpr
     [ alt $ varA @"con" <^> varA @"{" <^> varA @"var" <^> tokA @"::" <^> varA @"type" <^> varA @"}"
-        <:> semAct \(con :* _ :* var :* _ :* ty :* _ :* HNil) ->
-            [||ConstrWithFields $$(con) [(Unstrict, [$$(var)], $$(ty))]||]
+        <:> semAct' \(con :* _ :* var :* _ :* ty :* _ :* HNil) ->
+            [|ConstrWithFields $(con) [(Unstrict, [$(var)], $(ty))]|]
     , alt $ varA @"con" <^> varA @"atype"
-        <:> semAct \(con :* atype :* HNil) ->
-            [||ConstrApp $$(con) [(Unstrict, $$(atype))]||]
+        <:> semAct' \(con :* atype :* HNil) ->
+            [|ConstrApp $(con) [(Unstrict, $(atype))]|]
     ]
 
 rFieldDecl :: RuleExpr (Strictness, [Id], Type)
 rFieldDecl = ruleExpr
     [ alt $ varA @"vars" <^> tokA @"::" <^> varA @"type"
-        <:> semAct \(vars :* _ :* ty :* HNil) ->
-            [||(Unstrict, toList $$(vars), $$(ty))||]
+        <:> semAct' \(vars :* _ :* ty :* HNil) ->
+            [|(Unstrict, toList $(vars), $(ty))|]
     , alt $ varA @"vars" <^> tokA @"::" <^> varA @"!" <^> varA @"atype"
-        <:> semAct \(vars :* _ :* _ :* atype :* HNil) ->
-            [||(Strict, toList $$(vars), $$(atype))||]
+        <:> semAct' \(vars :* _ :* _ :* atype :* HNil) ->
+            [|(Strict, toList $(vars), $(atype))|]
     ]
 
 rDeriving :: RuleExpr Deriving
 rDeriving = ruleExpr
     [ alt $ tokA @"deriving" <^> varA @"dclass"
-        <:> semAct \(_ :* dclass :* HNil) ->
-            [||Deriving [$$(dclass)]||]
+        <:> semAct' \(_ :* dclass :* HNil) ->
+            [|Deriving [$(dclass)]|]
     , alt $ tokA @"deriving" <^> tokA @"(" <^> varA @"dclasses" <^> tokA @")"
-        <:> semAct \(_ :* _ :* dclasses :* _ :* HNil) ->
-            [||Deriving $$(dclasses)||]
+        <:> semAct' \(_ :* _ :* dclasses :* _ :* HNil) ->
+            [|Deriving $(dclasses)|]
     ]
 
 rDclasses :: RuleExpr [Type]
 rDclasses = ruleExpr
     [ alt $ varA @"dclasses1"
-        <:> semAct \(dclasses1 :* HNil) ->
-            [||toList $$(dclasses1)||]
+        <:> semAct' \(dclasses1 :* HNil) ->
+            [|toList $(dclasses1)|]
     , eps
-        $ semAct \HNil ->
-            [||[]||]
+        $ semAct' \HNil ->
+            [|[]|]
     ]
 
 rDclasses1 :: RuleExpr (Seq.Seq Type)
 rDclasses1 = ruleExpr
     [ alt $ varA @"dclass" <^> tokA @"," <^> varA @"dclasses1"
-        <:> semAct \(dclass :* _ :* dclasses1 :* HNil) ->
-            [||$$(dclass) Seq.:<| $$(dclasses1)||]
+        <:> semAct' \(dclass :* _ :* dclasses1 :* HNil) ->
+            [|$(dclass) Seq.:<| $(dclasses1)|]
     , alt $ varA @"dclass"
-        <:> semAct \(dclass :* HNil) ->
-            [||pure $$(dclass)||]
+        <:> semAct' \(dclass :* HNil) ->
+            [|pure $(dclass)|]
     ]
 
 rDclass :: RuleExpr Type
 rDclass = ruleExpr
     [ alt $ varA @"qtycon"
-        <:> semAct \(qtycon :* HNil) ->
-            [||TypeId $$(qtycon)||]
+        <:> semAct' \(qtycon :* HNil) ->
+            [|TypeId $(qtycon)|]
     ]
 
 rInst :: RuleExpr Type
 rInst = ruleExpr
     [ alt $ varA @"qtycon"
-        <:> semAct \(qtycon :* HNil) ->
-            [||TypeId $$(qtycon)||]
+        <:> semAct' \(qtycon :* HNil) ->
+            [|TypeId $(qtycon)|]
     , alt $ tokA @"(" <^> varA @"gtycon" <^> varA @"tyvars" <^> tokA @")"
-        <:> semAct \(_ :* gtycon :* tyvars :* _ :* HNil) ->
-            [||TypeApp $$(gtycon) (toList $$(tyvars))||]
+        <:> semAct' \(_ :* gtycon :* tyvars :* _ :* HNil) ->
+            [|TypeApp $(gtycon) (toList $(tyvars))|]
     , alt $ tokA @"(" <^> varA @"tyvars2" <^> tokA @")"
-        <:> semAct \(_ :* tyvars2 :* _ :* HNil) ->
-            [||TypeTuple (toList $$(tyvars2))||]
+        <:> semAct' \(_ :* tyvars2 :* _ :* HNil) ->
+            [|TypeTuple (toList $(tyvars2))|]
     , alt $ tokA @"(" <^> varA @"tyvar" <^> tokA @")"
-        <:> semAct \(_ :* tyvar :* _ :* HNil) ->
-            [||TypeId (nonQualifiedId $$(tyvar))||]
+        <:> semAct' \(_ :* tyvar :* _ :* HNil) ->
+            [|TypeId (nonQualifiedId $(tyvar))|]
     , alt $ tokA @"[" <^> varA @"tyvar" <^> tokA @"]"
-        <:> semAct \(_ :* tyvar :* _ :* HNil) ->
-            [||TypeList (TypeId (nonQualifiedId $$(tyvar)))||]
+        <:> semAct' \(_ :* tyvar :* _ :* HNil) ->
+            [|TypeList (TypeId (nonQualifiedId $(tyvar)))|]
     , alt $ tokA @"(" <^> varA @"tyvar" <^> tokA @"->" <^> varA @"tyvar" <^> tokA @")"
-        <:> semAct \(_ :* tyvar1 :* _ :* tyvar2 :* _ :* HNil) ->
-            [||TypeArrow (TypeId (nonQualifiedId $$(tyvar1))) (TypeId (nonQualifiedId $$(tyvar2)))||]
+        <:> semAct' \(_ :* tyvar1 :* _ :* tyvar2 :* _ :* HNil) ->
+            [|TypeArrow (TypeId (nonQualifiedId $(tyvar1))) (TypeId (nonQualifiedId $(tyvar2)))|]
     ]
 
 rTyVars2 :: RuleExpr (Seq.Seq Type)
 rTyVars2 = ruleExpr
     [ alt $ varA @"tyvar" <^> tokA @"," <^> varA @"tyvars2"
-        <:> semAct \(tyvar :* _ :* tyvars2 :* HNil) ->
-            [||TypeId (nonQualifiedId $$(tyvar)) Seq.:<| $$(tyvars2)||]
+        <:> semAct' \(tyvar :* _ :* tyvars2 :* HNil) ->
+            [|TypeId (nonQualifiedId $(tyvar)) Seq.:<| $(tyvars2)|]
     , alt $ varA @"tyvar" <^> tokA @"," <^> varA @"tyvar"
-        <:> semAct \(tyvar1 :* _ :* tyvar2 :* HNil) ->
-            [||Seq.fromList [TypeId (nonQualifiedId $$(tyvar1)), TypeId (nonQualifiedId $$(tyvar2))]||]
+        <:> semAct' \(tyvar1 :* _ :* tyvar2 :* HNil) ->
+            [|Seq.fromList [TypeId (nonQualifiedId $(tyvar1)), TypeId (nonQualifiedId $(tyvar2))]|]
     ]
-
+{-
 rFdecl :: RuleExpr Decl
 rFdecl = ruleExpr
     [ alt $ tokA @"import" <^> varA @"callconv" <^> varA @"safetyopt" <^> varA @"impent" <^> varA @"var" <^> tokA @"::" <^> varA @"ftype"
@@ -1409,7 +1410,7 @@ rFunlhs = ruleExpr
                 (v, pats) -> (v, pats <> $$(apats1))
             ||]
     ]
-
+-}
 rApats1 :: RuleExpr (Seq.Seq Pat)
 rApats1 = ruleExpr
     [ alt $ varA @"apat" <^> varA @"apats1"
@@ -1419,7 +1420,7 @@ rApats1 = ruleExpr
         <:> semAct \(apat :* HNil) ->
             [||pure $$(apat)||]
     ]
-
+{-
 rRhs :: RuleExpr Rhs
 rRhs = ruleExpr
     [ alt $ tokA @"=" <^> varA @"exp" <^> varA @"wheredeclsopt"
@@ -1775,12 +1776,12 @@ rFbind = ruleExpr
         <:> semAct \(qvar :* _ :* exp :* HNil) ->
             [||($$(qvar), $$(exp))||]
     ]
-
+-}
 rPat :: RuleExpr Pat
 rPat = ruleExpr
     [ alt $ varA @"lpat" <^> varA @"qconop" <^> varA @"pat"
-        <:> semAct \(lpat :* qconop :* pat :* HNil) ->
-            [||PatInfixApp $$(lpat) $$(qconop) $$(pat)||]
+        <:> semAct' \(lpat :* qconop :* pat :* HNil) ->
+            [|PatInfixApp $(lpat) $(qconop) $(pat)|]
     , alt $ varA @"lpat"
         <:> semAct \(lpat :* HNil) ->
             lpat
@@ -1789,14 +1790,14 @@ rPat = ruleExpr
 rLpat :: RuleExpr Pat
 rLpat = ruleExpr
     [ alt $ tokA @"-" <^> varA @"integer"
-        <:> semAct \(_ :* integer :* HNil) ->
-            [||PatMinusInteger $$(integer)||]
+        <:> semAct' \(_ :* integer :* HNil) ->
+            [|PatMinusInteger $(integer)|]
     , alt $ tokA @"-" <^> varA @"float"
-        <:> semAct \(_ :* float :* HNil) ->
-            [||PatMinusFloat $$(float)||]
+        <:> semAct' \(_ :* float :* HNil) ->
+            [|PatMinusFloat $(float)|]
     , alt $ varA @"gcon" <^> varA @"apats1"
-        <:> semAct \(gcon :* apats1 :* HNil) ->
-            [||PatApp $$(gcon) (toList $$(apats1))||]
+        <:> semAct' \(gcon :* apats1 :* HNil) ->
+            [|PatApp $(gcon) (toList $(apats1))|]
     , alt $ varA @"apat"
         <:> semAct \(apat :* HNil) ->
             apat
@@ -1805,98 +1806,98 @@ rLpat = ruleExpr
 rApat :: RuleExpr Pat
 rApat = ruleExpr
     [ alt $ varA @"var" <^> tokA @"@" <^> varA @"apat"
-        <:> semAct \(var :* _ :* apat :* HNil) ->
-            [||PatId $$(var) (Just $$(apat))||]
+        <:> semAct' \(var :* _ :* apat :* HNil) ->
+            [|PatId $(var) (Just $(apat))|]
     , alt $ varA @"var"
-        <:> semAct \(var :* HNil) ->
-            [||PatId $$(var) Nothing||]
+        <:> semAct' \(var :* HNil) ->
+            [|PatId $(var) Nothing|]
     , alt $ varA @"literal"
-        <:> semAct \(literal :* HNil) ->
-            [||PatLit $$(literal)||]
+        <:> semAct' \(literal :* HNil) ->
+            [|PatLit $(literal)|]
     , alt $ tokA @"_"
-        <:> semAct \(_ :* HNil) ->
-            [||PatWildcard||]
+        <:> semAct' \(_ :* HNil) ->
+            [|PatWildcard|]
     , alt $ tokA @"(" <^> varA @"pat" <^> tokA @")"
         <:> semAct \(_ :* pat :* _ :* HNil) ->
             pat
     , alt $ tokA @"(" <^> varA @"pats2" <^> tokA @")"
-        <:> semAct \(_ :* pats2 :* _ :* HNil) ->
-            [||PatTuple (toList $$(pats2))||]
+        <:> semAct' \(_ :* pats2 :* _ :* HNil) ->
+            [|PatTuple (toList $(pats2))|]
     , alt $ tokA @"[" <^> varA @"pats1" <^> tokA @"]"
-        <:> semAct \(_ :* pats1 :* _ :* HNil) ->
-            [||PatList (toList $$(pats1))||]
+        <:> semAct' \(_ :* pats1 :* _ :* HNil) ->
+            [|PatList (toList $(pats1))|]
     , alt $ tokA @"~" <^> varA @"apat"
-        <:> semAct \(_ :* apat :* HNil) ->
-            [||PatLazy $$(apat)||]
+        <:> semAct' \(_ :* apat :* HNil) ->
+            [|PatLazy $(apat)|]
     , alt $ varA @"qcon" <^> varA @"{" <^> varA @"fpats" <^> varA @"}"
-        <:> semAct \(qcon :* _ :* fpats :* _ :* HNil) ->
-            [||PatRecord $$(qcon) $$(fpats)||]
+        <:> semAct' \(qcon :* _ :* fpats :* _ :* HNil) ->
+            [|PatRecord $(qcon) $(fpats)|]
     , alt $ varA @"gcon"
-        <:> semAct \(gcon :* HNil) ->
-            [||PatCon $$(gcon)||]
+        <:> semAct' \(gcon :* HNil) ->
+            [|PatCon $(gcon)|]
     ]
 
 rPats2 :: RuleExpr (Seq.Seq Pat)
 rPats2 = ruleExpr
     [ alt $ varA @"pat" <^> tokA @"," <^> varA @"pats2"
-        <:> semAct \(pat :* _ :* pats2 :* HNil) ->
-            [||$$(pat) Seq.:<| $$(pats2)||]
+        <:> semAct' \(pat :* _ :* pats2 :* HNil) ->
+            [|$(pat) Seq.:<| $(pats2)|]
     , alt $ varA @"pat" <^> tokA @"," <^> varA @"pat"
-        <:> semAct \(pat1 :* _ :* pat2 :* HNil) ->
-            [||Seq.fromList [$$(pat1), $$(pat2)]||]
+        <:> semAct' \(pat1 :* _ :* pat2 :* HNil) ->
+            [|Seq.fromList [$(pat1), $(pat2)]|]
     ]
 
 rPats1 :: RuleExpr (Seq.Seq Pat)
 rPats1 = ruleExpr
     [ alt $ varA @"pat" <^> tokA @"," <^> varA @"pats1"
-        <:> semAct \(pat :* _ :* pats1 :* HNil) ->
-            [||$$(pat) Seq.:<| $$(pats1)||]
+        <:> semAct' \(pat :* _ :* pats1 :* HNil) ->
+            [|$(pat) Seq.:<| $(pats1)|]
     , alt $ varA @"pat"
-        <:> semAct \(pat :* HNil) ->
-            [||Seq.fromList [$$(pat)]||]
+        <:> semAct' \(pat :* HNil) ->
+            [|Seq.fromList [$(pat)]|]
     ]
 
 rFpats :: RuleExpr [(QualifiedId, Pat)]
 rFpats = ruleExpr
     [ alt $ varA @"fpats1"
-        <:> semAct \(fpats1 :* HNil) ->
-            [||toList $$(fpats1)||]
+        <:> semAct' \(fpats1 :* HNil) ->
+            [|toList $(fpats1)|]
     , eps
-        $ semAct \HNil ->
-            [||[]||]
+        $ semAct' \HNil ->
+            [|[]|]
     ]
 
 rFpats1 :: RuleExpr (Seq.Seq (QualifiedId, Pat))
 rFpats1 = ruleExpr
     [ alt $ varA @"fpat" <^> tokA @"," <^> varA @"fpats1"
-        <:> semAct \(fpat :* _ :* fpats1 :* HNil) ->
-            [||$$(fpat) Seq.:<| $$(fpats1)||]
+        <:> semAct' \(fpat :* _ :* fpats1 :* HNil) ->
+            [|$(fpat) Seq.:<| $(fpats1)|]
     , alt $ varA @"fpat"
-        <:> semAct \(fpat :* HNil) ->
-            [||pure $$(fpat)||]
+        <:> semAct' \(fpat :* HNil) ->
+            [|pure $(fpat)|]
     ]
 
 rFpat :: RuleExpr (QualifiedId, Pat)
 rFpat = ruleExpr
     [ alt $ varA @"qvar" <^> tokA @"=" <^> varA @"pat"
-        <:> semAct \(qvar :* _ :* pat :* HNil) ->
-            [||($$(qvar), $$(pat))||]
+        <:> semAct' \(qvar :* _ :* pat :* HNil) ->
+            [|($(qvar), $(pat))|]
     ]
 
 rGcon :: RuleExpr Gcon
 rGcon = ruleExpr
     [ alt $ tokA @"(" <^> tokA @")"
-        <:> semAct \(_ :* _ :* HNil) ->
-            [||GconId $ nonQualifiedId (mkId "()")||]
+        <:> semAct' \(_ :* _ :* HNil) ->
+            [|GconId $ nonQualifiedId (mkId "()")|]
     , alt $ tokA @"[" <^> tokA @"]"
-        <:> semAct \(_ :* _ :* HNil) ->
-            [||GconId $ nonQualifiedId (mkId "[]")||]
+        <:> semAct' \(_ :* _ :* HNil) ->
+            [|GconId $ nonQualifiedId (mkId "[]")|]
     , alt $ tokA @"(" <^> varA @"commas1" <^> tokA @")"
-        <:> semAct \(_ :* i :* _ :* HNil) ->
-            [||GconTuple $$(i)||]
+        <:> semAct' \(_ :* i :* _ :* HNil) ->
+            [|GconTuple $(i)|]
     , alt $ varA @"qcon"
-        <:> semAct \(qcon :* HNil) ->
-            [||GconId $$(qcon)||]
+        <:> semAct' \(qcon :* HNil) ->
+            [|GconId $(qcon)|]
     ]
 
 rVar :: RuleExpr Id
@@ -2002,8 +2003,8 @@ rQop = ruleExpr
 rGconsym :: RuleExpr QualifiedId
 rGconsym = ruleExpr
     [ alt $ tokA @":"
-        <:> semAct \(_ :* HNil) ->
-            [||nonQualifiedId (mkId ":")||]
+        <:> semAct' \(_ :* HNil) ->
+            [|nonQualifiedId (mkId ":")|]
     , alt $ varA @"qconsym"
         <:> semAct \(qconsym :* HNil) ->
             qconsym
@@ -2033,97 +2034,97 @@ rQtycon = ruleExpr
 rVarId :: RuleExpr Id
 rVarId = ruleExpr
     [ alt $ varA @"qvarid"
-        <:> semActM \(qvarid :* HNil) ->
-            [||case $$(qvarid) of
+        <:> semActM' \(qvarid :* HNil) ->
+            [|case $(qvarid) of
                 QualifiedId (ModId []) varid ->
                     pure varid
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rVarSym :: RuleExpr Id
 rVarSym = ruleExpr
     [ alt $ varA @"qvarsym"
-        <:> semActM \(qvarsym :* HNil) ->
-            [||case $$(qvarsym) of
+        <:> semActM' \(qvarsym :* HNil) ->
+            [|case $(qvarsym) of
                 QualifiedId (ModId []) varsym ->
                     pure varsym
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rConId :: RuleExpr Id
 rConId = ruleExpr
     [ alt $ varA @"qconid"
-        <:> semActM \(qconid :* HNil) ->
-            [||case $$(qconid) of
+        <:> semActM' \(qconid :* HNil) ->
+            [|case $(qconid) of
                 QualifiedId (ModId []) conid ->
                     pure conid
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rConSym :: RuleExpr Id
 rConSym = ruleExpr
     [ alt $ varA @"qconsym"
-        <:> semActM \(qconsym :* HNil) ->
-            [||case $$(qconsym) of
+        <:> semActM' \(qconsym :* HNil) ->
+            [|case $(qconsym) of
                 QualifiedId (ModId []) consym ->
                     pure consym
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rQvarId :: RuleExpr QualifiedId
 rQvarId = ruleExpr
     [ alt $ tokA @"qvarid"
-        <:> semAct \(qvarid :* HNil) ->
-            [||case $$(qvarid) of
+        <:> semAct' \(qvarid :* HNil) ->
+            [|case $(qvarid) of
                 TokQualifiedVarId modid varid ->
                     QualifiedId (coerce modid) (Id varid)
                 _ ->
                     error "unreachable: expect qvarid"
-            ||]
+            |]
     ]
 
 rQvarSym :: RuleExpr QualifiedId
 rQvarSym = ruleExpr
     [ alt $ tokA @"qvarsym"
-        <:> semAct \(qvarsym :* HNil) ->
-            [||case $$(qvarsym) of
+        <:> semAct' \(qvarsym :* HNil) ->
+            [|case $(qvarsym) of
                 TokQualifiedVarSym modid varsym ->
                     QualifiedId (coerce modid) (Id varsym)
                 _ ->
                     error "unreachable: expect qvarsym"
-            ||]
+            |]
     ]
 
 rQconId :: RuleExpr QualifiedId
 rQconId = ruleExpr
     [ alt $ tokA @"qconid"
-        <:> semAct \(qconid :* HNil) ->
-            [||case $$(qconid) of
+        <:> semAct' \(qconid :* HNil) ->
+            [|case $(qconid) of
                 TokQualifiedConId modid conid ->
                     QualifiedId (coerce modid) (Id conid)
                 _ ->
                     error "unreachable: expect qconid"
-            ||]
+            |]
     ]
 
 rQconSym :: RuleExpr QualifiedId
 rQconSym = ruleExpr
     [ alt $ tokA @"qconsym"
-        <:> semAct \(qconsym :* HNil) ->
-            [||case $$(qconsym) of
+        <:> semAct' \(qconsym :* HNil) ->
+            [|case $(qconsym) of
                 TokQualifiedConSym modid consym ->
                     QualifiedId (coerce modid) (Id consym)
                 _ ->
                     error "unreachable: expect qconsym"
-            ||]
+            |]
     ]
 
 rModId :: RuleExpr QualifiedId
@@ -2136,96 +2137,96 @@ rModId = ruleExpr
 rExportId :: RuleExpr ()
 rExportId = ruleExpr
     [ alt $ varA @"varid"
-        <:> semActM \(varid :* HNil) ->
-            [||case $$(varid) of
+        <:> semActM' \(varid :* HNil) ->
+            [|case $(varid) of
                 Id bs | bs == Char8.pack "export" ->
                     pure ()
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rHiding :: RuleExpr ()
 rHiding = ruleExpr
     [ alt $ varA @"varid"
-        <:> semActM \(varid :* HNil) ->
-            [||case $$(varid) of
+        <:> semActM' \(varid :* HNil) ->
+            [|case $(varid) of
                 Id bs | bs == Char8.pack "hiding" ->
                     pure ()
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rAs :: RuleExpr ()
 rAs = ruleExpr
     [ alt $ varA @"varid"
-        <:> semActM \(varid :* HNil) ->
-            [||case $$(varid) of
+        <:> semActM' \(varid :* HNil) ->
+            [|case $(varid) of
                 Id bs | bs == Char8.pack "as" ->
                     pure ()
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rQualified :: RuleExpr ()
 rQualified = ruleExpr
     [ alt $ varA @"varid"
-        <:> semActM \(varid :* HNil) ->
-            [||case $$(varid) of
+        <:> semActM' \(varid :* HNil) ->
+            [|case $(varid) of
                 Id bs | bs == Char8.pack "qualified" ->
                     pure ()
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rExclamationSym :: RuleExpr ()
 rExclamationSym = ruleExpr
     [ alt $ varA @"varsym"
-        <:> semActM \(varsym :* HNil) ->
-            [||case $$(varsym) of
+        <:> semActM' \(varsym :* HNil) ->
+            [|case $(varsym) of
                 Id bs | bs == Char8.pack "!" ->
                     pure ()
                 _ ->
                     failAction
-            ||]
+            |]
     ]
 
 rLiteral :: RuleExpr Lit
 rLiteral = ruleExpr
     [ alt $ varA @"integer"
-        <:> semAct \(integer :* HNil) ->
-            [||LitInteger $$(integer)||]
+        <:> semAct' \(integer :* HNil) ->
+            [|LitInteger $(integer)|]
     , alt $ varA @"float"
-        <:> semAct \(float :* HNil) ->
-            [||LitFloat $$(float)||]
+        <:> semAct' \(float :* HNil) ->
+            [|LitFloat $(float)|]
     , alt $ varA @"string"
-        <:> semAct \(string :* HNil) ->
-            [||LitString $$(string)||]
+        <:> semAct' \(string :* HNil) ->
+            [|LitString $(string)|]
     , alt $ varA @"char"
-        <:> semAct \(char :* HNil) ->
-            [||LitChar $$(char)||]
+        <:> semAct' \(char :* HNil) ->
+            [|LitChar $(char)|]
     ]
 
 rInteger :: RuleExpr Integer
 rInteger = ruleExpr
     [ alt $ tokA @"integer"
-        <:> semAct \(integer :* HNil) ->
-            [||case $$(integer) of
+        <:> semAct' \(integer :* HNil) ->
+            [|case $(integer) of
                 TokLitInteger bs ->
                     read (Char8.unpack bs) :: Integer
                 _ ->
                     error "unreachable: expect integer literal"
-            ||]
+            |]
     ]
 
 rFloat :: RuleExpr Rational
 rFloat = ruleExpr
     [ alt $ tokA @"float"
-        <:> semAct \(float :* HNil) ->
-            [||case $$(float) of
+        <:> semAct' \(float :* HNil) ->
+            [|case $(float) of
                 TokLitFloat bs ->
                     case Numeric.readFloat (Char8.unpack bs) :: [(Rational, String)] of
                         (x, ""):_ ->
@@ -2234,60 +2235,60 @@ rFloat = ruleExpr
                             error "unreachable: expect float parser"
                 _ ->
                     error "unreachable: expect float literal"
-            ||]
+            |]
     ]
 
 rString :: RuleExpr String
 rString = ruleExpr
     [ alt $ tokA @"string"
-        <:> semAct \(string :* HNil) ->
-            [||case $$(string) of
+        <:> semAct' \(string :* HNil) ->
+            [|case $(string) of
                 TokLitString bs ->
                     read (Char8.unpack bs) :: String
                 _ ->
                     error "unreachable: expect string literal"
-            ||]
+            |]
     ]
 
 rChar :: RuleExpr Char
 rChar = ruleExpr
     [ alt $ tokA @"char"
-        <:> semAct \(char :* HNil) ->
-            [||case $$(char) of
+        <:> semAct' \(char :* HNil) ->
+            [|case $(char) of
                 TokLitChar bs ->
                     read (Char8.unpack bs) :: Char
                 _ ->
                     error "unreachable: expect char literal"
-            ||]
+            |]
     ]
 
 rExpBo :: RuleExpr ()
 rExpBo = ruleExpr
     [ alt $ tokA @"{"
-        <:> semActM \(_ :* HNil) ->
-            [||modifyAction \l -> 0:l||]
+        <:> semActM' \(_ :* HNil) ->
+            [|modifyAction \l -> 0:l|]
     ]
 
 rExpBc :: RuleExpr ()
 rExpBc = ruleExpr
     [ alt $ tokA @"}"
-        <:> semActM \(_ :* HNil) ->
-            [||do
+        <:> semActM' \(_ :* HNil) ->
+            [|do
                 l <- getAction
                 case l of
                     0:l' ->
                         modifyAction \_ -> l'
                     _ ->
                         failAction
-            ||]
+            |]
     ]
 
 rImpBo :: RuleExpr ()
 rImpBo = ruleExpr
     [ alt $ tokA @"{n}"
-        <:> semActM \(expB :* HNil) ->
-            [||do
-                let n = case $$(expB) of
+        <:> semActM' \(expB :* HNil) ->
+            [|do
+                let n = case $(expB) of
                         TokVirtExpBrace x ->
                             x
                         _ ->
@@ -2304,14 +2305,14 @@ rImpBo = ruleExpr
                             modifyAction \l' -> n:l'
                         | otherwise ->
                             failAction
-            ||]
+            |]
     ]
 
 rImpBc :: RuleExpr ()
 rImpBc = ruleExpr
     [ eps
-        $ semActM \HNil ->
-            [||do
+        $ semActM' \HNil ->
+            [|do
                 l <- getAction
                 case l of
                     m:l' | m > 0 ->
@@ -2320,18 +2321,18 @@ rImpBc = ruleExpr
                         failAction
                     [] ->
                         failAction
-            ||]
+            |]
     ]
 
 rSemi :: RuleExpr ()
 rSemi = ruleExpr
     [ alt $ tokA @";"
-        <:> semAct \(_ :* HNil) ->
-            [||()||]
+        <:> semAct' \(_ :* HNil) ->
+            [|()|]
     , alt $ tokA @"<n>"
-        <:> semActM \(nl :* HNil) ->
-            [||do
-                let n = case $$(nl) of
+        <:> semActM' \(nl :* HNil) ->
+            [|do
+                let n = case $(nl) of
                         TokVirtNewline x ->
                             x
                         _ ->
@@ -2344,5 +2345,5 @@ rSemi = ruleExpr
                         failAction
                     [] ->
                         failAction
-            ||]
+            |]
     ]

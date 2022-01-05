@@ -27,6 +27,7 @@ library
         Lexer.Rules
         --Parser
         Parser.Rules
+        --Parser.Debug
 
     build-depends:
         base,

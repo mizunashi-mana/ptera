@@ -94,6 +94,8 @@ common general
         -- project depends
         ptera-core,
         containers,
+        unordered-containers,
+        membership,
         array,
         enummapset-th,
 
@@ -129,9 +131,6 @@ library
 
         Language.Parser.Ptera.Data.HEnum
         Language.Parser.Ptera.Data.HList
-        Language.Parser.Ptera.Data.Member
-        Language.Parser.Ptera.Data.Record
-        Language.Parser.Ptera.Data.TypeOps
 
 test-suite doctest
     import:
