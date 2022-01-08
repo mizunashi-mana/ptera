@@ -15,6 +15,7 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Haskell.TH                                 as TH
 import           Language.Parser.Ptera.Runner                        (Result (..),
+                                                                      runParserM,
                                                                       runParser)
 import           Language.Parser.Ptera.Scanner                       hiding (T)
 import           Language.Parser.Ptera.TH.ParserLib

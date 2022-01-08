@@ -14,6 +14,6 @@ safeGrammar2Srb :: SafeGrammar.Grammar action vars rules tokens elem
 safeGrammar2Srb (SafeGrammar.UnsafeGrammar g) = do
     let peg = Grammar2PEG.grammar2Peg g
     laPeg <- case runExcept do PEG2LAPEG.peg2LaPeg peg of
-        Left{}  -> Nothing
+        Left {} -> Nothing
         Right x -> Just x
     pure do LAPEG2SRB.laPeg2Srb laPeg

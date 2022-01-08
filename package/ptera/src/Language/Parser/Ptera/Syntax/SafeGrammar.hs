@@ -14,7 +14,6 @@ module Language.Parser.Ptera.Syntax.SafeGrammar (
     Terminal,
     NonTerminal,
     HasRuleExprField (..),
-    RuleExprType,
     MemberInitials,
     Rules,
     genStartPoint,

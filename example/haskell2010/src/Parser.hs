@@ -15,15 +15,17 @@ $(PteraTH.genRunner
         PteraTH.startsTy = [t|Rules.ParsePoints|],
         PteraTH.rulesTy  = [t|Rules.Rules|],
         PteraTH.tokensTy = [t|Rules.Tokens|],
-        PteraTH.tokenTy  = [t|Token|]
+        PteraTH.tokenTy  = [t|Token|],
+        PteraTH.customCtxTy = [t|Rules.GrammarContext|]
     })
     Rules.grammar
     )
 
-exprParser :: PteraTH.Scanner p Token m => m (PteraTH.Result Ast)
-exprParser = PteraTH.runParser (Proxy :: Proxy "expr") pteraTHRunner
+moduleParser :: PteraTH.Scanner p Token m => m (PteraTH.Result Program)
+moduleParser = PteraTH.runParserM (Proxy :: Proxy "module") pteraTHRunner []
 
-parseExpr :: [Token] -> Either String Ast
-parseExpr toks = case PteraTH.runListScanner exprParser toks of
+
+parseExpr :: [Token] -> Either String Program
+parseExpr toks = case PteraTH.runListScanner moduleParser toks of
     PteraTH.Parsed x  -> Right x
     PteraTH.ParseFail -> Left "ParseFail"

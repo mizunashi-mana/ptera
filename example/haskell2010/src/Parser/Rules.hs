@@ -14,7 +14,7 @@ module Parser.Rules where
 import           Data.Proxy                        (Proxy (..))
 import           Language.Parser.Ptera.Data.HEnum  (henumA)
 import           Language.Parser.Ptera.Data.HList  (HList (..))
-import           Language.Parser.Ptera.TH          hiding (RuleExpr, Rules)
+import           Language.Parser.Ptera.TH          hiding (RuleExpr, Rules, Alt)
 import qualified Language.Parser.Ptera.TH          as Ptera
 import           Types
 import           Data.ByteString (ByteString)
@@ -205,6 +205,8 @@ $(Ptera.genRules
     , (TH.mkName "rfexp", "fexp", [t|Exp|])
     , (TH.mkName "raexps", "aexp*", [t|Seq Exp|])
     , (TH.mkName "raexp", "aexp", [t|Exp|])
+    , (TH.mkName "rrecupdates", "(expbo ((fbind ',')* fbind)? expbc)*", [t|Seq [(QualifiedId, Exp)]|])
+    , (TH.mkName "raexp2", "aexp2", [t|Exp|])
     , (TH.mkName "rexps2", "(exp ',')+ exp", [t|Seq Exp|])
     , (TH.mkName "rexps1", "(exp ',')* exp", [t|Seq Exp|])
     , (TH.mkName "rcexpopt", "(',' exp)?", [t|Maybe Exp|])
@@ -277,13 +279,10 @@ $(Ptera.genRules
     ]
     )
 
-seqToList :: Seq a -> [a]
-seqToList = toList
-
 grammar :: GrammarM GrammarContext Rules Tokens Token ParsePoints
 grammar = fixGrammar $ Rules
-    { rmodule = rModule,
-    , rbody = rBody,
+    { rmodule = rModule
+    , rbody = rBody
     , rbodyinl = rBodyInL
     , rimpdecls = rImpDecls
     , rexports = rExports
@@ -326,143 +325,145 @@ grammar = fixGrammar $ Rules
     , rvars = rVars
     , rfixity = rFixity
 
-    , (TH.mkName "rtype", "type", [t|Type|])
-    , (TH.mkName "rbtype", "btype", [t|Type|])
-    , (TH.mkName "ratypes", "atype*", [t|Seq Type|])
-    , (TH.mkName "ratype", "atype", [t|Type|])
-    , (TH.mkName "rtypes2", "(type ',')+ type", [t|Seq Type|])
-    , (TH.mkName "rgtycon", "gtycon", [t|Type|])
-    , (TH.mkName "rcommas1", "','+", [t|Int|])
+    , rtype = rType
+    , rbtype = rBtype
+    , ratypes = rAtypes
+    , ratype = rAtype
+    , rtypes2 = rTypes2
+    , rgtycon = rGtycon
+    , rcommas1 = rCommas1
 
-    , (TH.mkName "rcontext", "context", [t|Context|])
-    , (TH.mkName "rclasses", "((class ',')* class)?", [t|[Type]|])
-    , (TH.mkName "rclasses1", "(class ',')* class", [t|Seq Type|])
-    , (TH.mkName "rclass", "class", [t|Type|])
-    , (TH.mkName "ratypes1", "atype+", [t|Seq Type|])
-    , (TH.mkName "rscontext", "scontext", [t|Context|])
-    , (TH.mkName "rsimpleclasses", "((simpleclass ',')* simpleclass)?", [t|[Type]|])
-    , (TH.mkName "rsimpleclasses1", "(simpleclass ',')* simpleclass", [t|Seq Type|])
-    , (TH.mkName "rsimpleclass", "simpleclass", [t|Type|])
+    , rcontext = rContext
+    , rclasses = rClasses
+    , rclasses1 = rClasses1
+    , rclass = rClass
+    , ratypes1 = rAtypes1
+    , rscontext = rScontext
+    , rsimpleclasses = rSimpleClasses
+    , rsimpleclasses1 = rSimpleClasses1
+    , rsimpleclass = rSimpleClass
 
-    , (TH.mkName "rsimpletype", "simpletype", [t|Type|])
-    , (TH.mkName "rtyvars", "tyvar*", [t|Seq Type|])
-    , (TH.mkName "rconstrs", "constrs", [t|Seq Constr|])
-    , (TH.mkName "rconstr", "constr", [t|Constr|])
-    , (TH.mkName "rfielddecls", "((fielddecl ',')* fielddecl)?", [t|[(Strictness, [Id], Type)]|])
-    , (TH.mkName "rfielddecls1", "(fielddecl ',')* fielddecl", [t|Seq (Strictness, [Id], Type)|])
-    , (TH.mkName "rabctype", "btype | '!' atype", [t|(Strictness, Type)|])
-    , (TH.mkName "ractypes", "('!'? atype)*", [t|Seq (Strictness, Type)|])
-    , (TH.mkName "ractype", "'!'? atype", [t|(Strictness, Type)|])
-    , (TH.mkName "rnewconstr", "newconstr", [t|Constr|])
-    , (TH.mkName "rfielddecl", "fielddecl", [t|(Strictness, [Id], Type)|])
-    , (TH.mkName "rderiving", "deriving", [t|Deriving|])
-    , (TH.mkName "rdclasses", "((dclass ',')* dclass)?", [t|[Type]|])
-    , (TH.mkName "rdclasses1", "(dclass ',')* dclass", [t|Seq Type|])
-    , (TH.mkName "rdclass", "dclass", [t|Type|])
-    , (TH.mkName "rinst", "inst", [t|Type|])
-    , (TH.mkName "rtyvars2", "(tyvar ',')+ tyvar", [t|Seq Type|])
+    , rsimpletype = rSimpleType
+    , rtyvars = rTyVars
+    , rconstrs = rConstrs
+    , rconstr = rConstr
+    , rfielddecls = rFieldDecls
+    , rfielddecls1 = rFieldDecls1
+    , rabctype = rAbctype
+    , ractypes = rActypes
+    , ractype = rActype
+    , rnewconstr = rNewConstr
+    , rfielddecl = rFieldDecl
+    , rderiving = rDeriving
+    , rdclasses = rDclasses
+    , rdclasses1 = rDclasses1
+    , rdclass = rDclass
+    , rinst = rInst
+    , rtyvars2 = rTyVars2
 
-    , (TH.mkName "rfdecl", "fdecl", [t|Decl|])
-    , (TH.mkName "rcallconv", "callconv", [t|ForeignCallConv|])
-    , (TH.mkName "rsafetyopt", "safety?", [t|Maybe Safety|])
-    , (TH.mkName "rimpent", "impent", [t|Maybe String|])
-    , (TH.mkName "rexpent", "expent", [t|Maybe String|])
-    , (TH.mkName "rsafety", "safety", [t|Safety|])
-    , (TH.mkName "rftype", "ftype", [t|Type|])
-    , (TH.mkName "rfrtype", "frtype", [t|Type|])
-    , (TH.mkName "rfatype", "fatype", [t|Type|])
+    , rfdecl = rFdecl
+    , rcallconv = rCallConv
+    , rsafetyopt = rSafetyOpt
+    , rimpent = rImpent
+    , rexpent = rExpent
+    , rsafety = rSafety
+    , rftype = rFtype
+    , rfrtype = rFrtype
+    , rfatype = rFatype
 
-    , (TH.mkName "rfunlhs", "funlhs", [t|(Id, Seq Pat)|])
-    , (TH.mkName "rapats1", "apat+", [t|Seq Pat|])
-    , (TH.mkName "rrhs", "rhs", [t|Rhs|])
-    , (TH.mkName "rwheredeclsopt", "('where' decls)?", [t|[Decl]|])
-    , (TH.mkName "rgdrhs", "gdrhs", [t|Seq ([Guard], Exp)|])
-    , (TH.mkName "rguards", "guards", [t|[Guard]|])
-    , (TH.mkName "rguards1", "(guard ',')* guard", [t|Seq Guard|])
-    , (TH.mkName "rguard", "guard", [t|Guard|])
+    , rfunlhs = rFunlhs
+    , rapats1 = rApats1
+    , rrhs = rRhs
+    , rwheredeclsopt = rWhereDeclsOpt
+    , rgdrhs = rGdrhs
+    , rguards = rGuards
+    , rguards1 = rGuards1
+    , rguard = rGuard
 
-    , (TH.mkName "rexp", "exp", [t|Exp|])
-    , (TH.mkName "rinfixexp", "infixexp", [t|Exp|])
-    , (TH.mkName "rlexp", "lexp", [t|Exp|])
-    , (TH.mkName "rsemiopt", "semi?", [t|()|])
-    , (TH.mkName "rfexp", "fexp", [t|Exp|])
-    , (TH.mkName "raexps", "aexp*", [t|Seq Exp|])
-    , (TH.mkName "raexp", "aexp", [t|Exp|])
-    , (TH.mkName "rexps2", "(exp ',')+ exp", [t|Seq Exp|])
-    , (TH.mkName "rexps1", "(exp ',')* exp", [t|Seq Exp|])
-    , (TH.mkName "rcexpopt", "(',' exp)?", [t|Maybe Exp|])
-    , (TH.mkName "rexpopt", "exp?", [t|Maybe Exp|])
-    , (TH.mkName "rquals1", "(qual ',')* qual", [t|Seq Guard|])
-    , (TH.mkName "rfbinds", "((fbind ',')* fbind)?", [t|[(QualifiedId, Exp)]|])
-    , (TH.mkName "rfbinds1", "(fbind ',')* fbind", [t|Seq (QualifiedId, Exp)|])
+    , rexp = rExp
+    , rinfixexp = rInfixExp
+    , rlexp = rLexp
+    , rsemiopt = rSemiOpt
+    , rfexp = rFexp
+    , raexps = rAexps
+    , raexp = rAexp
+    , rrecupdates = rRecUpdates
+    , raexp2 = rAexp2
+    , rexps2 = rExps2
+    , rexps1 = rExps1
+    , rcexpopt = rCexpOpt
+    , rexpopt = rExpOpt
+    , rquals1 = rQuals1
+    , rfbinds = rFbinds
+    , rfbinds1 = rFbinds1
 
-    , (TH.mkName "rqual", "qual", [t|Guard|])
-    , (TH.mkName "rcasealts", "casealts", [t|[CaseAlt]|])
-    , (TH.mkName "ralts", "alts", [t|Seq CaseAlt|])
-    , (TH.mkName "ralt", "alt", [t|Seq CaseAlt|])
-    , (TH.mkName "rgdpat", "gdpat", [t|Seq ([Guard], Exp)|])
-    , (TH.mkName "rdostmts", "dostmts", [t|([Stmt], Exp)|])
-    , (TH.mkName "rstmts", "stmts", [t|([Stmt], Exp)|])
-    , (TH.mkName "rstmts0", "stmt*", [t|Seq Stmt|])
-    , (TH.mkName "rstmt", "stmt", [t|Seq Stmt|])
-    , (TH.mkName "rfbind", "fbind", [t|(QualifiedId, Exp)|])
+    , rqual = rQual
+    , rcasealts = rCaseAlts
+    , ralts = rAlts
+    , ralt = rAlt
+    , rgdpat = rGdpat
+    , rdostmts = rDoStmts
+    , rstmts = rStmts
+    , rstmts0 = rStmts0
+    , rstmt = rStmt
+    , rfbind = rFbind
 
-    , (TH.mkName "rpat", "pat", [t|Pat|])
-    , (TH.mkName "rlpat", "lpat", [t|Pat|])
-    , (TH.mkName "rapat", "apat", [t|Pat|])
-    , (TH.mkName "rpats2", "(pat ',')+ pat", [t|Seq Pat|])
-    , (TH.mkName "rpats1", "(pat ',')* pat", [t|Seq Pat|])
-    , (TH.mkName "rfpats", "((fpat ',')* fpat)?", [t|[(QualifiedId, Pat)]|])
-    , (TH.mkName "rfpats1", "(fpat ',')* fpat", [t|Seq (QualifiedId, Pat)|])
-    , (TH.mkName "rfpat", "fpat", [t|(QualifiedId, Pat)|])
+    , rpat = rPat
+    , rlpat = rLpat
+    , rapat = rApat
+    , rpats2 = rPats2
+    , rpats1 = rPats1
+    , rfpats = rFpats
+    , rfpats1 = rFpats1
+    , rfpat = rFpat
 
-    , (TH.mkName "rgcon", "gcon", [t|Gcon|])
-    , (TH.mkName "rvar", "var", [t|Id|])
-    , (TH.mkName "rqvar", "qvar", [t|QualifiedId|])
-    , (TH.mkName "rcon", "con", [t|Id|])
-    , (TH.mkName "rqcon", "qcon", [t|QualifiedId|])
-    , (TH.mkName "rvarop", "varop", [t|Id|])
-    , (TH.mkName "rqvarop", "qvarop", [t|QualifiedId|])
-    , (TH.mkName "rconop", "conop", [t|Id|])
-    , (TH.mkName "rqconop", "qconop", [t|QualifiedId|])
-    , (TH.mkName "rop", "op", [t|Id|])
-    , (TH.mkName "rqop", "qop", [t|QualifiedId|])
-    , (TH.mkName "rgconsym", "gconsym", [t|QualifiedId|])
-    , (TH.mkName "rtyvar", "tyvar", [t|Id|])
-    , (TH.mkName "rtycon", "tycon", [t|Id|])
-    , (TH.mkName "rqtycon", "qtycon", [t|QualifiedId|])
-    , (TH.mkName "rvarid", "varid", [t|Id|])
-    , (TH.mkName "rvarsym", "varsym", [t|Id|])
-    , (TH.mkName "rconid", "conid", [t|Id|])
-    , (TH.mkName "rconsym", "consym", [t|Id|])
-    , (TH.mkName "rqvarid", "qvarid", [t|QualifiedId|])
-    , (TH.mkName "rqvarsym", "qvarsym", [t|QualifiedId|])
-    , (TH.mkName "rqconid", "qconid", [t|QualifiedId|])
-    , (TH.mkName "rqconsym", "qconsym", [t|QualifiedId|])
-    , (TH.mkName "rmodid", "modid", [t|QualifiedId|])
-    , (TH.mkName "ridexport", "'export'", [t|()|])
-    , (TH.mkName "ridhiding", "'hiding'", [t|()|])
-    , (TH.mkName "ridas", "'as'", [t|()|])
-    , (TH.mkName "ridqualified", "'qualified'", [t|()|])
-    , (TH.mkName "rsymexclamation", "'!'", [t|()|])
+    , rgcon = rGcon
+    , rvar = rVar
+    , rqvar = rQvar
+    , rcon = rCon
+    , rqcon = rQcon
+    , rvarop = rVarOp
+    , rqvarop = rQvarOp
+    , rconop = rConOp
+    , rqconop = rQconOp
+    , rop = rOp
+    , rqop = rQop
+    , rgconsym = rGconsym
+    , rtyvar = rTyvar
+    , rtycon = rTycon
+    , rqtycon = rQtycon
+    , rvarid = rVarId
+    , rvarsym = rVarSym
+    , rconid = rConId
+    , rconsym = rConSym
+    , rqvarid = rQvarId
+    , rqvarsym = rQvarSym
+    , rqconid = rQconId
+    , rqconsym = rQconSym
+    , rmodid = rModId
+    , ridexport = rIdExport
+    , ridhiding = rIdHiding
+    , ridas = rIdAs
+    , ridqualified = rIdQualified
+    , rsymexclamation = rSymExclamation
 
-    , (TH.mkName "rliteral", "literal", [t|Lit|])
-    , (TH.mkName "rinteger", "integer", [t|Integer|])
-    , (TH.mkName "rfloat", "float", [t|Rational|])
-    , (TH.mkName "rstring", "string", [t|String|])
-    , (TH.mkName "rchar", "char", [t|Char|])
+    , rliteral = rLiteral
+    , rinteger = rInteger
+    , rfloat = rFloat
+    , rstring = rString
+    , rchar = rChar
 
-    , (TH.mkName "rexpbo", "expbo", [t|()|])
-    , (TH.mkName "rexpbc", "expbc", [t|()|])
-    , (TH.mkName "rimpbo", "impbo", [t|()|])
-    , (TH.mkName "rimpbc", "impbc", [t|()|])
-    , (TH.mkName "rsemi", "semi", [t|()|])
-    ]
+    , rexpbo = rExpBo
+    , rexpbc = rExpBc
+    , rimpbo = rImpBo
+    , rimpbc = rImpBc
+    , rsemi = rSemi
     }
 
 type ParsePoints = '[ "module" ]
 
 type RuleExpr = Ptera.RuleExprM GrammarContext Rules Tokens Token
+type Alt = Ptera.AltM GrammarContext Rules Tokens Token
 type Unit = Ptera.Unit Rules Tokens Token
 
 rModule :: RuleExpr Program
@@ -1536,8 +1537,8 @@ rLexp = ruleExpr
             fexp
     ]
 
-rSemiopt :: RuleExpr ()
-rSemiopt = ruleExpr
+rSemiOpt :: RuleExpr ()
+rSemiOpt = ruleExpr
     [ alt $ varA @"semi"
         <:> semAct \(_ :* HNil) ->
             [||()||]
@@ -1565,6 +1566,30 @@ rAexps = ruleExpr
 
 rAexp :: RuleExpr Exp
 rAexp = ruleExpr
+    [ alt $ varA @"qcon" <^> varA @"expbo" <^> varA @"((fbind ',')* fbind)?" <^> varA @"expbc"
+        <:> semAct \(qcon :* _ :* fbinds :* _ :* HNil) ->
+            [||ExpRecordCon $$(qcon) $$(fbinds)||]
+    , alt $ varA @"aexp2" <^> varA @"(expbo ((fbind ',')* fbind)? expbc)*"
+        <:> semAct \(aexp2 :* recUpdates :* HNil) ->
+            [||seqFoldl'
+                do \aexp recUpdate -> ExpRecordUpdate aexp recUpdate
+                do $$(aexp2)
+                do $$(recUpdates)
+            ||]
+    ]
+
+rRecUpdates :: RuleExpr (Seq [(QualifiedId, Exp)])
+rRecUpdates = ruleExpr
+    [ alt $ varA @"expbo" <^> varA @"((fbind ',')* fbind)?" <^> varA @"expbc" <^> varA @"(expbo ((fbind ',')* fbind)? expbc)*"
+        <:> semAct \(_ :* fbinds :* _ :* recUpdates :* HNil) ->
+            [||$$(fbinds) Seq.:<| $$(recUpdates)||]
+    , eps
+        $ semAct \HNil ->
+            [||mempty||]
+    ]
+
+rAexp2 :: RuleExpr Exp
+rAexp2 = ruleExpr
     [ alt $ varA @"literal"
         <:> semAct \(literal :* HNil) ->
             [||ExpLit $$(literal)||]
@@ -1590,12 +1615,6 @@ rAexp = ruleExpr
     , alt $ tokA @"(" <^> varA @"qop" <^> varA @"infixexp" <^> tokA @")"
         <:> semAct \(_ :* qop :* infixexp :* _ :* HNil) ->
             [||ExpSection Nothing $$(qop) (Just $$(infixexp))||]
-    , alt $ varA @"qcon" <^> varA @"expbo" <^> varA @"((fbind ',')* fbind)?" <^> varA @"expbc"
-        <:> semAct \(qcon :* _ :* fbinds :* _ :* HNil) ->
-            [||ExpRecordCon $$(qcon) $$(fbinds)||]
-    , alt $ varA @"aexp" <^> varA @"expbo" <^> varA @"((fbind ',')* fbind)?" <^> varA @"expbc"
-        <:> semAct \(aexp :* _ :* fbinds :* _ :* HNil) ->
-            [||ExpRecordUpdate $$(aexp) $$(fbinds)||]
     , alt $ varA @"qvar"
         <:> semAct \(qvar :* HNil) ->
             [||ExpId $$(qvar)||]
@@ -2136,56 +2155,38 @@ rModId = ruleExpr
             qconid
     ]
 
-rExportId :: RuleExpr ()
-rExportId = ruleExpr
-    [ alt $ varA @"varid"
-        <:> semActM \(varid :* HNil) ->
-            [||case $$(varid) of
-                Id bs | bs == Char8.pack "export" ->
-                    pure ()
-                _ ->
-                    failAction
-            ||]
+rIdExport :: RuleExpr ()
+rIdExport = ruleExpr
+    [ altId "export"
     ]
 
-rHiding :: RuleExpr ()
-rHiding = ruleExpr
-    [ alt $ varA @"varid"
-        <:> semActM \(varid :* HNil) ->
-            [||case $$(varid) of
-                Id bs | bs == Char8.pack "hiding" ->
-                    pure ()
-                _ ->
-                    failAction
-            ||]
+rIdHiding :: RuleExpr ()
+rIdHiding = ruleExpr
+    [ altId "hiding"
     ]
 
-rAs :: RuleExpr ()
-rAs = ruleExpr
-    [ alt $ varA @"varid"
-        <:> semActM \(varid :* HNil) ->
-            [||case $$(varid) of
-                Id bs | bs == Char8.pack "as" ->
-                    pure ()
-                _ ->
-                    failAction
-            ||]
+rIdAs :: RuleExpr ()
+rIdAs = ruleExpr
+    [ altId "as"
     ]
 
-rQualified :: RuleExpr ()
-rQualified = ruleExpr
-    [ alt $ varA @"varid"
-        <:> semActM \(varid :* HNil) ->
-            [||case $$(varid) of
-                Id bs | bs == Char8.pack "qualified" ->
-                    pure ()
-                _ ->
-                    failAction
-            ||]
+rIdQualified :: RuleExpr ()
+rIdQualified = ruleExpr
+    [ altId "qualified"
     ]
 
-rExclamationSym :: RuleExpr ()
-rExclamationSym = ruleExpr
+altId :: String -> Alt ()
+altId idName = alt $ varA @"varid"
+    <:> semActM \(varid :* HNil) ->
+        [||case $$(varid) of
+            Id bs | bs == Char8.pack idName ->
+                pure ()
+            _ ->
+                failAction
+        ||]
+
+rSymExclamation :: RuleExpr ()
+rSymExclamation = ruleExpr
     [ alt $ varA @"varsym"
         <:> semActM \(varsym :* HNil) ->
             [||case $$(varsym) of
@@ -2349,3 +2350,9 @@ rSemi = ruleExpr
                         failAction
             ||]
     ]
+
+seqToList :: Seq a -> [a]
+seqToList = toList
+
+seqFoldl' :: (b -> a -> b) -> b -> Seq a -> b
+seqFoldl' f acc xs = foldl' f acc xs
