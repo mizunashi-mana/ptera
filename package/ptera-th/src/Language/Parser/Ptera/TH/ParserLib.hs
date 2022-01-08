@@ -78,7 +78,7 @@ pteraTHLookupTable32 offset table# s c = do
 pteraTHUnsafeCoerce :: a -> b
 pteraTHUnsafeCoerce = Unsafe.unsafeCoerce
 
-pteraTHUnsafeRunner :: RunnerParser ctx elem -> Parser ctx rules tokens elem initials
+pteraTHUnsafeRunner :: RunnerParser ctx elem -> Parser ctx rules elem initials
 pteraTHUnsafeRunner p = Runner.UnsafeRunnerM p
 
 pteraTHAction :: ([a] -> ActionTask ctx b) -> ActionM ctx

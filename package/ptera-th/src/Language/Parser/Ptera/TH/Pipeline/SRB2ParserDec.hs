@@ -70,7 +70,6 @@ srb2QParser param srb = do
             [t|Parser
                 $(customCtxTy param)
                 $(rulesTy param)
-                $(tokensTy param)
                 $(tokenTy param)
                 $(startsTy param)
             |]

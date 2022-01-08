@@ -6,10 +6,11 @@ module Language.Parser.Ptera.TH.Syntax (
     HasField (..),
     SafeGrammar.HasRuleExprField (..),
     SafeGrammar.RulesTag,
+    SafeGrammar.RuleExprType,
 
     GrammarM,
-    MemberInitialsM,
-    RulesM,
+    SafeGrammar.MemberInitials,
+    SafeGrammar.Rules,
     RuleExprM,
     AltM,
     SafeGrammar.Expr,
@@ -26,8 +27,6 @@ module Language.Parser.Ptera.TH.Syntax (
     Syntax.failAction,
 
     Grammar,
-    MemberInitials,
-    Rules,
     RuleExpr,
     Alt,
     SemAct,
@@ -61,14 +60,10 @@ import           Language.Parser.Ptera.TH.ParserLib
 type T ctx = GrammarM ctx
 
 type GrammarM ctx = SafeGrammar.Grammar (SemActM ctx)
-type MemberInitialsM ctx = SafeGrammar.MemberInitials (SemActM ctx)
-type RulesM ctx = SafeGrammar.Rules (SemActM ctx)
 type RuleExprM ctx = SafeGrammar.RuleExpr (SemActM ctx)
 type AltM ctx = SafeGrammar.Alt (SemActM ctx)
 
 type Grammar = GrammarM ()
-type MemberInitials = MemberInitialsM ()
-type Rules = RulesM ()
 type RuleExpr = RuleExprM ()
 type Alt = AltM ()
 

@@ -55,7 +55,7 @@ data GenRulesTypes = GenRulesTypes
 
 genRules :: TH.Name -> GenRulesTypes -> [(TH.Name, String, TH.Q TH.Type)] -> TH.Q [TH.Dec]
 genRules rulesTyName genRulesTypes ruleDefs = do
-        ds1 <- sequence [ rulesTyD, rulesTagD ]
+        ds1 <- sequence [ rulesTyD, rulesTagTyD, ruleExprTypeTyD ]
         ds2 <- hasFieldDs
         pure do ds1 ++ ds2
     where
@@ -66,11 +66,17 @@ genRules rulesTyName genRulesTypes ruleDefs = do
                 ]
             <*> pure []
 
-        rulesTagD = TH.TySynInstD
+        rulesTagTyD = TH.TySynInstD
             <$> do
                 TH.TySynEqn Nothing
                     <$> [t|RulesTag $(rulesTy)|]
                     <*> buildNonTerminalSymList [t|'[]|] ruleDefs
+
+        ruleExprTypeTyD = TH.TySynInstD
+            <$> do
+                TH.TySynEqn Nothing
+                    <$> [t|RuleExprType $(rulesTy)|]
+                    <*> ruleExprTy
 
         hasFieldDs = buildHasFieldInstances [] ruleDefs
 
@@ -100,21 +106,8 @@ genRules rulesTyName genRulesTypes ruleDefs = do
                     [d|
                     instance HasField $(nameTy) $(rulesTy) ($(ruleExprTy) $(ty)) where
                         getField x = $(pure do TH.VarE fieldName) x
-                    instance HasRuleExprField
-                            (SemActM $(genRulesCtxTy genRulesTypes))
-                            $(rulesTy)
-                            $(genRulesTokensTy genRulesTypes)
-                            $(genRulesTokenTy genRulesTypes)
-                            $(nameTy)
-                        where {
-                            type RuleExprReturnType
-                                (SemActM $(genRulesCtxTy genRulesTypes))
-                                $(rulesTy)
-                                $(genRulesTokensTy genRulesTypes)
-                                $(genRulesTokenTy genRulesTypes)
-                                $(nameTy)
-                                = $(ty)
-                        }
+                    instance HasRuleExprField $(rulesTy) $(nameTy) where
+                        type RuleExprReturnType $(rulesTy) $(nameTy) = $(ty)
                     |]
                 buildHasFieldInstances
                     do insts ++ acc
