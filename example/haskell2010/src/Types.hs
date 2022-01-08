@@ -1,7 +1,7 @@
 module Types where
 
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString as ByteString
+import           Data.ByteString       (ByteString)
+import qualified Data.ByteString       as ByteString
 import qualified Data.ByteString.Char8 as Char8
 
 
@@ -73,15 +73,15 @@ data Token
 data Program = Program
     {
         moduleId :: Maybe QualifiedId,
-        exports :: [ExportItem],
-        body :: ProgramBody
+        exports  :: [ExportItem],
+        body     :: ProgramBody
     }
     deriving (Eq, Show)
 
 data ProgramBody = ProgramBody
     {
         importDecls :: [ImportDecl],
-        topDecls :: [Decl]
+        topDecls    :: [Decl]
     }
     deriving (Eq, Show)
 
@@ -95,9 +95,9 @@ data ExportItem
 data ImportDecl = ImportDecl
     {
         importDeclQualified :: Bool,
-        importDeclModId :: QualifiedId,
-        importDeclAs :: Maybe QualifiedId,
-        importDeclSpec :: Maybe ImportSpec
+        importDeclModId     :: QualifiedId,
+        importDeclAs        :: Maybe QualifiedId,
+        importDeclSpec      :: Maybe ImportSpec
     }
     deriving (Eq, Show)
 

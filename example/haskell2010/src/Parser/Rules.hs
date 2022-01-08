@@ -11,20 +11,20 @@
 
 module Parser.Rules where
 
-import           Data.Proxy                        (Proxy (..))
-import           Language.Parser.Ptera.Data.HEnum  (henumA)
-import           Language.Parser.Ptera.Data.HList  (HList (..))
-import           Language.Parser.Ptera.TH          hiding (RuleExpr, Rules, Alt)
-import qualified Language.Parser.Ptera.TH          as Ptera
-import           Types
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as Char8
-import           Data.Sequence (Seq)
-import qualified Data.Sequence as Seq
-import qualified Language.Haskell.TH as TH
+import           Data.ByteString                  (ByteString)
+import qualified Data.ByteString.Char8            as Char8
 import           Data.Coerce
 import           Data.Foldable
+import           Data.Proxy                       (Proxy (..))
+import           Data.Sequence                    (Seq)
+import qualified Data.Sequence                    as Seq
+import qualified Language.Haskell.TH              as TH
+import           Language.Parser.Ptera.Data.HEnum (henumA)
+import           Language.Parser.Ptera.Data.HList (HList (..))
+import           Language.Parser.Ptera.TH         hiding (Alt, RuleExpr, Rules)
+import qualified Language.Parser.Ptera.TH         as Ptera
 import qualified Numeric
+import           Types
 
 
 $(genGrammarToken (TH.mkName "Tokens") [t|Token|]

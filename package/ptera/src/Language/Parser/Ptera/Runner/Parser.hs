@@ -23,7 +23,7 @@ module Language.Parser.Ptera.Runner.Parser (
 import           Language.Parser.Ptera.Prelude
 
 import           Language.Parser.Ptera.Machine.PEG (AltKind (..))
-import qualified Language.Parser.Ptera.Syntax               as Syntax
+import qualified Language.Parser.Ptera.Syntax      as Syntax
 
 type StartNum = Int
 type StateNum = Int

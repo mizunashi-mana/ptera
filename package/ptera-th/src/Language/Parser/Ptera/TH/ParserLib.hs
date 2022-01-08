@@ -23,15 +23,14 @@ import qualified GHC.ST                                    as ST
 import qualified GHC.Types                                 as Types
 import qualified Language.Parser.Ptera.Data.HEnum          as HEnum
 import qualified Language.Parser.Ptera.Runner              as Runner
-import           Language.Parser.Ptera.Runner.Parser       (ActionM,
-                                                            ActionTask,
-                                                            getAction,
-                                                            modifyAction,
-                                                            failAction,
+import           Language.Parser.Ptera.Runner.Parser       (ActionM, ActionTask,
                                                             AltKind (..),
                                                             RunnerParser (..),
                                                             Trans (..),
-                                                            TransOp (..))
+                                                            TransOp (..),
+                                                            failAction,
+                                                            getAction,
+                                                            modifyAction)
 import qualified Language.Parser.Ptera.Runner.Parser       as RunnerParser
 import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
 import qualified Unsafe.Coerce                             as Unsafe

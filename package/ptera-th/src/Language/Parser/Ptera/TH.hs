@@ -15,18 +15,18 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Haskell.TH                                 as TH
 import           Language.Parser.Ptera.Runner                        (Result (..),
-                                                                      runParserM,
-                                                                      runParser)
+                                                                      runParser,
+                                                                      runParserM)
 import           Language.Parser.Ptera.Scanner                       hiding (T)
 import           Language.Parser.Ptera.TH.ParserLib
 import qualified Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec as Grammar2ParserDec
 import           Language.Parser.Ptera.TH.Syntax                     hiding (T,
                                                                       UnsafeSemActM,
                                                                       unsafeSemanticAction)
-import qualified Type.Membership as Membership
-import           Language.Parser.Ptera.TH.Util (genGrammarToken,
-    GenRulesTypes (..),
-    genRules)
+import           Language.Parser.Ptera.TH.Util                       (GenRulesTypes (..),
+                                                                      genGrammarToken,
+                                                                      genRules)
+import qualified Type.Membership                                     as Membership
 
 genRunner :: forall initials rules tokens ctx elem
     .  GrammarToken elem tokens => Membership.Generate tokens
@@ -50,10 +50,10 @@ genRunner param g = case mdecs of
 
 data GenParam = GenParam
     {
-        startsTy :: TH.Q TH.Type,
-        rulesTy  :: TH.Q TH.Type,
-        tokensTy :: TH.Q TH.Type,
-        tokenTy  :: TH.Q TH.Type,
+        startsTy    :: TH.Q TH.Type,
+        rulesTy     :: TH.Q TH.Type,
+        tokensTy    :: TH.Q TH.Type,
+        tokenTy     :: TH.Q TH.Type,
         customCtxTy :: TH.Q TH.Type
     }
 

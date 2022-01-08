@@ -6,11 +6,11 @@ module Language.Parser.Ptera.TH.Util (
     genRules
 ) where
 
-import Language.Parser.Ptera.Prelude
-import Prelude (String)
-import Language.Parser.Ptera.TH.Syntax
+import           Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.TH.Syntax
+import           Prelude                         (String)
 
-import qualified Language.Haskell.TH as TH
+import qualified Language.Haskell.TH             as TH
 
 genGrammarToken :: TH.Name -> TH.Q TH.Type -> [(String, TH.Q TH.Pat)] -> TH.Q [TH.Dec]
 genGrammarToken tyName tokenTy tokens = sequence [tokensTyD, grammarTokenInstanceD]
@@ -48,9 +48,9 @@ genGrammarToken tyName tokenTy tokens = sequence [tokensTyD, grammarTokenInstanc
                 <*> pure []
 
 data GenRulesTypes = GenRulesTypes
-    { genRulesCtxTy :: TH.Q TH.Type
+    { genRulesCtxTy    :: TH.Q TH.Type
     , genRulesTokensTy :: TH.Q TH.Type
-    , genRulesTokenTy :: TH.Q TH.Type
+    , genRulesTokenTy  :: TH.Q TH.Type
     }
 
 genRules :: TH.Name -> GenRulesTypes -> [(TH.Name, String, TH.Q TH.Type)] -> TH.Q [TH.Dec]

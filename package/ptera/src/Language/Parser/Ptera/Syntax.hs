@@ -39,7 +39,7 @@ module Language.Parser.Ptera.Syntax (
     SafeGrammar.tokA,
 ) where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Parser.Ptera.Data.HList          as HList
 import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken

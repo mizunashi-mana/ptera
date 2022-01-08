@@ -16,9 +16,9 @@ import qualified Language.Parser.Ptera.Syntax.SafeGrammar        as SafeGrammar
 import qualified Language.Parser.Ptera.TH                        as PteraTH
 import           Language.Parser.Ptera.TH.ParserLib
 import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
+import qualified Parser
 import qualified Parser.Rules                                    as Rules
 import           Types
-import qualified Parser
 
 type SemanticAction = SRB2ParserDec.SemanticAction Rules.GrammarContext
 

@@ -8,7 +8,7 @@ import qualified Language.Haskell.TH                             as TH
 import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB  as SafeGrammar2SRB
 import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
 import qualified Language.Parser.Ptera.TH.Syntax                 as Syntax
-import qualified Type.Membership as Membership
+import qualified Type.Membership                                 as Membership
 
 grammar2ParserDec
     :: forall initials rules tokens ctx elem
@@ -31,9 +31,9 @@ grammar2ParserDec param g = do
 
 data PipelineParam = PipelineParam
     {
-        startsTy :: TH.Q TH.Type,
-        rulesTy  :: TH.Q TH.Type,
-        tokensTy :: TH.Q TH.Type,
-        tokenTy  :: TH.Q TH.Type,
+        startsTy    :: TH.Q TH.Type,
+        rulesTy     :: TH.Q TH.Type,
+        tokensTy    :: TH.Q TH.Type,
+        tokenTy     :: TH.Q TH.Type,
         customCtxTy :: TH.Q TH.Type
     }

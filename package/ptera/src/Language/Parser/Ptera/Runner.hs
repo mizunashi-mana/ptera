@@ -9,13 +9,13 @@ module Language.Parser.Ptera.Runner (
 
 import           Language.Parser.Ptera.Prelude
 
+import qualified Language.Parser.Ptera.Runner.Parser      as Parser
+import qualified Language.Parser.Ptera.Runner.RunT        as RunT
+import qualified Language.Parser.Ptera.Scanner            as Scanner
+import qualified Language.Parser.Ptera.Syntax             as Syntax
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
-import qualified Language.Parser.Ptera.Runner.Parser as Parser
-import qualified Language.Parser.Ptera.Runner.RunT   as RunT
-import qualified Language.Parser.Ptera.Scanner       as Scanner
-import qualified Language.Parser.Ptera.Syntax               as Syntax
-import qualified Type.Membership as Membership
-import qualified Type.Membership.Internal as MembershipInternal
+import qualified Type.Membership                          as Membership
+import qualified Type.Membership.Internal                 as MembershipInternal
 
 type T = RunnerM
 

@@ -1,5 +1,5 @@
-{-# LANGUAGE AllowAmbiguousTypes  #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes     #-}
+{-# LANGUAGE UndecidableInstances    #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 module Language.Parser.Ptera.Syntax.SafeGrammar (
@@ -35,12 +35,12 @@ module Language.Parser.Ptera.Syntax.SafeGrammar (
 
 import           Language.Parser.Ptera.Prelude
 
+import qualified Data.HashMap.Strict                  as HashMap
 import qualified Language.Parser.Ptera.Data.HEnum     as HEnum
 import qualified Language.Parser.Ptera.Syntax.Grammar as SyntaxGrammar
-import Prelude (String)
-import qualified Data.HashMap.Strict as HashMap
-import qualified Type.Membership as Membership
-import qualified Type.Membership.Internal as MembershipInternal
+import           Prelude                              (String)
+import qualified Type.Membership                      as Membership
+import qualified Type.Membership.Internal             as MembershipInternal
 
 type T = Grammar
 

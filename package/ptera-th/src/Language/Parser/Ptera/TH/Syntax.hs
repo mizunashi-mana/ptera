@@ -51,7 +51,7 @@ import           Language.Parser.Ptera.Prelude
 import qualified Language.Haskell.TH                       as TH
 import qualified Language.Haskell.TH.Syntax                as TH
 import qualified Language.Parser.Ptera.Data.HList          as HList
-import qualified Language.Parser.Ptera.Syntax as Syntax
+import qualified Language.Parser.Ptera.Syntax              as Syntax
 import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar  as SafeGrammar
 import           Language.Parser.Ptera.TH.ParserLib

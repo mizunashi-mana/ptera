@@ -11,13 +11,13 @@
 
 module Parser.Rules where
 
-import           Data.Proxy                        (Proxy (..))
-import           Language.Parser.Ptera.Data.HEnum  (henumA)
-import           Language.Parser.Ptera.Data.HList  (HList (..))
-import           Language.Parser.Ptera.TH          hiding (RuleExpr, Rules)
-import qualified Language.Parser.Ptera.TH          as Ptera
+import           Data.Proxy                       (Proxy (..))
+import qualified Language.Haskell.TH              as TH
+import           Language.Parser.Ptera.Data.HEnum (henumA)
+import           Language.Parser.Ptera.Data.HList (HList (..))
+import           Language.Parser.Ptera.TH         hiding (RuleExpr, Rules)
+import qualified Language.Parser.Ptera.TH         as Ptera
 import           Types
-import qualified Language.Haskell.TH as TH
 
 
 $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]

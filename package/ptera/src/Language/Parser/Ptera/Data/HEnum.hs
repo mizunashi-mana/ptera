@@ -4,8 +4,8 @@ module Language.Parser.Ptera.Data.HEnum where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Type.Membership as Membership
-import qualified Type.Membership.Internal as MembershipInternal
+import qualified Type.Membership               as Membership
+import qualified Type.Membership.Internal      as MembershipInternal
 
 type T = HEnum
 

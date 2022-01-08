@@ -46,7 +46,7 @@ import           Data.Functor.Compose
 import           Data.Functor.Identity
 import           Data.Hashable                    (Hashable)
 import           Data.Ix                          (Ix)
-import           Data.Kind                        (Type, Constraint)
+import           Data.Kind                        (Constraint, Type)
 import           Data.List.NonEmpty               (NonEmpty (..))
 import           Data.Ord                         (Down (..))
 import           Data.Proxy                       (Proxy (..))
@@ -56,6 +56,8 @@ import           GHC.Exts                         (Proxy#, proxy#)
 import           GHC.Generics                     (Generic)
 import           GHC.OverloadedLabels
 import           GHC.Records
-import           GHC.TypeLits                     (Nat, KnownNat, natVal, natVal', Symbol, KnownSymbol, symbolVal, symbolVal')
+import           GHC.TypeLits                     (KnownNat, KnownSymbol, Nat,
+                                                   Symbol, natVal, natVal',
+                                                   symbolVal, symbolVal')
 import           Prelude                          hiding (String, foldl, foldr,
                                                    head, pi, tail, ($))
