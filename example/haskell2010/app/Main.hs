@@ -22,4 +22,4 @@ main = do
             System.exitFailure
         Right xs -> pure xs
     print ("Token", toks)
-    print ("ParseResult", Parser.parseExpr toks)
+    print ("ParseResult", Parser.parseModule toks)

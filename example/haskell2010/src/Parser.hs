@@ -24,8 +24,7 @@ $(PteraTH.genRunner
 moduleParser :: PteraTH.Scanner p Token m => m (PteraTH.Result Program)
 moduleParser = PteraTH.runParserM (Proxy :: Proxy "module") pteraTHRunner []
 
-
-parseExpr :: [Token] -> Either String Program
-parseExpr toks = case PteraTH.runListScanner moduleParser toks of
+parseModule :: [Token] -> Either String Program
+parseModule toks = case PteraTH.runListScanner moduleParser toks of
     PteraTH.Parsed x  -> Right x
     PteraTH.ParseFail -> Left "ParseFail"
