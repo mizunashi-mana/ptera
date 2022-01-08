@@ -507,7 +507,7 @@ rImpDecls = ruleExpr
             [||$$(impdecl) Seq.:<| $$(impdecls)||]
     , alt $ varA @"impdecl"
         <:> semAct \(impdecl :* HNil) ->
-            [||pure $$(impdecl)||]
+            [||Seq.singleton $$(impdecl)||]
     ]
 
 rExports :: RuleExpr [ExportItem]
@@ -524,10 +524,10 @@ rExports0 = ruleExpr
             [||$$(export) Seq.:<| $$(exports)||]
     , alt $ varA @"export"
         <:> semAct \(export :* HNil) ->
-            [||pure $$(export)||]
+            [||Seq.singleton $$(export)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rExport :: RuleExpr ExportItem
@@ -560,7 +560,7 @@ rCnames1 = ruleExpr
             [||$$(cname) Seq.:<| $$(cnames1)||]
     , alt $ varA @"cname"
         <:> semAct \(cname :* HNil) ->
-            [||pure $$(cname)||]
+            [||Seq.singleton $$(cname)||]
     ]
 
 rImpDecl :: RuleExpr ImportDecl
@@ -610,10 +610,10 @@ rImports = ruleExpr
             [||$$(imp) Seq.:<| $$(imports)||]
     , alt $ varA @"import"
         <:> semAct \(imp :* HNil) ->
-            [||pure $$(imp)||]
+            [||Seq.singleton $$(imp)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rImport :: RuleExpr ImportItem
@@ -653,7 +653,7 @@ rTopDecls1 :: RuleExpr (Seq Decl)
 rTopDecls1 = ruleExpr
     [ alt $ varA @"topdecl" <^> varA @"semi" <^> varA @"(topdecl semi)* topdecl"
         <:> semAct \(topdecl :* _ :* topdecls1 :* HNil) ->
-            [||$$(topdecl) <> $$(topdecls1)||]
+            [||$$(topdecl) Seq.>< $$(topdecls1)||]
     , alt $ varA @"topdecl"
         <:> semAct \(topdecl :* HNil) ->
             topdecl
@@ -663,28 +663,28 @@ rTopDecl :: RuleExpr (Seq Decl)
 rTopDecl = ruleExpr
     [ alt $ tokA @"type" <^> varA @"simpletype" <^> tokA @"=" <^> varA @"type"
         <:> semAct \(_ :* simpletype :* _ :* ty :* HNil) ->
-            [||pure $ DeclType $$(simpletype) $$(ty)||]
+            [||Seq.singleton $ DeclType $$(simpletype) $$(ty)||]
     , alt $ tokA @"data" <^> varA @"(context '=>')?" <^> varA @"simpletype" <^> tokA @"=" <^> varA @"constrs" <^> varA @"deriving?"
         <:> semAct \(_ :* contextopt :* simpletype :* _ :* constrs :* derivingopt :* HNil) ->
-            [||pure $ DeclData $$(contextopt) $$(simpletype) (seqToList $$(constrs)) $$(derivingopt)||]
+            [||Seq.singleton $ DeclData $$(contextopt) $$(simpletype) (seqToList $$(constrs)) $$(derivingopt)||]
     , alt $ tokA @"data" <^> varA @"(context '=>')?" <^> varA @"simpletype" <^> varA @"deriving?"
         <:> semAct \(_ :* contextopt :* simpletype :* derivingopt :* HNil) ->
-            [||pure $ DeclData $$(contextopt) $$(simpletype) [] $$(derivingopt)||]
+            [||Seq.singleton $ DeclData $$(contextopt) $$(simpletype) [] $$(derivingopt)||]
     , alt $ tokA @"newtype" <^> varA @"(context '=>')?" <^> varA @"simpletype" <^> tokA @"=" <^> varA @"newconstr" <^> varA @"deriving?"
         <:> semAct \(_ :* contextopt :* simpletype :* _ :* newconstr :* derivingopt :* HNil) ->
-            [||pure $ DeclNewtype $$(contextopt) $$(simpletype) $$(newconstr) $$(derivingopt)||]
+            [||Seq.singleton $ DeclNewtype $$(contextopt) $$(simpletype) $$(newconstr) $$(derivingopt)||]
     , alt $ tokA @"class" <^> varA @"(scontext '=>')?" <^> varA @"tycon" <^> varA @"tyvar" <^> varA @"('where' cdecls)?"
         <:> semAct \(_ :* contextopt :* tycon :* tyvar :* cdecls :* HNil) ->
-            [||pure $ DeclClass $$(contextopt) $$(tycon) $$(tyvar) $$(cdecls)||]
+            [||Seq.singleton $ DeclClass $$(contextopt) $$(tycon) $$(tyvar) $$(cdecls)||]
     , alt $ tokA @"instance" <^> varA @"(scontext '=>')?" <^> varA @"qtycon" <^> varA @"inst" <^> varA @"('where' idecls)?"
         <:> semAct \(_ :* contextopt :* qtycon :* inst :* idecls :* HNil) ->
-            [||pure $ DeclInstance $$(contextopt) $$(qtycon) $$(inst) $$(idecls)||]
+            [||Seq.singleton $ DeclInstance $$(contextopt) $$(qtycon) $$(inst) $$(idecls)||]
     , alt $ tokA @"default" <^> tokA @"(" <^> varA @"((type ',')* type)?" <^> tokA @")"
         <:> semAct \(_ :* _ :* types :* _ :* HNil) ->
-            [||pure $ DeclDefault $$(types)||]
+            [||Seq.singleton $ DeclDefault $$(types)||]
     , alt $ tokA @"foreign" <^> varA @"fdecl"
         <:> semAct \(_ :* fdecl :* HNil) ->
-            [||pure $$(fdecl)||]
+            [||Seq.singleton $$(fdecl)||]
     , alt $ varA @"decl"
         <:> semAct \(decl :* HNil) ->
             decl
@@ -757,7 +757,7 @@ rTypes1 = ruleExpr
             [||$$(ty) Seq.:<| $$(types1)||]
     , alt $ varA @"type"
         <:> semAct \(ty :* HNil) ->
-            [||pure $$(ty)||]
+            [||Seq.singleton $$(ty)||]
     ]
 
 rDecls :: RuleExpr [Decl]
@@ -784,7 +784,7 @@ rDeclsInL1 :: RuleExpr (Seq Decl)
 rDeclsInL1 = ruleExpr
     [ alt $ varA @"decl" <^> varA @"semi" <^> varA @"(decl semi)* decl"
         <:> semAct \(decl :* _ :* declsinl1 :* HNil) ->
-            [||$$(decl) <> $$(declsinl1)||]
+            [||$$(decl) Seq.>< $$(declsinl1)||]
     , alt $ varA @"decl"
         <:> semAct \(decl :* HNil) ->
             decl
@@ -799,11 +799,11 @@ rDecl = ruleExpr
         <:> semAct \(funlhs :* rhs :* HNil) ->
             [||case $$(funlhs) of
                 (f, args) ->
-                    pure $ DeclFun f (seqToList args) $$(rhs)
+                    Seq.singleton $ DeclFun f (seqToList args) $$(rhs)
             ||]
     , alt $ varA @"pat" <^> varA @"rhs"
         <:> semAct \(pat :* rhs :* HNil) ->
-            [||pure $ DeclVar $$(pat) $$(rhs)||]
+            [||Seq.singleton $ DeclVar $$(pat) $$(rhs)||]
     ]
 
 rCdecls :: RuleExpr [Decl]
@@ -830,7 +830,7 @@ rCdeclsInL1 :: RuleExpr (Seq Decl)
 rCdeclsInL1 = ruleExpr
     [ alt $ varA @"cdecl" <^> varA @"semi" <^> varA @"(cdecl semi)* cdecl"
         <:> semAct \(cdecl :* _ :* cdeclsinl1 :* HNil) ->
-            [||$$(cdecl) <> $$(cdeclsinl1)||]
+            [||$$(cdecl) Seq.>< $$(cdeclsinl1)||]
     , alt $ varA @"cdecl"
         <:> semAct \(cdecl :* HNil) ->
             cdecl
@@ -845,11 +845,11 @@ rCdecl = ruleExpr
         <:> semAct \(funlhs :* rhs :* HNil) ->
             [||case $$(funlhs) of
                 (f, args) ->
-                    pure $ DeclFun f (seqToList args) $$(rhs)
+                    Seq.singleton $ DeclFun f (seqToList args) $$(rhs)
             ||]
     , alt $ varA @"var" <^> varA @"rhs"
         <:> semAct \(var :* rhs :* HNil) ->
-            [||pure $ DeclVar (PatId $$(var) Nothing) $$(rhs)||]
+            [||Seq.singleton $ DeclVar (PatId $$(var) Nothing) $$(rhs)||]
     ]
 
 rIdecls :: RuleExpr [Decl]
@@ -876,7 +876,7 @@ rIdeclsInL1 :: RuleExpr (Seq Decl)
 rIdeclsInL1 = ruleExpr
     [ alt $ varA @"idecl" <^> varA @"semi" <^> varA @"(idecl semi)* idecl"
         <:> semAct \(idecl :* _ :* ideclsinl1 :* HNil) ->
-            [||$$(idecl) <> $$(ideclsinl1)||]
+            [||$$(idecl) Seq.>< $$(ideclsinl1)||]
     , alt $ varA @"idecl"
         <:> semAct \(idecl :* HNil) ->
             idecl
@@ -888,30 +888,30 @@ rIdecl = ruleExpr
         <:> semAct \(funlhs :* rhs :* HNil) ->
             [||case $$(funlhs) of
                 (f, args) ->
-                    pure $ DeclFun f (seqToList args) $$(rhs)
+                    Seq.singleton $ DeclFun f (seqToList args) $$(rhs)
             ||]
     , alt $ varA @"var" <^> varA @"rhs"
         <:> semAct \(var :* rhs :* HNil) ->
-            [||pure $ DeclVar (PatId $$(var) Nothing) $$(rhs)||]
+            [||Seq.singleton $ DeclVar (PatId $$(var) Nothing) $$(rhs)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rGenDecl :: RuleExpr (Seq Decl)
 rGenDecl = ruleExpr
     [ alt $ varA @"vars" <^> tokA @"::" <^> varA @"(context '=>')?" <^> varA @"type"
         <:> semAct \(vars :* _ :* contextopt :* ty :* HNil) ->
-            [||pure $ DeclSig (seqToList $$(vars)) $$(contextopt) $$(ty)||]
+            [||Seq.singleton $ DeclSig (seqToList $$(vars)) $$(contextopt) $$(ty)||]
     , alt $ varA @"fixity" <^> varA @"integer" <^> varA @"ops"
         <:> semAct \(fixity :* integer :* ops :* HNil) ->
-            [||pure $ DeclFixity $$(fixity) (Just (fromInteger $$(integer))) (seqToList $$(ops))||]
+            [||Seq.singleton $ DeclFixity $$(fixity) (Just (fromInteger $$(integer))) (seqToList $$(ops))||]
     , alt $ varA @"fixity" <^> varA @"ops"
         <:> semAct \(fixity :* ops :* HNil) ->
-            [||pure $ DeclFixity $$(fixity) Nothing (seqToList $$(ops))||]
+            [||Seq.singleton $ DeclFixity $$(fixity) Nothing (seqToList $$(ops))||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rOps :: RuleExpr (Seq Id)
@@ -921,7 +921,7 @@ rOps = ruleExpr
             [||$$(op) Seq.:<| $$(ops)||]
     , alt $ varA @"op"
         <:> semAct \(op :* HNil) ->
-            [||pure $$(op)||]
+            [||Seq.singleton $$(op)||]
     ]
 
 rVars :: RuleExpr (Seq Id)
@@ -931,7 +931,7 @@ rVars = ruleExpr
             [||$$(var) Seq.:<| $$(vars)||]
     , alt $ varA @"var"
         <:> semAct \(var :* HNil) ->
-            [||pure $$(var)||]
+            [||Seq.singleton $$(var)||]
     ]
 
 rFixity :: RuleExpr Fixity
@@ -971,7 +971,7 @@ rAtypes = ruleExpr
             [||$$(atype) Seq.:<| $$(atypes)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rAtype :: RuleExpr Type
@@ -1059,7 +1059,7 @@ rClasses1 = ruleExpr
             [||$$(cls) Seq.:<| $$(classes1)||]
     , alt $ varA @"class"
         <:> semAct \(cls :* HNil) ->
-            [||pure $$(cls)||]
+            [||Seq.singleton $$(cls)||]
     ]
 
 rClass :: RuleExpr Type
@@ -1082,7 +1082,7 @@ rAtypes1 = ruleExpr
             [||$$(atype) Seq.:<| $$(atypes1)||]
     , alt $ varA @"atype"
         <:> semAct \(atype :* HNil) ->
-            [||pure $$(atype)||]
+            [||Seq.singleton $$(atype)||]
     ]
 
 rScontext :: RuleExpr Context
@@ -1112,7 +1112,7 @@ rSimpleClasses1 = ruleExpr
             [||$$(simpleclass) Seq.:<| $$(simpleclasses1)||]
     , alt $ varA @"simpleclass"
         <:> semAct \(simpleclass :* HNil) ->
-            [||pure $$(simpleclass)||]
+            [||Seq.singleton $$(simpleclass)||]
     ]
 
 rSimpleClass :: RuleExpr Type
@@ -1136,7 +1136,7 @@ rTyVars = ruleExpr
             [||TypeId (nonQualifiedId $$(tyvar)) Seq.:<| $$(tyvars)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rConstrs :: RuleExpr (Seq Constr)
@@ -1146,7 +1146,7 @@ rConstrs = ruleExpr
             [||$$(constr) Seq.:<| $$(constrs)||]
     , alt $ varA @"constr"
         <:> semAct \(constr :* HNil) ->
-            [||pure $$(constr)||]
+            [||Seq.singleton $$(constr)||]
     ]
 
 rConstr :: RuleExpr Constr
@@ -1179,7 +1179,7 @@ rFieldDecls1 = ruleExpr
             [||$$(fielddecl) Seq.:<| $$(fielddecls1)||]
     , alt $ varA @"fielddecl"
         <:> semAct \(fielddecl :* HNil) ->
-            [||pure $$(fielddecl)||]
+            [||Seq.singleton $$(fielddecl)||]
     ]
 
 rAbctype :: RuleExpr (Strictness, Type)
@@ -1199,7 +1199,7 @@ rActypes = ruleExpr
             [||$$(actype) Seq.:<| $$(actypes)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rActype :: RuleExpr (Strictness, Type)
@@ -1259,7 +1259,7 @@ rDclasses1 = ruleExpr
             [||$$(dclass) Seq.:<| $$(dclasses1)||]
     , alt $ varA @"dclass"
         <:> semAct \(dclass :* HNil) ->
-            [||pure $$(dclass)||]
+            [||Seq.singleton $$(dclass)||]
     ]
 
 rDclass :: RuleExpr Type
@@ -1413,7 +1413,7 @@ rFunlhs = ruleExpr
     , alt $ tokA @"(" <^> varA @"funlhs" <^> tokA @")" <^> varA @"apat+"
         <:> semAct \(_ :* funlhs :* _ :* apats1 :* HNil) ->
             [||case $$(funlhs) of
-                (v, pats) -> (v, pats <> $$(apats1))
+                (v, pats) -> (v, pats Seq.>< $$(apats1))
             ||]
     ]
 
@@ -1424,7 +1424,7 @@ rApats1 = ruleExpr
             [||$$(apat) Seq.:<| $$(apats1)||]
     , alt $ varA @"apat"
         <:> semAct \(apat :* HNil) ->
-            [||pure $$(apat)||]
+            [||Seq.singleton $$(apat)||]
     ]
 
 rRhs :: RuleExpr Rhs
@@ -1454,7 +1454,7 @@ rGdrhs = ruleExpr
             [||($$(guards), $$(exp)) Seq.:<| $$(gdrhs)||]
     , alt $ varA @"guards" <^> tokA @"=" <^> varA @"exp"
         <:> semAct \(guards :* _ :* exp :* HNil) ->
-            [||pure ($$(guards), $$(exp))||]
+            [||Seq.singleton ($$(guards), $$(exp))||]
     ]
 
 rGuards :: RuleExpr [Guard]
@@ -1474,7 +1474,7 @@ rGuards1 = ruleExpr
             [||$$(guard) Seq.:<| $$(guards1)||]
     , alt $ varA @"guard"
         <:> semAct \(guard :* HNil) ->
-            [||pure $$(guard)||]
+            [||Seq.singleton $$(guard)||]
     ]
 
 rGuard :: RuleExpr Guard
@@ -1561,7 +1561,7 @@ rAexps = ruleExpr
             [||$$(aexp) Seq.:<| $$(aexps)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rAexp :: RuleExpr Exp
@@ -1585,7 +1585,7 @@ rRecUpdates = ruleExpr
             [||$$(fbinds) Seq.:<| $$(recUpdates)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rAexp2 :: RuleExpr Exp
@@ -1642,7 +1642,7 @@ rExps1 = ruleExpr
             [||$$(exp) Seq.:<| $$(exps1)||]
     , alt $ varA @"exp"
         <:> semAct \(exp :* HNil) ->
-            [||pure $$(exp)||]
+            [||Seq.singleton $$(exp)||]
     ]
 
 rCexpOpt :: RuleExpr (Maybe Exp)
@@ -1672,7 +1672,7 @@ rQuals1 = ruleExpr
             [||$$(qual) Seq.:<| $$(quals1)||]
     , alt $ varA @"qual"
         <:> semAct \(qual :* HNil) ->
-            [||pure $$(qual)||]
+            [||Seq.singleton $$(qual)||]
     ]
 
 rFbinds :: RuleExpr [(QualifiedId, Exp)]
@@ -1692,7 +1692,7 @@ rFbinds1 = ruleExpr
             [||$$(fbind) Seq.:<| $$(fbinds1)||]
     , alt $ varA @"fbind"
         <:> semAct \(fbind :* HNil) ->
-            [||pure $$(fbind)||]
+            [||Seq.singleton $$(fbind)||]
     ]
 
 rQual :: RuleExpr Guard
@@ -1722,7 +1722,7 @@ rAlts :: RuleExpr (Seq CaseAlt)
 rAlts = ruleExpr
     [ alt $ varA @"alt" <^> varA @"semi" <^> varA @"alts"
         <:> semAct \(alt :* _ :* alts :* HNil) ->
-            [||$$(alt) <> $$(alts)||]
+            [||$$(alt) Seq.>< $$(alts)||]
     , alt $ varA @"alt"
         <:> semAct \(alt :* HNil) ->
             alt
@@ -1732,13 +1732,13 @@ rAlt :: RuleExpr (Seq CaseAlt)
 rAlt = ruleExpr
     [ alt $ varA @"pat" <^> tokA @"->" <^> varA @"exp" <^> varA @"('where' decls)?"
         <:> semAct \(pat :* _ :* exp :* decls :* HNil) ->
-            [||pure $ CaseAlt $$(pat) [([], $$(exp))] $$(decls)||]
+            [||Seq.singleton $ CaseAlt $$(pat) [([], $$(exp))] $$(decls)||]
     , alt $ varA @"pat" <^> varA @"gdpat" <^> varA @"('where' decls)?"
         <:> semAct \(pat :* gdpat :* decls :* HNil) ->
-            [||pure $ CaseAlt $$(pat) (seqToList $$(gdpat)) $$(decls)||]
+            [||Seq.singleton $ CaseAlt $$(pat) (seqToList $$(gdpat)) $$(decls)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rGdpat :: RuleExpr (Seq ([Guard], Exp))
@@ -1748,7 +1748,7 @@ rGdpat = ruleExpr
             [||($$(guards), $$(exp)) Seq.:<| $$(gdpat)||]
     , alt $ varA @"guards" <^> tokA @"->" <^> varA @"exp"
         <:> semAct \(guards :* _ :* exp :* HNil) ->
-            [||pure ($$(guards), $$(exp))||]
+            [||Seq.singleton ($$(guards), $$(exp))||]
     ]
 
 rDoStmts :: RuleExpr ([Stmt], Exp)
@@ -1772,26 +1772,26 @@ rStmts0 :: RuleExpr (Seq Stmt)
 rStmts0 = ruleExpr
     [ alt $ varA @"stmt" <^> varA @"stmt*"
         <:> semAct \(stmt :* stmts0 :* HNil) ->
-            [||$$(stmt) <> $$(stmts0)||]
+            [||$$(stmt) Seq.>< $$(stmts0)||]
     , eps
         $ semAct \HNil ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rStmt :: RuleExpr (Seq Stmt)
 rStmt = ruleExpr
     [ alt $ varA @"exp" <^> varA @"semi"
         <:> semAct \(exp :* _ :* HNil) ->
-            [||pure $ StmtExp $$(exp)||]
+            [||Seq.singleton $ StmtExp $$(exp)||]
     , alt $ varA @"pat" <^> tokA @"<-" <^> varA @"exp" <^> varA @"semi"
         <:> semAct \(pat :* _ :* exp :* _ :* HNil) ->
-            [||pure $ StmtPat $$(pat) $$(exp)||]
+            [||Seq.singleton $ StmtPat $$(pat) $$(exp)||]
     , alt $ tokA @"let" <^> varA @"decls" <^> varA @"semi"
         <:> semAct \(_ :* decls :* _ :* HNil) ->
-            [||pure $ StmtLet $$(decls)||]
+            [||Seq.singleton $ StmtLet $$(decls)||]
     , alt $ varA @"semi"
         <:> semAct \(_ :* HNil) ->
-            [||mempty||]
+            [||Seq.empty||]
     ]
 
 rFbind :: RuleExpr (QualifiedId, Exp)
@@ -1895,7 +1895,7 @@ rFpats1 = ruleExpr
             [||$$(fpat) Seq.:<| $$(fpats1)||]
     , alt $ varA @"fpat"
         <:> semAct \(fpat :* HNil) ->
-            [||pure $$(fpat)||]
+            [||Seq.singleton $$(fpat)||]
     ]
 
 rFpat :: RuleExpr (QualifiedId, Pat)

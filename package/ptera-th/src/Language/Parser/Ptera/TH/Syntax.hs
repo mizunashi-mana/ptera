@@ -81,7 +81,7 @@ semActM f = semActM_ \us -> [e|$(TH.unType <$> f us)|]
 
 semAct :: forall ctx us a. SemActArgs us
     => (HList.T (TypedActArgs us) -> TH.Q (TH.TExp a)) -> SemActM ctx us a
-semAct f = semActM_ \us -> [e|pure $(TH.unType <$> f us)|]
+semAct f = semActM_ \us -> [e|pteraTHActionPure $(TH.unType <$> f us)|]
 
 semActM' :: forall ctx us a. SemActArgs us
     => (HList.T (UntypedActArgs us) -> TH.Q TH.Exp) -> SemActM ctx us a
@@ -89,7 +89,7 @@ semActM' f = semActM_ \us -> [e|$(f do unTypeArgs @us proxy# us)|]
 
 semAct' :: forall ctx us a. SemActArgs us
     => (HList.T (UntypedActArgs us) -> TH.Q TH.Exp) -> SemActM ctx us a
-semAct' f = semActM_ \us -> [e|pure $(f do unTypeArgs @us proxy# us)|]
+semAct' f = semActM_ \us -> [e|pteraTHActionPure $(f do unTypeArgs @us proxy# us)|]
 
 semActM_ :: forall ctx us a. SemActArgs us
     => (HList.T (TypedActArgs us) -> TH.Q TH.Exp) -> SemActM ctx us a
@@ -108,7 +108,7 @@ semActM_ f = UnsafeSemActM do
 
 semAct_ :: forall ctx us a. SemActArgs us
     => (HList.T (TypedActArgs us) -> TH.Q TH.Exp) -> SemActM ctx us a
-semAct_ f = semActM_ \us -> [e|pure $(f us)|]
+semAct_ f = semActM_ \us -> [e|pteraTHActionPure $(f us)|]
 
 class SemActArgs (us :: [Type]) where
     type TypedActArgs us :: [Type]
@@ -131,7 +131,7 @@ instance SemActArgs us => SemActArgs (u ': us) where
     unsafeSemActArgs _ = do
         n <- TH.newName "pteraTHSemActArg"
         let ne = TH.unsafeTExpCoerce do pure do TH.VarE n
-        let arg = [|| pteraTHUnsafeCoerce $$(ne) ||]
+        let arg = [||pteraTHUnsafeCoerce $$(ne)||]
         (ns, args) <- unsafeSemActArgs do proxy# :: Proxy# us
         pure (n:ns, arg HList.:* args)
     unTypeArgs _ = \case

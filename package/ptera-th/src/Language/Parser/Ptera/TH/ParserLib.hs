@@ -11,6 +11,7 @@ module Language.Parser.Ptera.TH.ParserLib (
     pteraTHUnsafeCoerce,
     pteraTHUnsafeRunner,
     pteraTHAction,
+    pteraTHActionPure,
 ) where
 
 import           Language.Parser.Ptera.Prelude
@@ -82,3 +83,6 @@ pteraTHUnsafeRunner p = Runner.UnsafeRunnerM p
 
 pteraTHAction :: ([a] -> ActionTask ctx b) -> ActionM ctx
 pteraTHAction f = RunnerParser.ActionM do Unsafe.unsafeCoerce f
+
+pteraTHActionPure :: a -> ActionTask ctx a
+pteraTHActionPure x = pure x
