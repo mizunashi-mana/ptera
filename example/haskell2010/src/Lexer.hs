@@ -39,32 +39,37 @@ lexText input = go initialLctx id where
     go lctx0 acc0 =
         let istate = initialState lctx0
             lexingCtx0 = currentLexingCtx lctx0
-            posAbs0 = posAbs $ currentPosition lexingCtx0
-            txt0 = restString lexingCtx0
         in case runLexingM (tlexScan istate) lexingCtx0 of
-            (Tlex.TlexEndOfInput, _)      -> Right $ acc0 []
-            (Tlex.TlexError, lexingCtx1)  -> Left $ show (lexingCtx1, acc0 [])
+            (Tlex.TlexEndOfInput, _)      ->
+                Right $ acc0 []
+            (Tlex.TlexError, lexingCtx1)  ->
+                Left $ show (lexingCtx1, acc0 [])
             (Tlex.TlexAccepted lexingCtx1 mact, _) ->
-                let consumed = posAbs (currentPosition lexingCtx1) - posAbs0
-                    consumedString = Text.take consumed txt0
-                    (lctx1, acc1) = case mact of
-                        Left wsTok ->
-                            ( LexerContext
-                                { commentNestLevel = case wsTok of
-                                    WsTokOpenComment  -> commentNestLevel lctx0 + 1
-                                    WsTokCloseComment -> commentNestLevel lctx0 - 1
-                                    _                 -> commentNestLevel lctx0
-                                , currentLexingCtx = lexingCtx1
-                                }
-                            , acc0
-                            )
-                        Right act ->
-                            ( lctx0
-                                { currentLexingCtx = lexingCtx1
-                                }
-                            , \n -> acc0 $ act consumedString : n
-                            )
-                in go lctx1 acc1
+                goAccepted lctx0 acc0 lexingCtx0 lexingCtx1 mact
+
+    goAccepted lctx0 acc0 lexingCtx0 lexingCtx1 mact =
+        let consumed = currentPosAbs lexingCtx1 - currentPosAbs lexingCtx0
+            consumedString = Text.take consumed $ restString lexingCtx0
+            (lctx1, acc1) = case mact of
+                Left wsTok ->
+                    ( LexerContext
+                        { commentNestLevel = case wsTok of
+                            WsTokOpenComment  -> commentNestLevel lctx0 + 1
+                            WsTokCloseComment -> commentNestLevel lctx0 - 1
+                            _                 -> commentNestLevel lctx0
+                        , currentLexingCtx = lexingCtx1
+                        }
+                    , acc0
+                    )
+                Right act ->
+                    ( lctx0
+                        { currentLexingCtx = lexingCtx1
+                        }
+                    , \n -> acc0 $ act consumedString : n
+                    )
+        in go lctx1 acc1
+
+    currentPosAbs ctx = posAbs $ currentPosition ctx
 
 data Position = Position
     { posRow :: Int
