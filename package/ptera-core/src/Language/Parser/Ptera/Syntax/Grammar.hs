@@ -1,21 +1,41 @@
-module Language.Parser.Ptera.Syntax.Grammar where
+module Language.Parser.Ptera.Syntax.Grammar (
+    T,
+
+    GrammarT,
+    Context (..),
+    fixGrammarT,
+    FixedGrammar (..),
+
+    Action (..),
+    RuleExpr (..),
+    Alt (..),
+    Expr (..),
+    Unit (..),
+
+    initialT,
+    ruleT,
+) where
 
 import           Language.Parser.Ptera.Prelude
 
 import qualified Data.EnumMap.Strict           as EnumMap
 
 
-type T s n t e f = GrammarT s n t e f
+type T start nonTerminal terminal elem action =
+    GrammarT start nonTerminal terminal elem action
 
-type GrammarT s n t e f = StateT (Context s n t e f)
+type GrammarT start nonTerminal terminal elem action =
+    StateT (Context start nonTerminal terminal elem action)
 
-data Context s n t e f = Context
+data Context start nonTerminal terminal elem action = Context
     {
-        ctxStarts :: EnumMap.EnumMap s n,
-        ctxRules  :: EnumMap.EnumMap n (RuleExpr n t e f)
+        ctxStarts :: EnumMap.EnumMap start nonTerminal,
+        ctxRules  :: EnumMap.EnumMap nonTerminal (RuleExpr nonTerminal terminal elem action)
     }
 
-fixGrammarT :: Monad m => GrammarT s n t e f m () -> m (FixedGrammar s n t e f)
+fixGrammarT :: Monad m
+    => GrammarT start nonTerminal terminal elem action m ()
+    -> m (FixedGrammar start nonTerminal terminal elem action)
 fixGrammarT builder = do
         finalCtx <- execStateT builder initialCtx
         pure do fromCtx finalCtx
@@ -32,39 +52,44 @@ fixGrammarT builder = do
                 grammarRules = ctxRules ctx
             }
 
-data FixedGrammar s n t e f = FixedGrammar
+data FixedGrammar start nonTerminal terminal elem action = FixedGrammar
     {
-        grammarStarts :: EnumMap.EnumMap s n,
-        grammarRules  :: EnumMap.EnumMap n (RuleExpr n t e f)
+        grammarStarts :: EnumMap.EnumMap start nonTerminal,
+        grammarRules  :: EnumMap.EnumMap nonTerminal (RuleExpr nonTerminal terminal elem action)
     }
 
-data Action (f :: [Type] -> Type -> Type) where
-    Action :: f us r -> Action f
+data Action (action :: [Type] -> Type -> Type) where
+    Action :: action us a -> Action action
 
-data RuleExpr n t e f where
-    RuleExpr :: [Alt n t e f r] -> RuleExpr n t e f
+data RuleExpr nonTerminal terminal elem action where
+    RuleExpr :: [Alt nonTerminal terminal elem action a] -> RuleExpr nonTerminal terminal elem action
 
-data Alt n t e f r where
-    Alt :: Expr n t e us -> f us r -> Alt n t e f r
+data Alt nonTerminal terminal elem action a where
+    Alt :: Expr nonTerminal terminal elem us -> action us a
+        -> Alt nonTerminal terminal elem action a
 
-data Expr n t e us where
-    Eps :: Expr n t e '[]
-    (:^) :: Unit n t e u -> Expr n t e us -> Expr n t e (u ': us)
+data Expr nonTerminal terminal elem us where
+    Eps :: Expr nonTerminal terminal elem '[]
+    (:^) :: Unit nonTerminal terminal elem u -> Expr nonTerminal terminal elem us
+        -> Expr nonTerminal terminal elem (u ': us)
 
 infixr 5 :^
 
-data Unit n t e u where
-    UnitToken :: t -> Unit n t e e
-    UnitVar :: n -> Unit n t e u
+data Unit nonTerminal terminal elem u where
+    UnitToken :: terminal -> Unit nonTerminal terminal elem elem
+    UnitVar :: nonTerminal -> Unit nonTerminal terminal elem u
 
-initialT :: Enum s => Monad m => s -> n -> GrammarT s n t e f m ()
+initialT :: Enum start => Monad m => start -> nonTerminal
+    -> GrammarT start nonTerminal terminal elem action m ()
 initialT s v = modify' \ctx -> ctx
     {
         ctxStarts = EnumMap.insert s v
             do ctxStarts ctx
     }
 
-ruleT :: Enum n => Monad m => n -> RuleExpr n t e f -> GrammarT s n t e f m ()
+ruleT :: Enum nonTerminal => Monad m
+    => nonTerminal -> RuleExpr nonTerminal terminal elem action
+    -> GrammarT start nonTerminal terminal elem action m ()
 ruleT v e = modify' \ctx -> ctx
     {
         ctxRules = EnumMap.insert v e
