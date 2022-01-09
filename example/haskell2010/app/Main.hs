@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Data.ByteString    as ByteString
+import qualified Data.Text as Text
 import qualified Lexer
 import qualified Parser
 import qualified System.Environment as System
@@ -13,13 +13,15 @@ main = do
         [] -> do
             putStrLn "need input path"
             System.exitFailure
-        x:_ -> pure x
-    s <- ByteString.readFile f
-    toks <- case Lexer.lexByteString s of
+        x:_ ->
+            pure x
+    s <- Text.readFile f
+    toks <- case Lexer.lexText s of
         Left msg -> do
             putStrLn "error: "
             putStrLn msg
             System.exitFailure
-        Right xs -> pure xs
+        Right xs ->
+            pure xs
     print ("Token", toks)
     print ("ParseResult", Parser.parseModule toks)

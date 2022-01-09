@@ -1,8 +1,7 @@
 module Types where
 
-import           Data.ByteString       (ByteString)
-import qualified Data.ByteString       as ByteString
-import qualified Data.ByteString.Char8 as Char8
+import           Data.Text (Text)
+import qualified Data.Text as Text
 
 
 data WsToken
@@ -60,14 +59,14 @@ data Token
     | TokSymMinus
     | TokSymTilde
     | TokSymRightDoubleArrow
-    | TokQualifiedVarId [ByteString] ByteString
-    | TokQualifiedConId [ByteString] ByteString
-    | TokQualifiedVarSym [ByteString] ByteString
-    | TokQualifiedConSym [ByteString] ByteString
-    | TokLitInteger ByteString
-    | TokLitFloat ByteString
-    | TokLitChar ByteString
-    | TokLitString ByteString
+    | TokQualifiedVarId [Text] Text
+    | TokQualifiedConId [Text] Text
+    | TokQualifiedVarSym [Text] Text
+    | TokQualifiedConSym [Text] Text
+    | TokLitInteger Text
+    | TokLitFloat Text
+    | TokLitChar Text
+    | TokLitString Text
     deriving (Eq, Show)
 
 data Program = Program
@@ -238,11 +237,11 @@ data Lit
     | LitString String
     deriving (Eq, Show)
 
-newtype Id = Id ByteString
+newtype Id = Id Text
     deriving (Eq, Show)
 
 mkId :: String -> Id
-mkId s = Id (Char8.pack s)
+mkId s = Id (Text.pack s)
 
 newtype ModId = ModId [Id]
     deriving (Eq, Show)

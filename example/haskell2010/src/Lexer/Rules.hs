@@ -2,13 +2,13 @@
 
 module Lexer.Rules where
 
-import qualified Data.ByteString.Char8               as Char8
-import qualified Data.CharSet                        as CharSet
-import qualified Data.CharSet.Unicode                as UniCharSet
+import qualified Data.Text as Text
+import qualified Lexer.CodeUnit as CodeUnit
 import qualified Data.Word                           as Word
 import qualified Language.Haskell.TH                 as TH
+import qualified Data.EnumSet    as EnumSet
+import qualified Lexer.CodeUnit as CodeUnit
 import qualified Language.Lexer.Tlex                 as Tlex
-import qualified Language.Lexer.Tlex.Plugin.Encoding as TlexEnc
 import qualified Language.Lexer.Tlex.Plugin.TH       as TlexTH
 import           Types
 
@@ -17,11 +17,12 @@ data LexerState
     | NestedComment
     deriving (Eq, Show, Enum)
 
-type LexerAction = Either WsToken (Char8.ByteString -> Token)
-type LexerCodeUnit = Word.Word8
+type LexerAction = Either WsToken (Text.Text -> Token)
+type LexerCodeUnit = CodeUnit.CodeUnit
 
 type ScannerBuilder = TlexTH.THScannerBuilder LexerState LexerCodeUnit LexerAction
 type Pattern = Tlex.Pattern LexerCodeUnit
+type CharSet = EnumSet.EnumSet LexerCodeUnit
 
 initialRule :: Pattern -> TH.Q (TH.TExp LexerAction) -> ScannerBuilder ()
 initialRule = TlexTH.thLexRule [Initial]
@@ -76,7 +77,7 @@ specialRule = do
     initialRule (chP '`') [||Right $ \_ -> TokSpBacktick||]
     initialRule (chP '{') [||Right $ \_ -> TokSpOpenBrace||]
     initialRule (chP '}') [||Right $ \_ -> TokSpCloseBrace||]
-specialCs = CharSet.fromList
+specialCs = charsCs
     ['(', ')', ',', ';', '[', ']', '`', '{', '}']
 
 whitecharP = Tlex.orP
@@ -92,22 +93,31 @@ newlineP = Tlex.orP
     , lineFeedP
     , formFeedP
     ]
+newlineCs = mconcat
+    [ returnCs
+    , lineFeedCs
+    , formFeedCs
+    ]
 returnP = charSetP returnCs
-returnCs = CharSet.singleton '\r'
+returnCs = charsCs ['\r']
 lineFeedP = charSetP lineFeedCs
-lineFeedCs = CharSet.singleton '\n'
+lineFeedCs = charsCs ['\n']
 formFeedP = charSetP formFeedCs
-formFeedCs = CharSet.singleton '\f'
+formFeedCs = charsCs ['\f']
 vertabP = charSetP vertabCs
-vertabCs = CharSet.singleton '\v'
+vertabCs = charsCs ['\v']
 spaceP = charSetP spaceCs
-spaceCs = CharSet.singleton ' '
+spaceCs = charsCs [' ']
 tabP = charSetP tabCs
-tabCs = CharSet.singleton '\t'
-uniWhiteP = charSetP UniCharSet.space
+tabCs = charsCs ['\t']
+uniWhiteP = charSetP uniWhiteCs
+uniWhiteCs = mconcat
+    [ charsCs ['\x200E', '\x200F']
+    , CodeUnit.catSpaceSeparator
+    ]
 
 commentP = dashesP <> Tlex.maybeP (anyWithoutSymbolP <> Tlex.manyP anyP) <> newlineP where
-    anyWithoutSymbolP = charSetP $ anyCs `CharSet.difference` symbolCs
+    anyWithoutSymbolP = charSetP $ anyCs `csDifference` symbolCs
 dashesP = dashP <> dashP <> Tlex.manyP dashP
 dashP = chP '-'
 openComP = stringP "{-"
@@ -130,20 +140,19 @@ graphicCs = mconcat
     , symbolCs
     , digitCs
     , specialCs
-    , CharSet.singleton '"'
-    , CharSet.singleton '\''
+    , charsCs ['"', '\'']
     ]
 
 smallP = charSetP smallCs
 smallCs = mconcat
     [ ascSmallCs
     , uniSmallCs
-    , CharSet.singleton '_'
+    , charsCs ['_']
     ]
-ascSmallCs = CharSet.range 'a' 'z'
+ascSmallCs = charsCs ['a'..'z']
 uniSmallCs = mconcat
-    [ UniCharSet.lowercaseLetter
-    , UniCharSet.otherLetter
+    [ CodeUnit.catLowercaseLetter
+    , CodeUnit.catOtherLetter
     ]
 
 largeP = charSetP largeCs
@@ -152,10 +161,10 @@ largeCs = mconcat
     , uniLargeCs
     ]
 ascLargeP = charSetP ascLargeCs
-ascLargeCs = CharSet.range 'A' 'Z'
+ascLargeCs = charsCs ['A'..'Z']
 uniLargeCs = mconcat
-    [ UniCharSet.uppercaseLetter
-    , UniCharSet.titlecaseLetter
+    [ CodeUnit.catUppercaseLetter
+    , CodeUnit.catTitlecaseLetter
     ]
 
 symbolP = charSetP symbolCs
@@ -163,35 +172,33 @@ symbolCs = mconcat
     [ ascSymbolCs
     , uniSymbolCs
     ]
-    `CharSet.difference` mconcat
+    `csDifference` mconcat
         [ specialCs
-        , CharSet.singleton '_'
-        , CharSet.singleton '"'
-        , CharSet.singleton '\''
+        , charsCs ['_', '"', '\'']
         ]
-ascSymbolCs = CharSet.fromList
+ascSymbolCs = charsCs
     [ '!', '#', '$', '%', '&', '*', '+', '.', '/', '<', '=', '>'
     , '?', '@', '\\', '^', '|', '-', '~', ':'
     ]
 uniSymbolCs = mconcat
-    [ UniCharSet.symbol
-    , UniCharSet.punctuation
+    [ CodeUnit.catSymbol
+    , CodeUnit.catPunctuation
     ]
 digitP = charSetP digitCs
 digitCs = mconcat
     [ ascDigitCs
     , uniDigitCs
     ]
-ascDigitCs = CharSet.range '0' '9'
-uniDigitCs = UniCharSet.decimalNumber
+ascDigitCs = charsCs ['0'..'9']
+uniDigitCs = CodeUnit.catDecimalNumber
 
 octitP = charSetP octitCs
-octitCs = CharSet.range '0' '7'
+octitCs = charsCs ['0'..'7']
 hexitP = charSetP hexitCs
 hexitCs = mconcat
     [ digitCs
-    , CharSet.range 'A' 'F'
-    , CharSet.range 'a' 'f'
+    , charsCs ['A'..'F']
+    , charsCs ['a'..'f']
     ]
 
 varidP = smallP <> Tlex.manyP (Tlex.orP [smallP, largeP, digitP, chP '\''])
@@ -222,7 +229,7 @@ reservedIdRule = do
     initialRule (stringP "_")           [||Right $ \_ -> TokKwUnderscore||]
 
 varsymP = symbolWithoutColonP <> Tlex.manyP symbolP where
-    symbolWithoutColonP = charSetP (symbolCs `CharSet.difference` CharSet.singleton ':')
+    symbolWithoutColonP = charSetP (symbolCs `csDifference` charsCs [':'])
 consymP = chP ':' <> Tlex.manyP symbolP
 reservedOpRule = do
     initialRule (stringP "..")      [||Right $ \_ -> TokSymDots||]
@@ -250,12 +257,12 @@ qualifiedIdentifierRule = do
     where
         qualifiedIdBuilder n = [||
             \bs ->
-                let (q', v') = Char8.spanEnd (== '.') bs
-                    (q, v) = if Char8.null v'
+                let (q', v') = Text.breakOnEnd (Text.pack ".") bs
+                    (q, v) = if Text.null v'
                         then ([], q')
                         else
-                            let qWithoutComma = Char8.take (Char8.length q' - 1) q' in
-                            ( Char8.split '.' qWithoutComma
+                            let qWithoutComma = Text.take (Text.length q' - 1) q' in
+                            ( Text.split (== '.') qWithoutComma
                             , v'
                             )
                 in $$(n) q v
@@ -282,10 +289,10 @@ exponentP = charsP ['e', 'E'] <> Tlex.maybeP (charsP ['+', '-']) <> decimalP
 
 litCharP = chP '\'' <> Tlex.orP [graphicWithoutSpP, spaceP, charEscapeP] <> chP '\'' where
     graphicWithoutSpP = charSetP
-        $ graphicCs `CharSet.difference` CharSet.fromList ['\'', '\\']
+        $ graphicCs `csDifference` charsCs ['\'', '\\']
 litStringP = chP '"' <> Tlex.manyP (Tlex.orP [graphicWithoutSpP, spaceP, escapeP, gapP]) <> chP '"' where
     graphicWithoutSpP = charSetP
-        $ graphicCs `CharSet.difference` CharSet.fromList ['"', '\\']
+        $ graphicCs `csDifference` charsCs ['"', '\\']
 charEscapeP = escapeBaseP charescWithoutAmpP
 escapeP = escapeBaseP charescP
 escapeBaseP p = chP '\\' <> Tlex.orP
@@ -347,14 +354,29 @@ cntrlP = Tlex.orP
 gapP = chP '\\' <> Tlex.someP whitecharP <> chP '\\'
 
 
-charSetP :: CharSet.CharSet -> Pattern
-charSetP cs = TlexEnc.charSetP TlexEnc.charSetPUtf8 cs
+charsCs :: [Char] -> CharSet
+charsCs cs = EnumSet.fromList
+    [ e
+    | c <- cs
+    , let e = case CodeUnit.fromCharPoint c of
+            Just x  -> x
+            Nothing -> error $ "Unsupported char: " <> show c
+    ]
+
+csDifference :: CharSet -> CharSet -> CharSet
+csDifference = EnumSet.difference
+
+charSetP :: CharSet -> Pattern
+charSetP = Tlex.straightEnumSetP
 
 chP :: Char -> Pattern
-chP c = TlexEnc.chP TlexEnc.charSetPUtf8 c
+chP c = charSetP $ charsCs [c]
 
 charsP :: [Char] -> Pattern
-charsP cs = TlexEnc.charsP TlexEnc.charSetPUtf8 cs
+charsP cs = charSetP $ charsCs cs
 
 stringP :: String -> Pattern
-stringP s = TlexEnc.stringP TlexEnc.charSetPUtf8 s
+stringP s = foldMap chP s
+
+stringsP :: [String] -> Pattern
+stringsP ss = Tlex.orP [stringP s | s <- ss]

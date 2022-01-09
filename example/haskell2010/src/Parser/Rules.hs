@@ -15,8 +15,7 @@
 
 module Parser.Rules where
 
-import           Data.ByteString                  (ByteString)
-import qualified Data.ByteString.Char8            as Char8
+import qualified Data.Text as Text
 import           Data.Coerce
 import           Data.Foldable
 import           Data.Proxy                       (Proxy (..))
@@ -1331,15 +1330,15 @@ rCallConv = ruleExpr
     [ alt $ varA @"varid"
         <:> semActM \(varid :* HNil) ->
             [||case $$(varid) of
-                Id bs | bs == Char8.pack "ccall" ->
+                Id txt | txt == Text.pack "ccall" ->
                     pure ForeignCallCcall
-                Id bs | bs == Char8.pack "stdcall" ->
+                Id txt | txt == Text.pack "stdcall" ->
                     pure ForeignCallStdcall
-                Id bs | bs == Char8.pack "cplusplus" ->
+                Id txt | txt == Text.pack "cplusplus" ->
                     pure ForeignCallCplusplus
-                Id bs | bs == Char8.pack "jvm" ->
+                Id txt | txt == Text.pack "jvm" ->
                     pure ForeignCallJvm
-                Id bs | bs == Char8.pack "dotnet" ->
+                Id txt | txt == Text.pack "dotnet" ->
                     pure ForeignCallDotnet
                 _ ->
                     failAction
@@ -1381,9 +1380,9 @@ rSafety = ruleExpr
     [ alt $ varA @"varid"
         <:> semActM \(varid :* HNil) ->
             [||case $$(varid) of
-                Id bs | bs == Char8.pack "safe" ->
+                Id txt | txt == Text.pack "safe" ->
                     pure Safe
-                Id bs | bs == Char8.pack "unsafe" ->
+                Id txt | txt == Text.pack "unsafe" ->
                     pure Unsafe
                 _ ->
                     failAction
@@ -2195,7 +2194,7 @@ rSymExclamation = ruleExpr
     [ alt $ varA @"varsym"
         <:> semActM \(varsym :* HNil) ->
             [||case $$(varsym) of
-                Id bs | bs == Char8.pack "!" ->
+                Id txt | txt == Text.pack "!" ->
                     pure ()
                 _ ->
                     failAction
@@ -2223,8 +2222,8 @@ rInteger = ruleExpr
     [ alt $ tokA @"integer"
         <::> semAct \(_ :* integer :* HNil) ->
             [||case $$(integer) of
-                TokLitInteger bs ->
-                    read (Char8.unpack bs) :: Integer
+                TokLitInteger txt ->
+                    read (Text.unpack txt) :: Integer
                 _ ->
                     error "unreachable: expect integer literal"
             ||]
@@ -2235,8 +2234,8 @@ rFloat = ruleExpr
     [ alt $ tokA @"float"
         <::> semAct \(_ :* float :* HNil) ->
             [||case $$(float) of
-                TokLitFloat bs ->
-                    case Numeric.readFloat (Char8.unpack bs) :: [(Rational, String)] of
+                TokLitFloat txt ->
+                    case Numeric.readFloat (Text.unpack txt) :: [(Rational, String)] of
                         (x, ""):_ ->
                             x
                         [] ->
@@ -2251,8 +2250,8 @@ rString = ruleExpr
     [ alt $ tokA @"string"
         <::> semAct \(_ :* string :* HNil) ->
             [||case $$(string) of
-                TokLitString bs ->
-                    read (Char8.unpack bs) :: String
+                TokLitString txt ->
+                    read (Text.unpack txt) :: String
                 _ ->
                     error "unreachable: expect string literal"
             ||]
@@ -2263,8 +2262,8 @@ rChar = ruleExpr
     [ alt $ tokA @"char"
         <::> semAct \(_ :* char :* HNil) ->
             [||case $$(char) of
-                TokLitChar bs ->
-                    read (Char8.unpack bs) :: Char
+                TokLitChar txt ->
+                    read (Text.unpack txt) :: Char
                 _ ->
                     error "unreachable: expect char literal"
             ||]
@@ -2398,7 +2397,7 @@ altId :: String -> Alt ()
 altId idName = alt $ varA @"varid"
     <:> semActM \(varid :* HNil) ->
         [||case $$(varid) of
-            Id bs | bs == Char8.pack idName ->
+            Id bs | bs == Text.pack idName ->
                 pure ()
             _ ->
                 failAction

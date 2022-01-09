@@ -24,6 +24,7 @@ library
     exposed-modules:
         Types
         Lexer
+        Lexer.CodeUnit
         Lexer.Rules
         Parser
         Parser.Rules
@@ -34,13 +35,14 @@ library
         ptera-th,
         ptera,
         ptera-core,
-        bytestring,
         tlex,
-        tlex-encoding,
         tlex-th,
+        text,
+        enummapset-th,
         membership,
         charset,
         containers,
+        transformers,
         template-haskell,
 
 test-suite spec
@@ -57,8 +59,9 @@ test-suite spec
         hspec-discover:hspec-discover,
     build-depends:
         base,
-        small-lang,
-        bytestring,
+        example-haskell2010,
+        charset,
+        enummapset-th,
 
         hspec,
         QuickCheck,
