@@ -1,4 +1,14 @@
-module Language.Parser.Ptera.Runner.RunT where
+module Language.Parser.Ptera.Runner.RunT (
+    T,
+
+    RunT (..),
+    runT,
+
+    Result (..),
+    Context (..),
+    initialContext,
+    Position (..),
+) where
 
 import           Language.Parser.Ptera.Prelude
 
@@ -107,6 +117,9 @@ transByInput tok = go where
         parser <- getCtx ctxParser
         sn0 <- getCtx ctxState
         let trans1 = Parser.parserTrans parser sn0 tok
+        {-debugTrace
+            do show (sn0, tok) ++ " -> " ++ show (Parser.transState trans1)
+            do pure ()-}
         setNextState do Parser.transState trans1
         let ops = Parser.transOps trans1
         goTransOps ops

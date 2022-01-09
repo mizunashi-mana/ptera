@@ -9,6 +9,8 @@ import qualified Language.Lexer.Tlex as Tlex
 import qualified Lexer.Rules         as LexerRules
 import           Types
 
+import qualified Debug.Trace as Debug
+
 
 $(LexerRules.buildLexer)
 
@@ -51,6 +53,8 @@ lexByteString input = go initialLctx id where
                             )
                         Right act ->
                             ( lctx0
+                                { restString = Tlex.inputStringCtxRest ctx
+                                }
                             , \n -> acc0 $ act consumedString : n
                             )
                 in go lctx1 acc1

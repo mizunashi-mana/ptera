@@ -250,9 +250,15 @@ qualifiedIdentifierRule = do
     where
         qualifiedIdBuilder n = [||
             \bs ->
-                let (q', v) = Char8.spanEnd (== '.') bs
-                    q = Char8.take (Char8.length q' - 1) q'
-                in $$(n) (Char8.split '.' q) v
+                let (q', v') = Char8.spanEnd (== '.') bs
+                    (q, v) = if Char8.null v'
+                        then ([], q')
+                        else
+                            let qWithoutComma = Char8.take (Char8.length q' - 1) q' in
+                            ( Char8.split '.' qWithoutComma
+                            , v'
+                            )
+                in $$(n) q v
             ||]
 
 decimalP = Tlex.someP digitP
