@@ -5,13 +5,13 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels      #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
 
 module Parser.Rules where
 
@@ -22,16 +22,19 @@ import           Data.Foldable
 import           Data.Proxy                       (Proxy (..))
 import           Data.Sequence                    (Seq)
 import qualified Data.Sequence                    as Seq
+import           GHC.TypeLits                     (Symbol)
 import qualified Language.Haskell.TH              as TH
 import           Language.Parser.Ptera.Data.HEnum (henumA)
 import           Language.Parser.Ptera.Data.HList (HList (..))
-import           Language.Parser.Ptera.TH         (ruleExpr, alt, eps, varA, semAct, semActM, (<^>), (<:>), getAction, modifyAction, failAction)
+import           Language.Parser.Ptera.TH         (alt, eps, failAction,
+                                                   getAction, modifyAction,
+                                                   ruleExpr, semAct, semActM,
+                                                   varA, (<:>), (<^>))
 import qualified Language.Parser.Ptera.TH         as Ptera
 import qualified Numeric
+import qualified Type.Membership                  as Membership
+import qualified Type.Membership.Internal         as MembershipInternal
 import           Types
-import qualified Type.Membership as Membership
-import qualified Type.Membership.Internal as MembershipInternal
-import           GHC.TypeLits (Symbol)
 
 
 $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
