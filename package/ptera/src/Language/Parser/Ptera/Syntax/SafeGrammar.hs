@@ -6,8 +6,10 @@ module Language.Parser.Ptera.Syntax.SafeGrammar (
     T,
 
     Grammar (..),
+    TokensTag,
     RulesTag,
     RuleExprType,
+    GrammarToken (..),
     fixGrammar,
 
     StartPoint,
@@ -30,6 +32,7 @@ module Language.Parser.Ptera.Syntax.SafeGrammar (
     var,
     varA,
     tok,
+    TokensMember (..),
     tokA,
 ) where
 
@@ -44,15 +47,19 @@ import qualified Type.Membership.Internal             as MembershipInternal
 
 type T = Grammar
 
-type Grammar :: ([Type] -> Type -> Type) -> Type -> [t] -> Type -> [n] -> Type
+type Grammar :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> [Symbol] -> Type
 newtype Grammar action rules tokens elem initials = UnsafeGrammar
     {
         unsafeGrammar ::
             SyntaxGrammar.FixedGrammar StartPoint NonTerminal Terminal elem action
     }
 
+type family TokensTag (tokens :: Type) :: [Symbol]
 type family RulesTag (rules :: Type) :: [Symbol]
 type family RuleExprType (rules :: Type) :: Type -> Type
+
+class GrammarToken tokens elem where
+    tokenToTerminal :: Proxy tokens -> elem -> HEnum.T (TokensTag tokens)
 
 class (KnownSymbol v, HasField v rules ((RuleExprType rules) (RuleExprReturnType rules v))) =>
         HasRuleExprField rules v where
@@ -178,25 +185,25 @@ genRulesTagMap _ = Membership.henumerateFor
             do Membership.getMemberId member
             do m
 
-type RuleExpr :: ([Type] -> Type -> Type) -> Type -> [t] -> Type -> Type -> Type
+type RuleExpr :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> Type -> Type
 newtype RuleExpr action rules tokens elem a = UnsafeRuleExpr
     {
         unsafeRuleExpr :: [SyntaxGrammar.Alt IntermNonTerminal Terminal elem action a]
     }
 
-type Alt :: ([Type] -> Type -> Type) -> Type -> [t] -> Type -> Type -> Type
+type Alt :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> Type -> Type
 newtype Alt action rules tokens elem a = UnsafeAlt
     {
         unsafeAlt :: SyntaxGrammar.Alt IntermNonTerminal Terminal elem action a
     }
 
-type Expr :: Type -> [t] -> Type -> [Type] -> Type
+type Expr :: Type -> Type -> Type -> [Type] -> Type
 newtype Expr rules tokens elem us = UnsafeExpr
     {
         unsafeExpr :: SyntaxGrammar.Expr IntermNonTerminal Terminal elem us
     }
 
-type Unit :: Type -> [t] -> Type -> Type -> Type
+type Unit :: Type -> Type -> Type -> Type -> Type
 newtype Unit rules tokens elem u = UnsafeUnit
     {
         unsafeUnit :: SyntaxGrammar.Unit IntermNonTerminal Terminal elem u
@@ -231,11 +238,16 @@ varA :: forall v rules tokens elem a.
     HasRuleExprField rules v => Unit rules tokens elem a
 varA = var do Proxy @v
 
-tok :: Membership.Membership tokens t -> Unit rules tokens elem elem
+tok :: Membership.Membership (TokensTag tokens) t -> Unit rules tokens elem elem
 tok p = UnsafeUnit
     do SyntaxGrammar.UnitToken
         do HEnum.unsafeHEnum do HEnum.henum p
 
+class Membership.Member (TokensTag tokens) t => TokensMember tokens t where
+    tokensMembership :: Proxy# '(tokens, t)
+        -> Membership.Membership (TokensTag tokens) t
+    tokensMembership _ = MembershipInternal.membership
+
 tokA :: forall t rules tokens elem.
-    Membership.Member tokens t => Unit rules tokens elem elem
-tokA = tok do MembershipInternal.membership @tokens @t
+    TokensMember tokens t => Unit rules tokens elem elem
+tokA = tok do tokensMembership do proxy# @'(tokens, t)

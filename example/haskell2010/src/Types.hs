@@ -69,6 +69,13 @@ data Token
     | TokLitString Text
     deriving (Eq, Show)
 
+data Location = Location
+    { locRow :: Int
+    , locCol :: Int
+    , locAbs :: Int
+    }
+    deriving (Eq, Show)
+
 data Program = Program
     {
         moduleId :: Maybe QualifiedId,

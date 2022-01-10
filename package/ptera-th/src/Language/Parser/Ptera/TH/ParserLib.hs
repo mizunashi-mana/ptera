@@ -27,19 +27,19 @@ import qualified Language.Parser.Ptera.Runner              as Runner
 import           Language.Parser.Ptera.Runner.Parser       (ActionM, ActionTask,
                                                             AltKind (..),
                                                             RunnerParser (..),
+                                                            GrammarToken (..),
                                                             Trans (..),
                                                             TransOp (..),
                                                             failAction,
                                                             getAction,
                                                             modifyAction)
 import qualified Language.Parser.Ptera.Runner.Parser       as RunnerParser
-import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
 import qualified Unsafe.Coerce                             as Unsafe
 
 type Parser = Runner.T
 
-pteraTHTokenToTerminal :: GrammarToken.GrammarToken elem tokens => Proxy tokens -> elem -> Int
-pteraTHTokenToTerminal p t = HEnum.unsafeHEnum do GrammarToken.tokenToTerminal p t
+pteraTHTokenToTerminal :: GrammarToken tokens elem => Proxy tokens -> elem -> Int
+pteraTHTokenToTerminal p t = HEnum.unsafeHEnum do tokenToTerminal p t
 
 pteraTHArrayIndex :: Array.Array Int e -> Int -> e
 pteraTHArrayIndex arr i = arr Array.! i

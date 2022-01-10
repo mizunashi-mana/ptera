@@ -29,7 +29,7 @@ import           Language.Parser.Ptera.TH.Util                       (GenRulesTy
 import qualified Type.Membership                                     as Membership
 
 genRunner :: forall initials rules tokens ctx elem
-    .  GrammarToken elem tokens => Membership.Generate tokens
+    .  GrammarToken tokens elem => Membership.Generate (TokensTag tokens)
     => GenParam -> GrammarM ctx rules tokens elem initials -> TH.Q [TH.Dec]
 genRunner param g = case mdecs of
         Nothing ->

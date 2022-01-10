@@ -26,6 +26,15 @@ grammar = fixGrammar $ Rules
     , rvalue = rValue
     }
 
+data Tokens
+type instance TokensTag Tokens =
+    '[
+        "+", "*",
+        "(", ")",
+        "int",
+        "id"
+    ]
+
 type ParsePoints = '[ "expr" ]
 data Rules = Rules
     { rexpr    :: RuleExpr Ast
@@ -41,6 +50,13 @@ type instance RulesTag Rules =
     , "product"
     , "value"
     ]
+
+instance TokensMember Tokens "+"
+instance TokensMember Tokens "*"
+instance TokensMember Tokens "("
+instance TokensMember Tokens ")"
+instance TokensMember Tokens "int"
+instance TokensMember Tokens "id"
 
 instance HasField "expr" Rules (RuleExpr Ast) where
     getField = rexpr
@@ -66,17 +82,10 @@ instance HasRuleExprField Rules "product" where
 instance HasRuleExprField Rules "value" where
     type RuleExprReturnType Rules "value" = Ast
 
-type Tokens =
-    '[
-        "+", "*",
-        "(", ")",
-        "int",
-        "id"
-    ]
 type RuleExpr = Ptera.RuleExpr Rules Tokens Token
 type instance RuleExprType Rules = RuleExpr
 
-instance GrammarToken Token Tokens where
+instance GrammarToken Tokens Token where
     tokenToTerminal Proxy token = case token of
         TokPlus{}       -> henumA @"+"
         TokMulti{}      -> henumA @"*"

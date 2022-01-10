@@ -13,22 +13,41 @@ import           Prelude                         (String)
 import qualified Language.Haskell.TH             as TH
 
 genGrammarToken :: TH.Name -> TH.Q TH.Type -> [(String, TH.Q TH.Pat)] -> TH.Q [TH.Dec]
-genGrammarToken tyName tokenTy tokens = sequence [tokensTyD, grammarTokenInstanceD]
+genGrammarToken tyName tokenTy tokens = do
+    grammarTokenInstD <- grammarTokenInstDQ
+    tokensTagInstD <- tokensTagInstDQ
+    tokensMemberInstDs <- tokensMemberInstDsQ
+    pure do [tokensTyD, grammarTokenInstD, tokensTagInstD] ++ tokensMemberInstDs
     where
-        tokensTyD = TH.TySynD tyName [] <$> foldr
-            do \(tokenName, _) ty -> do
-                let tokenLitTy = TH.LitT do TH.StrTyLit tokenName
-                [t|$(pure tokenLitTy) ': $(ty)|]
-            do [t|'[]|]
-            do tokens
+        tokensTyD = TH.DataD [] tyName [] Nothing [] []
 
-        grammarTokenInstanceD = TH.InstanceD Nothing []
-            <$> [t|GrammarToken $(tokenTy) $(pure do TH.ConT tyName)|]
+        grammarTokenInstDQ = TH.InstanceD Nothing []
+            <$> [t|GrammarToken $(pure do TH.ConT tyName) $(tokenTy)|]
             <*> sequence
                 [ TH.FunD
                     do TH.mkName "tokenToTerminal"
                     <$> sequence [tokenToTerminalClause]
                 ]
+
+        tokensTagInstDQ = TH.TySynInstD
+            <$> do
+                TH.TySynEqn Nothing
+                    <$> [t|TokensTag $(tokensTy)|]
+                    <*> foldr
+                        do \(tokenName, _) ty -> do
+                            let tokenLitTy = TH.LitT do TH.StrTyLit tokenName
+                            [t|$(pure tokenLitTy) ': $(ty)|]
+                        do [t|'[]|]
+                        do tokens
+
+        tokensMemberInstDsQ = foldr
+            do \(tokenName, _) mds2 -> do
+                let tokenLitTy = TH.LitT do TH.StrTyLit tokenName
+                ds1 <- [d|instance TokensMember $(tokensTy) $(pure tokenLitTy)|]
+                ds2 <- mds2
+                pure do ds1 ++ ds2
+            do pure []
+            do tokens
 
         tokenToTerminalClause = do
             paramTokenName <- TH.newName "token"
@@ -47,6 +66,8 @@ genGrammarToken tyName tokenTy tokens = sequence [tokensTyD, grammarTokenInstanc
                             do tokens
                 <*> pure []
 
+        tokensTy = pure do TH.ConT tyName
+
 data GenRulesTypes = GenRulesTypes
     { genRulesCtxTy    :: TH.Q TH.Type
     , genRulesTokensTy :: TH.Q TH.Type
@@ -55,7 +76,7 @@ data GenRulesTypes = GenRulesTypes
 
 genRules :: TH.Name -> GenRulesTypes -> [(TH.Name, String, TH.Q TH.Type)] -> TH.Q [TH.Dec]
 genRules rulesTyName genRulesTypes ruleDefs = do
-        ds1 <- sequence [ rulesTyD, rulesTagTyD, ruleExprTypeTyD ]
+        ds1 <- sequence [ rulesTyD, rulesTagInstD, ruleExprTypeTyD ]
         ds2 <- hasFieldDs
         pure do ds1 ++ ds2
     where
@@ -66,7 +87,7 @@ genRules rulesTyName genRulesTypes ruleDefs = do
                 ]
             <*> pure []
 
-        rulesTagTyD = TH.TySynInstD
+        rulesTagInstD = TH.TySynInstD
             <$> do
                 TH.TySynEqn Nothing
                     <$> [t|RulesTag $(rulesTy)|]

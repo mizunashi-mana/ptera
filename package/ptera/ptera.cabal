@@ -120,7 +120,6 @@ library
 
         Language.Parser.Ptera.Syntax
         Language.Parser.Ptera.Syntax.SafeGrammar
-        Language.Parser.Ptera.Syntax.GrammarToken
         Language.Parser.Ptera.Scanner
         Language.Parser.Ptera.Runner
         Language.Parser.Ptera.Runner.Parser

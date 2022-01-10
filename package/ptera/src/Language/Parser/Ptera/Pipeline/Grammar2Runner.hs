@@ -7,8 +7,8 @@ import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB as SafeGrammar2S
 import qualified Language.Parser.Ptera.Runner                   as Runner
 import qualified Language.Parser.Ptera.Syntax                   as Syntax
 
-grammar2Runner :: forall initials ctx rules tokens elem.
-    Syntax.GrammarToken elem tokens
+grammar2Runner :: forall initials ctx rules tokens elem
+    .  Syntax.GrammarToken tokens elem
     => Syntax.GrammarM ctx rules tokens elem initials
     -> Maybe (Runner.T ctx rules elem initials)
 grammar2Runner g = do

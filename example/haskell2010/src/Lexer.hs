@@ -10,6 +10,7 @@ import qualified Lexer.CodeUnit as CodeUnit
 import qualified GHC.Word            as Word
 import qualified Language.Lexer.Tlex as Tlex
 import qualified Lexer.Rules         as LexerRules
+import qualified Lexer.PreprocessLayout as PreprocessLayout
 import           Types
 import qualified Control.Monad.Trans.State.Strict as StateT
 import qualified Data.EnumSet    as EnumSet
@@ -18,16 +19,16 @@ import qualified Data.EnumSet    as EnumSet
 $(LexerRules.buildLexer)
 
 lexText :: Text.Text -> Either String [Token]
-lexText input = go initialLctx id where
+lexText input = PreprocessLayout.preprocessLayout <$> go initialLctx [] where
     initialLctx = LexerContext
         { commentNestLevel = 0
         , currentLexingCtx = LexingContext
-            { currentPosition = Position
-                { posRow = 0
-                , posCol = 0
-                , posAbs = 0
+            { currentLocation = Location
+                { locRow = 0
+                , locCol = 0
+                , locAbs = 0
                 }
-            , currentPosCtx = PosCtxNext
+            , currentLocCtx = LocCtxNext
             , restString = input
             }
         }
@@ -41,14 +42,14 @@ lexText input = go initialLctx id where
             lexingCtx0 = currentLexingCtx lctx0
         in case runLexingM (tlexScan istate) lexingCtx0 of
             (Tlex.TlexEndOfInput, _)      ->
-                Right $ acc0 []
+                Right $ reverse acc0
             (Tlex.TlexError, lexingCtx1)  ->
-                Left $ show (lexingCtx1, acc0 [])
+                Left $ show (lexingCtx1, reverse acc0)
             (Tlex.TlexAccepted lexingCtx1 mact, _) ->
                 goAccepted lctx0 acc0 lexingCtx0 lexingCtx1 mact
 
     goAccepted lctx0 acc0 lexingCtx0 lexingCtx1 mact =
-        let consumed = currentPosAbs lexingCtx1 - currentPosAbs lexingCtx0
+        let consumed = currentLocAbs lexingCtx1 - currentLocAbs lexingCtx0
             consumedString = Text.take consumed $ restString lexingCtx0
             (lctx1, acc1) = case mact of
                 Left wsTok ->
@@ -65,18 +66,11 @@ lexText input = go initialLctx id where
                     ( lctx0
                         { currentLexingCtx = lexingCtx1
                         }
-                    , \n -> acc0 $ act consumedString : n
+                    , (currentLocation lexingCtx0, act consumedString):acc0
                     )
         in go lctx1 acc1
 
-    currentPosAbs ctx = posAbs $ currentPosition ctx
-
-data Position = Position
-    { posRow :: Int
-    , posCol :: Int
-    , posAbs :: Int
-    }
-    deriving (Eq, Show)
+    currentLocAbs ctx = locAbs $ currentLocation ctx
 
 data LexerContext = LexerContext
     { commentNestLevel :: Int
@@ -85,15 +79,15 @@ data LexerContext = LexerContext
     deriving (Eq, Show)
 
 data LexingContext = LexingContext
-    { currentPosition :: Position
-    , currentPosCtx :: PositionContext
+    { currentLocation :: Location
+    , currentLocCtx :: LocationContext
     , restString :: Text.Text
     }
     deriving (Eq, Show)
 
-data PositionContext
-    = PosCtxNext
-    | PosCtxReturn
+data LocationContext
+    = LocCtxNext
+    | LocCtxReturn
     deriving (Eq, Show)
 
 newtype LexingM a = LexingM
@@ -117,46 +111,46 @@ instance Tlex.TlexContext LexingContext CodeUnit.CodeUnit LexingM where
                 pure $ Just cu
         where
             nextLexingCtx ctx cu txt
-                | EnumSet.member cu LexerRules.newlineCs = case currentPosCtx ctx of
-                    PosCtxNext -> LexingContext
-                        { currentPosition = newlinePosition $ currentPosition ctx
-                        , currentPosCtx = nextPosCtx cu
+                | EnumSet.member cu LexerRules.newlineCs = case currentLocCtx ctx of
+                    LocCtxNext -> LexingContext
+                        { currentLocation = newlineLoc $ currentLocation ctx
+                        , currentLocCtx = nextLocCtx cu
                         , restString = txt
                         }
-                    PosCtxReturn -> LexingContext
-                        { currentPosition = if EnumSet.member cu LexerRules.lineFeedCs
-                            then crlfPosition $ currentPosition ctx
-                            else newlinePosition $ currentPosition ctx
-                        , currentPosCtx = nextPosCtx cu
+                    LocCtxReturn -> LexingContext
+                        { currentLocation = if EnumSet.member cu LexerRules.lineFeedCs
+                            then crlfLoc $ currentLocation ctx
+                            else newlineLoc $ currentLocation ctx
+                        , currentLocCtx = nextLocCtx cu
                         , restString = txt
                         }
                 | otherwise = LexingContext
-                    { currentPosition = nextColPosition $ currentPosition ctx
-                    , currentPosCtx = PosCtxNext
+                    { currentLocation = nextColLoc $ currentLocation ctx
+                    , currentLocCtx = LocCtxNext
                     , restString = txt
                     }
 
-            nextColPosition pos = pos
-                { posCol = posCol pos + 1
-                , posAbs = posAbs pos + 1
+            nextColLoc loc = loc
+                { locCol = locCol loc + 1
+                , locAbs = locAbs loc + 1
                 }
 
-            newlinePosition pos = Position
-                { posRow = posRow pos + 1
-                , posCol = 0
-                , posAbs = posAbs pos + 1
+            newlineLoc loc = Location
+                { locRow = locRow loc + 1
+                , locCol = 0
+                , locAbs = locAbs loc + 1
                 }
 
-            crlfPosition pos = Position
-                { posRow = posRow pos
-                , posCol = 0
-                , posAbs = posAbs pos + 1
+            crlfLoc loc = Location
+                { locRow = locRow loc
+                , locCol = 0
+                , locAbs = locAbs loc + 1
                 }
 
-            nextPosCtx cu
+            nextLocCtx cu
                 | EnumSet.member cu LexerRules.returnCs =
-                    PosCtxReturn
+                    LocCtxReturn
                 | otherwise =
-                    PosCtxNext
+                    LocCtxNext
 
     tlexGetMark = LexingM StateT.get

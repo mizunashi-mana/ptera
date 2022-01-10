@@ -9,6 +9,7 @@ module Language.Parser.Ptera.Runner.Parser (
     AltKind (..),
 
     RunnerParser (..),
+    Syntax.GrammarToken (..),
     ActionM (..),
     Syntax.ActionTask (..),
     Syntax.getAction,

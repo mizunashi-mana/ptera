@@ -12,7 +12,7 @@ import qualified Type.Membership                                 as Membership
 
 grammar2ParserDec
     :: forall initials rules tokens ctx elem
-    .  Syntax.GrammarToken elem tokens => Membership.Generate tokens
+    .  Syntax.GrammarToken tokens elem => Membership.Generate (Syntax.TokensTag tokens)
     => PipelineParam -> Syntax.GrammarM ctx rules tokens elem initials -> Maybe (TH.Q [TH.Dec])
 grammar2ParserDec param g = do
     srb <- SafeGrammar2SRB.safeGrammar2Srb g
@@ -25,7 +25,7 @@ grammar2ParserDec param g = do
                     tokensTy = tokensTy param,
                     tokenTy = tokenTy param,
                     customCtxTy = customCtxTy param,
-                    tokenBounds = (0, Membership.hcount do Proxy @tokens)
+                    tokenBounds = (0, Membership.hcount do Proxy @(Syntax.TokensTag tokens))
                 }
             do srb
 

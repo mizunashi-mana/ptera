@@ -25,7 +25,7 @@ import           GHC.TypeLits                     (Symbol)
 import qualified Language.Haskell.TH              as TH
 import           Language.Parser.Ptera.Data.HEnum (henumA)
 import           Language.Parser.Ptera.Data.HList (HList (..))
-import           Language.Parser.Ptera.TH         (alt, eps, failAction,
+import           Language.Parser.Ptera.TH         (TokensTag, alt, eps, failAction,
                                                    getAction, modifyAction,
                                                    ruleExpr, semAct, semActM,
                                                    varA, (<:>), (<^>))
@@ -2373,23 +2373,21 @@ rSkip = ruleExpr
             [||()||]
     ]
 
-newtype TokWithL t = TokWithL
-    { unTokWithL :: Membership.Membership Tokens t
-    }
+data TokWithL (t :: Symbol) = TokWithL
 
-tokA :: forall t. Membership.Member Tokens t => TokWithL t
-tokA = TokWithL $ MembershipInternal.membership @Tokens @t
+tokA :: TokWithL t
+tokA = TokWithL
 
-(<^^>) :: forall t us1 us2 a
-    .  TokWithL t -> (Expr us1, SemAct us2 a)
+(<^^>) :: forall t us1 us2 a. Ptera.TokensMember Tokens t
+    => TokWithL t -> (Expr us1, SemAct us2 a)
     -> (Expr (() ': Token ': us1), SemAct us2 a)
-TokWithL m <^^> eact = varA @"skip" <^> Ptera.tok m <^> eact
+TokWithL <^^> eact = varA @"skip" <^> Ptera.tokA @t <^> eact
 
 infixr 5 <^^>
 
-(<::>) :: forall t us2 a.
-    TokWithL t -> SemAct us2 a -> (Expr '[(), Token], SemAct us2 a)
-TokWithL m <::> act = varA @"skip" <^> Ptera.tok m <:> act
+(<::>) :: forall t us2 a. Ptera.TokensMember Tokens t
+    => TokWithL t -> SemAct us2 a -> (Expr '[(), Token], SemAct us2 a)
+TokWithL <::> act = varA @"skip" <^> Ptera.tokA @t <:> act
 
 infixr 5 <::>
 

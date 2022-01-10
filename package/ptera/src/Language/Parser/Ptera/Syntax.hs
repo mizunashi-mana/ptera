@@ -3,6 +3,7 @@ module Language.Parser.Ptera.Syntax (
 
     HasField (..),
     SafeGrammar.HasRuleExprField (..),
+    SafeGrammar.TokensTag,
     SafeGrammar.RulesTag,
     SafeGrammar.RuleExprType,
 
@@ -13,7 +14,7 @@ module Language.Parser.Ptera.Syntax (
     AltM,
     SafeGrammar.Expr,
     SafeGrammar.Unit,
-    GrammarToken.GrammarToken (..),
+    SafeGrammar.GrammarToken (..),
     SemActM (..),
     ActionTask (..),
     ActionTaskResult (..),
@@ -36,13 +37,13 @@ module Language.Parser.Ptera.Syntax (
     SafeGrammar.var,
     SafeGrammar.varA,
     SafeGrammar.tok,
+    SafeGrammar.TokensMember (..),
     SafeGrammar.tokA,
 ) where
 
 import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Parser.Ptera.Data.HList          as HList
-import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar  as SafeGrammar
 
 

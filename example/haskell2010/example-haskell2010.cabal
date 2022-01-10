@@ -14,7 +14,7 @@ executable haskell2010-exe
     build-depends:
         base,
         example-haskell2010,
-        bytestring,
+        text,
 
 library
     default-language: Haskell2010
@@ -26,6 +26,7 @@ library
         Lexer
         Lexer.CodeUnit
         Lexer.Rules
+        Lexer.PreprocessLayout
         Parser
         Parser.Rules
         --Parser.Debug

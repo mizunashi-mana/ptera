@@ -5,6 +5,7 @@ module Language.Parser.Ptera.TH.Syntax (
 
     HasField (..),
     SafeGrammar.HasRuleExprField (..),
+    SafeGrammar.TokensTag,
     SafeGrammar.RulesTag,
     SafeGrammar.RuleExprType,
 
@@ -15,7 +16,7 @@ module Language.Parser.Ptera.TH.Syntax (
     AltM,
     SafeGrammar.Expr,
     SafeGrammar.Unit,
-    GrammarToken.GrammarToken (..),
+    SafeGrammar.GrammarToken (..),
     SemActM (..),
     semActM,
     semActM',
@@ -43,6 +44,7 @@ module Language.Parser.Ptera.TH.Syntax (
     SafeGrammar.var,
     SafeGrammar.varA,
     SafeGrammar.tok,
+    SafeGrammar.TokensMember (..),
     SafeGrammar.tokA,
 ) where
 
@@ -52,7 +54,6 @@ import qualified Language.Haskell.TH                       as TH
 import qualified Language.Haskell.TH.Syntax                as TH
 import qualified Language.Parser.Ptera.Data.HList          as HList
 import qualified Language.Parser.Ptera.Syntax              as Syntax
-import qualified Language.Parser.Ptera.Syntax.GrammarToken as GrammarToken
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar  as SafeGrammar
 import           Language.Parser.Ptera.TH.ParserLib
 

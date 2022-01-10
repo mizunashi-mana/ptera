@@ -16,7 +16,7 @@ import qualified Unsafe.Coerce                              as Unsafe
 
 type Action ctx = Grammar.Action (Syntax.SemActM ctx)
 
-srb2Parser :: forall ctx elem tokens. Syntax.GrammarToken elem tokens
+srb2Parser :: forall ctx tokens elem. Syntax.GrammarToken tokens elem
     => Proxy tokens -> SRB.T Int (Action ctx) -> Parser.T ctx elem
 srb2Parser p srb = Parser.RunnerParser
     { parserInitial = \s -> coerce do EnumMap.lookup s do SRB.initials srb
