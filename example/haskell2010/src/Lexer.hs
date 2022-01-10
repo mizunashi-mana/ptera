@@ -1,19 +1,19 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TemplateHaskell  #-}
-{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE DerivingVia           #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell       #-}
 
 module Lexer where
 
-import qualified Data.Text as Text
-import qualified Lexer.CodeUnit as CodeUnit
-import qualified GHC.Word            as Word
-import qualified Language.Lexer.Tlex as Tlex
-import qualified Lexer.Rules         as LexerRules
-import qualified Lexer.PreprocessLayout as PreprocessLayout
-import           Types
 import qualified Control.Monad.Trans.State.Strict as StateT
-import qualified Data.EnumSet    as EnumSet
+import qualified Data.EnumSet                     as EnumSet
+import qualified Data.Text                        as Text
+import qualified GHC.Word                         as Word
+import qualified Language.Lexer.Tlex              as Tlex
+import qualified Lexer.CodeUnit                   as CodeUnit
+import qualified Lexer.PreprocessLayout           as PreprocessLayout
+import qualified Lexer.Rules                      as LexerRules
+import           Types
 
 
 $(LexerRules.buildLexer)
@@ -80,8 +80,8 @@ data LexerContext = LexerContext
 
 data LexingContext = LexingContext
     { currentLocation :: Location
-    , currentLocCtx :: LocationContext
-    , restString :: Text.Text
+    , currentLocCtx   :: LocationContext
+    , restString      :: Text.Text
     }
     deriving (Eq, Show)
 

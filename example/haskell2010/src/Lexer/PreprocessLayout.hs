@@ -1,6 +1,6 @@
 module Lexer.PreprocessLayout where
 
-import Types
+import           Types
 
 preprocessLayout :: [(Location, Token)] -> [Token]
 preprocessLayout ts0 = case ts0 of
@@ -45,8 +45,8 @@ isFirstLayoutToken t = case t of
 
 isLayoutToken :: Token -> Bool
 isLayoutToken t = case t of
-    TokKwLet -> True
+    TokKwLet   -> True
     TokKwWhere -> True
-    TokKwDo -> True
-    TokKwOf -> True
-    _ -> False
+    TokKwDo    -> True
+    TokKwOf    -> True
+    _          -> False

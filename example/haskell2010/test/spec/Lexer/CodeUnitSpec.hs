@@ -4,9 +4,9 @@ import           Test.Hspec
 
 import           Lexer.CodeUnit
 
-import qualified Data.CharSet                          as CharSet
-import qualified Data.CharSet.Unicode                  as UniCharSet
-import qualified Data.EnumSet      as EnumSet
+import qualified Data.CharSet         as CharSet
+import qualified Data.CharSet.Unicode as UniCharSet
+import qualified Data.EnumSet         as EnumSet
 
 
 spec :: Spec

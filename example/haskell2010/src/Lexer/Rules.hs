@@ -2,14 +2,13 @@
 
 module Lexer.Rules where
 
-import qualified Data.Text as Text
-import qualified Lexer.CodeUnit as CodeUnit
-import qualified Data.Word                           as Word
-import qualified Language.Haskell.TH                 as TH
-import qualified Data.EnumSet    as EnumSet
-import qualified Lexer.CodeUnit as CodeUnit
-import qualified Language.Lexer.Tlex                 as Tlex
-import qualified Language.Lexer.Tlex.Plugin.TH       as TlexTH
+import qualified Data.EnumSet                  as EnumSet
+import qualified Data.Text                     as Text
+import qualified Data.Word                     as Word
+import qualified Language.Haskell.TH           as TH
+import qualified Language.Lexer.Tlex           as Tlex
+import qualified Language.Lexer.Tlex.Plugin.TH as TlexTH
+import qualified Lexer.CodeUnit                as CodeUnit
 import           Types
 
 data LexerState

@@ -43,8 +43,8 @@ module Language.Parser.Ptera.Syntax (
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.HList          as HList
-import qualified Language.Parser.Ptera.Syntax.SafeGrammar  as SafeGrammar
+import qualified Language.Parser.Ptera.Data.HList         as HList
+import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 
 
 type T ctx = GrammarM ctx

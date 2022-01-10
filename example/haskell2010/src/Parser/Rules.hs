@@ -15,20 +15,21 @@
 
 module Parser.Rules where
 
-import qualified Data.Text as Text
 import           Data.Coerce
 import           Data.Foldable
 import           Data.Proxy                       (Proxy (..))
 import           Data.Sequence                    (Seq)
 import qualified Data.Sequence                    as Seq
+import qualified Data.Text                        as Text
 import           GHC.TypeLits                     (Symbol)
 import qualified Language.Haskell.TH              as TH
 import           Language.Parser.Ptera.Data.HEnum (henumA)
 import           Language.Parser.Ptera.Data.HList (HList (..))
-import           Language.Parser.Ptera.TH         (TokensTag, alt, eps, failAction,
-                                                   getAction, modifyAction,
-                                                   ruleExpr, semAct, semActM,
-                                                   varA, (<:>), (<^>))
+import           Language.Parser.Ptera.TH         (TokensTag, alt, eps,
+                                                   failAction, getAction,
+                                                   modifyAction, ruleExpr,
+                                                   semAct, semActM, varA, (<:>),
+                                                   (<^>))
 import qualified Language.Parser.Ptera.TH         as Ptera
 import qualified Numeric
 import qualified Type.Membership                  as Membership

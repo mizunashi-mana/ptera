@@ -1,6 +1,6 @@
 module Lexer.CodeUnit where
 
-import qualified Data.Char                        as Char
+import qualified Data.Char    as Char
 import qualified Data.EnumSet as EnumSet
 
 
