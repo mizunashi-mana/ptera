@@ -16,6 +16,7 @@ import qualified Language.Parser.Ptera            as Ptera
 import           Language.Parser.Ptera.Data.HEnum (henumA)
 import           Language.Parser.Ptera.Data.HList (HList (..))
 import           Types
+import qualified Type.Membership.Internal as MembershipInternal
 
 
 grammar :: Grammar Rules Tokens Token ParsePoints
@@ -51,12 +52,23 @@ type instance RulesTag Rules =
     , "value"
     ]
 
-instance TokensMember Tokens "+"
-instance TokensMember Tokens "*"
-instance TokensMember Tokens "("
-instance TokensMember Tokens ")"
-instance TokensMember Tokens "int"
-instance TokensMember Tokens "id"
+instance TokensMember Tokens "+" where
+    tokensMembership _ = MembershipInternal.membership
+
+instance TokensMember Tokens "*" where
+    tokensMembership _ = MembershipInternal.membership
+
+instance TokensMember Tokens "(" where
+    tokensMembership _ = MembershipInternal.membership
+
+instance TokensMember Tokens ")" where
+    tokensMembership _ = MembershipInternal.membership
+
+instance TokensMember Tokens "int" where
+    tokensMembership _ = MembershipInternal.membership
+
+instance TokensMember Tokens "id" where
+    tokensMembership _ = MembershipInternal.membership
 
 instance HasField "expr" Rules (RuleExpr Ast) where
     getField = rexpr

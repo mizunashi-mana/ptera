@@ -3,14 +3,20 @@
 module Language.Parser.Ptera.TH.Util (
     genGrammarToken,
     GenRulesTypes (..),
-    genRules
+    genRules,
+    henumA,
+    unsafeMembership,
 ) where
 
 import           Language.Parser.Ptera.Prelude
-import           Language.Parser.Ptera.TH.Syntax
-import           Prelude                         (String)
 
+import           Language.Parser.Ptera.TH.Syntax
+import           Language.Parser.Ptera.Data.HEnum (henumA)
+import           Prelude                         (String)
 import qualified Language.Haskell.TH             as TH
+import qualified Language.Haskell.TH.Syntax             as TH
+import qualified Type.Membership as Membership
+import qualified Unsafe.Coerce as Unsafe
 
 genGrammarToken :: TH.Name -> TH.Q TH.Type -> [(String, TH.Q TH.Pat)] -> TH.Q [TH.Dec]
 genGrammarToken tyName tokenTy tokens = do
@@ -40,13 +46,9 @@ genGrammarToken tyName tokenTy tokens = do
                         do [t|'[]|]
                         do tokens
 
-        tokensMemberInstDsQ = foldr
-            do \(tokenName, _) mds2 -> do
-                let tokenLitTy = TH.LitT do TH.StrTyLit tokenName
-                ds1 <- [d|instance TokensMember $(tokensTy) $(pure tokenLitTy)|]
-                ds2 <- mds2
-                pure do ds1 ++ ds2
-            do pure []
+        tokensMemberInstDsQ = buildTokensMemberInstDsQ
+            do 0 :: Int
+            do []
             do tokens
 
         tokenToTerminalClause = do
@@ -65,6 +67,20 @@ genGrammarToken tyName tokenTy tokens = do
                                     <*> pure []
                             do tokens
                 <*> pure []
+
+        buildTokensMemberInstDsQ n ds ts = case ts of
+            [] ->
+                pure ds
+            (tokenName, _):ts' -> do
+                let tokenLitTy = TH.LitT do TH.StrTyLit tokenName
+                tokenDs <- [d|
+                    instance TokensMember $(tokensTy) $(pure tokenLitTy) where
+                        tokensMembership _ = unsafeMembership $(TH.lift n)
+                    |]
+                buildTokensMemberInstDsQ
+                    do n + 1
+                    do tokenDs ++ ds
+                    do ts'
 
         tokensTy = pure do TH.ConT tyName
 
@@ -147,3 +163,6 @@ genRules rulesTyName genRulesTypes ruleDefs = do
                 $(genRulesTokensTy genRulesTypes)
                 $(genRulesTokenTy genRulesTypes)
             |]
+
+unsafeMembership :: Int -> Membership.Membership xs x
+unsafeMembership = Unsafe.unsafeCoerce

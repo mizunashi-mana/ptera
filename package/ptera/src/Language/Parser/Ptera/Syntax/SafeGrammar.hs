@@ -43,7 +43,6 @@ import qualified Language.Parser.Ptera.Data.HEnum     as HEnum
 import qualified Language.Parser.Ptera.Syntax.Grammar as SyntaxGrammar
 import           Prelude                              (String)
 import qualified Type.Membership                      as Membership
-import qualified Type.Membership.Internal             as MembershipInternal
 
 type T = Grammar
 
@@ -243,10 +242,8 @@ tok p = UnsafeUnit
     do SyntaxGrammar.UnitToken
         do HEnum.unsafeHEnum do HEnum.henum p
 
-class Membership.Member (TokensTag tokens) t => TokensMember tokens t where
-    tokensMembership :: Proxy# '(tokens, t)
-        -> Membership.Membership (TokensTag tokens) t
-    tokensMembership _ = MembershipInternal.membership
+class TokensMember tokens t where
+    tokensMembership :: Proxy# '(tokens, t) -> Membership.Membership (TokensTag tokens) t
 
 tokA :: forall t rules tokens elem.
     TokensMember tokens t => Unit rules tokens elem elem

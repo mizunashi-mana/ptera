@@ -257,8 +257,8 @@ qualifiedIdentifierRule = do
         qualifiedIdBuilder n = [||
             \bs ->
                 let (q', v') = Text.breakOnEnd (Text.pack ".") bs
-                    (q, v) = if Text.null v'
-                        then ([], q')
+                    (q, v) = if Text.null q'
+                        then ([], v')
                         else
                             let qWithoutComma = Text.take (Text.length q' - 1) q' in
                             ( Text.split (== '.') qWithoutComma

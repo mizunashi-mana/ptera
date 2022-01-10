@@ -38,6 +38,7 @@ library
         tlex-encoding,
         tlex-th,
         charset,
+        membership,
         template-haskell,
 
 test-suite spec
