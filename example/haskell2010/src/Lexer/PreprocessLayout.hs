@@ -49,3 +49,4 @@ isLayoutToken t = case t of
     TokKwWhere -> True
     TokKwDo -> True
     TokKwOf -> True
+    _ -> False

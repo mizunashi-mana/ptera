@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Data.Text as Text
+import qualified Data.Text.IO as TextIO
 import qualified Lexer
 import qualified Parser
 import qualified System.Environment as System
@@ -15,7 +15,7 @@ main = do
             System.exitFailure
         x:_ ->
             pure x
-    s <- Text.readFile f
+    s <- TextIO.readFile f
     toks <- case Lexer.lexText s of
         Left msg -> do
             putStrLn "error: "
