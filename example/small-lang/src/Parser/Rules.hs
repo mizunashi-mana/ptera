@@ -15,8 +15,8 @@ import           Language.Parser.Ptera            hiding (RuleExpr, Rules)
 import qualified Language.Parser.Ptera            as Ptera
 import           Language.Parser.Ptera.Data.HEnum (henumA)
 import           Language.Parser.Ptera.Data.HList (HList (..))
+import qualified Type.Membership.Internal         as MembershipInternal
 import           Types
-import qualified Type.Membership.Internal as MembershipInternal
 
 
 grammar :: Grammar Rules Tokens Token ParsePoints

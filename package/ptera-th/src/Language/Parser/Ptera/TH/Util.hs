@@ -10,13 +10,13 @@ module Language.Parser.Ptera.TH.Util (
 
 import           Language.Parser.Ptera.Prelude
 
-import           Language.Parser.Ptera.TH.Syntax
+import qualified Language.Haskell.TH              as TH
+import qualified Language.Haskell.TH.Syntax       as TH
 import           Language.Parser.Ptera.Data.HEnum (henumA)
-import           Prelude                         (String)
-import qualified Language.Haskell.TH             as TH
-import qualified Language.Haskell.TH.Syntax             as TH
-import qualified Type.Membership as Membership
-import qualified Unsafe.Coerce as Unsafe
+import           Language.Parser.Ptera.TH.Syntax
+import           Prelude                          (String)
+import qualified Type.Membership                  as Membership
+import qualified Unsafe.Coerce                    as Unsafe
 
 genGrammarToken :: TH.Name -> TH.Q TH.Type -> [(String, TH.Q TH.Pat)] -> TH.Q [TH.Dec]
 genGrammarToken tyName tokenTy tokens = do

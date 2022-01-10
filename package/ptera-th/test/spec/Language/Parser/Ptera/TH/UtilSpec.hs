@@ -5,10 +5,10 @@ module Language.Parser.Ptera.TH.UtilSpec where
 import           Language.Parser.Ptera.Prelude
 import           Test.Hspec
 
-import Language.Parser.Ptera.TH
-import qualified Type.Membership as Membership
-import qualified Type.Membership.Internal as MembershipInternal
-import qualified Language.Haskell.TH as TH
+import qualified Language.Haskell.TH           as TH
+import           Language.Parser.Ptera.TH
+import qualified Type.Membership               as Membership
+import qualified Type.Membership.Internal      as MembershipInternal
 
 $(genGrammarToken (TH.mkName "Tokens") [t|Int|]
     [ ("+", [p|0|])
