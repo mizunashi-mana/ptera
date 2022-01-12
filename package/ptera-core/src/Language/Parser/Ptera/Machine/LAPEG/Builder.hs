@@ -14,11 +14,11 @@ type T start doc a = BuilderT start doc a
 type BuilderT start doc a = StateT (Context start doc a)
 
 data Context start doc a = Context
-    { ctxInitials   :: EnumMap.EnumMap start LAPEG.Var
-    , ctxNextAltNum :: LAPEG.AltNum
-    , ctxAlts       :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt a)
-    , ctxNextVar    :: LAPEG.Var
-    , ctxRules      :: AlignableMap.T LAPEG.Var LAPEG.Rule
+    { ctxInitials    :: EnumMap.EnumMap start LAPEG.Var
+    , ctxNextAltNum  :: LAPEG.AltNum
+    , ctxAlts        :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt a)
+    , ctxNextVar     :: LAPEG.Var
+    , ctxRules       :: AlignableMap.T LAPEG.Var LAPEG.Rule
     , ctxDisplayVars :: AlignableMap.T LAPEG.Var doc
     }
     deriving (Eq, Show)

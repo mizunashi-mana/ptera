@@ -13,9 +13,9 @@ type T = LAPEG
 
 data LAPEG start doc a = LAPEG
     {
-        initials :: EnumMap.EnumMap start Var,
-        alts     :: AlignableArray.T AltNum (Alt a),
-        rules    :: AlignableArray.T Var Rule,
+        initials    :: EnumMap.EnumMap start Var,
+        alts        :: AlignableArray.T AltNum (Alt a),
+        rules       :: AlignableArray.T Var Rule,
         displayVars :: AlignableArray.T Var doc
     }
     deriving (Eq, Show, Functor)

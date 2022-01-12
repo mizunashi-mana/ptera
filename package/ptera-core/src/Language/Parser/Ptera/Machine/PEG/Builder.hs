@@ -15,9 +15,9 @@ type BuilderT start doc a = StateT (Context start doc a)
 
 data Context start doc a = Context
     {
-        ctxInitials :: EnumMap.EnumMap start PEG.Var,
-        ctxNextVar  :: PEG.Var,
-        ctxRules    :: AlignableMap.T PEG.Var (PEG.Rule a),
+        ctxInitials    :: EnumMap.EnumMap start PEG.Var,
+        ctxNextVar     :: PEG.Var,
+        ctxRules       :: AlignableMap.T PEG.Var (PEG.Rule a),
         ctxDisplayVars :: AlignableMap.T PEG.Var doc
     }
     deriving (Eq, Show)
