@@ -22,9 +22,12 @@ grammar2ParserDec param g = do
     srb <- case SafeGrammar2SRB.safeGrammar2Srb g of
         Right x -> pure x
         Left vs -> do
-            let errorMsg
-                    =  Prettyprinter.pretty "Detect left recursions at"
-                    <> Prettyprinter.pretty vs
+            let errorMsg = Prettyprinter.hsep
+                    [ Prettyprinter.pretty "Failed to generate parser."
+                    , Prettyprinter.pretty "Detect left recursions at "
+                        <> Prettyprinter.pretty vs
+                        <> Prettyprinter.pretty "."
+                    ]
             fail do show errorMsg
     SRB2ParserDec.srb2QParser
         do SRB2ParserDec.PipelineParam
