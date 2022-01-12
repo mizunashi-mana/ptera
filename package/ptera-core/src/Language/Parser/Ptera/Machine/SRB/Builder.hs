@@ -10,22 +10,23 @@ import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 
 
-type T s a = BuilderT s a
+type T start a = BuilderT start a
 
-type BuilderT s a = StateT (Context s a)
+type BuilderT start a = StateT (Context start a)
 
-data Context s a = Context
+data Context start a = Context
     {
-        ctxInitials     :: EnumMap.EnumMap s SRB.StateNum,
+        ctxInitials     :: EnumMap.EnumMap start SRB.StateNum,
         ctxNextStateNum :: SRB.StateNum,
         ctxStates       :: AlignableMap.T SRB.StateNum SRB.MState
     }
     deriving (Eq, Show)
 
+type Docs doc = AlignableArray.T LAPEG.Var doc
 type Alts a = AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
 
-build :: Monad m => Alts a -> BuilderT s a m () -> m (SRB.T s a)
-build alts builder = do
+build :: Monad m => Docs doc -> Alts a -> BuilderT start a m () -> m (SRB.T start doc a)
+build docs alts builder = do
     finalCtx <- execStateT builder initialCtx
     pure do
         SRB.SRB
@@ -34,6 +35,7 @@ build alts builder = do
                 do ctxNextStateNum finalCtx
                 do ctxStates finalCtx
             , alts = alts
+            , displayVars = docs
             }
     where
         initialCtx = Context
@@ -43,14 +45,15 @@ build alts builder = do
                 ctxStates = AlignableMap.empty
             }
 
-genNewStateNum :: Monad m => BuilderT s a m SRB.StateNum
+genNewStateNum :: Monad m => BuilderT start a m SRB.StateNum
 genNewStateNum = do
     ctx <- get
     let sn = ctxNextStateNum ctx
     put do ctx { ctxNextStateNum = Alignable.nextAlign sn }
     pure sn
 
-registerInitial :: Monad m => Enum s => s -> SRB.StateNum -> BuilderT s a m ()
+registerInitial :: Monad m => Enum start
+    => start -> SRB.StateNum -> BuilderT start a m ()
 registerInitial i v = modify' \ctx -> ctx
     {
         ctxInitials = EnumMap.insert i v do ctxInitials ctx

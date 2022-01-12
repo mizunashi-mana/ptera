@@ -49,8 +49,13 @@ type T = Grammar
 type Grammar :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> [Symbol] -> Type
 newtype Grammar action rules tokens elem initials = UnsafeGrammar
     {
-        unsafeGrammar ::
-            SyntaxGrammar.FixedGrammar StartPoint NonTerminal Terminal elem action
+        unsafeGrammar :: SyntaxGrammar.FixedGrammar
+            StartPoint
+            NonTerminal
+            Terminal
+            elem
+            StringLit
+            action
     }
 
 type family TokensTag (tokens :: Type) :: [Symbol]
@@ -60,15 +65,22 @@ type family RuleExprType (rules :: Type) :: Type -> Type
 class GrammarToken tokens elem where
     tokenToTerminal :: Proxy tokens -> elem -> HEnum.T (TokensTag tokens)
 
-class (KnownSymbol v, HasField v rules ((RuleExprType rules) (RuleExprReturnType rules v))) =>
-        HasRuleExprField rules v where
+class ( KnownSymbol v,
+        HasField v rules ((RuleExprType rules) (RuleExprReturnType rules v))
+        ) => HasRuleExprField rules v where
     type RuleExprReturnType rules v :: Type
 
     nonTerminalName :: Proxy# rules -> Proxy# v -> String
     nonTerminalName _ p# = symbolVal' p#
 
-type GrammarMForFixGrammar elem action =
-    SyntaxGrammar.GrammarT StartPoint NonTerminal Terminal elem action Identity
+type GrammarMForFixGrammar elem action = SyntaxGrammar.GrammarT
+    StartPoint
+    NonTerminal
+    Terminal
+    elem
+    StringLit
+    action
+    Identity
 
 fixGrammar
     :: forall initials action rules tokens elem
@@ -110,7 +122,8 @@ fixGrammar ruleDefs = UnsafeGrammar do
                     do nonTerminalName
                         do proxy# @rules
                         do proxy# @v
-            SyntaxGrammar.ruleT vn do
+                d = symbolVal' do proxy# @v
+            SyntaxGrammar.ruleT vn d do
                 fixRuleExpr do getField @v ruleDefs
 
         fixRuleExpr :: RuleExpr action rules tokens elem a

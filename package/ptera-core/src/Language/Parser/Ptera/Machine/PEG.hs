@@ -9,10 +9,10 @@ import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 
 type T = PEG
 
-data PEG s a = PEG
-    {
-        initials :: EnumMap.EnumMap s Var,
-        rules    :: AlignableArray.T Var (Rule a)
+data PEG start doc a = PEG
+    { initials :: EnumMap.EnumMap start Var
+    , rules    :: AlignableArray.T Var (Rule a)
+    , displayVars :: AlignableArray.T Var doc
     }
     deriving (Eq, Show, Functor)
 

@@ -31,22 +31,16 @@ import qualified Type.Membership                                     as Membersh
 genRunner :: forall initials rules tokens ctx elem
     .  GrammarToken tokens elem => Membership.Generate (TokensTag tokens)
     => GenParam -> GrammarM ctx rules tokens elem initials -> TH.Q [TH.Dec]
-genRunner param g = case mdecs of
-        Nothing ->
-            fail "Failed to generate parser"
-        Just decs ->
-            decs
-    where
-        mdecs = Grammar2ParserDec.grammar2ParserDec
-            do Grammar2ParserDec.PipelineParam
-                {
-                    startsTy = startsTy param,
-                    rulesTy = rulesTy param,
-                    tokensTy = tokensTy param,
-                    tokenTy = tokenTy param,
-                    customCtxTy = customCtxTy param
-                }
-            do g
+genRunner param g = Grammar2ParserDec.grammar2ParserDec
+    do Grammar2ParserDec.PipelineParam
+        {
+            startsTy = startsTy param,
+            rulesTy = rulesTy param,
+            tokensTy = tokensTy param,
+            tokenTy = tokenTy param,
+            customCtxTy = customCtxTy param
+        }
+    do g
 
 data GenParam = GenParam
     {

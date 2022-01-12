@@ -15,10 +15,11 @@ import           Language.Parser.Ptera.Runner                  (Result (..),
 import qualified Language.Parser.Ptera.Runner                  as Runner
 import           Language.Parser.Ptera.Scanner                 hiding (T)
 import           Language.Parser.Ptera.Syntax                  hiding (T)
+import qualified Prettyprinter
 
 type Parser = Runner.T
 
 genRunner :: GrammarToken tokens elem
     => GrammarM ctx rules tokens elem initials
-    -> Maybe (Parser ctx rules elem initials)
+    -> Either (Prettyprinter.Doc ann) (Parser ctx rules elem initials)
 genRunner g = Grammar2Runner.grammar2Runner g

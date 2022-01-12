@@ -11,11 +11,12 @@ import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 type T = LAPEG
 
-data LAPEG s a = LAPEG
+data LAPEG start doc a = LAPEG
     {
-        initials :: EnumMap.EnumMap s Var,
+        initials :: EnumMap.EnumMap start Var,
         alts     :: AlignableArray.T AltNum (Alt a),
-        rules    :: AlignableArray.T Var Rule
+        rules    :: AlignableArray.T Var Rule,
+        displayVars :: AlignableArray.T Var doc
     }
     deriving (Eq, Show, Functor)
 

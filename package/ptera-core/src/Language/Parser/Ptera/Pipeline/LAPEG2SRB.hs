@@ -15,9 +15,10 @@ import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Machine.SRB.Builder  as SRBBuilder
 
-laPeg2Srb :: Enum s => LAPEG.T s a -> SRB.T s a
+laPeg2Srb :: Enum start => LAPEG.T start doc a -> SRB.T start doc a
 laPeg2Srb g = runIdentity do
         SRBBuilder.build
+            do LAPEG.displayVars g
             do LAPEG.alts g
             do builder
     where

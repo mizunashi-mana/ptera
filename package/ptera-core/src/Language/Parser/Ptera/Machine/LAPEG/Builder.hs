@@ -9,21 +9,21 @@ import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 
 
-type T s a = BuilderT s a
+type T start doc a = BuilderT start doc a
 
-type BuilderT s a = StateT (Context s a)
+type BuilderT start doc a = StateT (Context start doc a)
 
-data Context s a = Context
-    {
-        ctxInitials   :: EnumMap.EnumMap s LAPEG.Var,
-        ctxNextAltNum :: LAPEG.AltNum,
-        ctxAlts       :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt a),
-        ctxNextVar    :: LAPEG.Var,
-        ctxRules      :: AlignableMap.T LAPEG.Var LAPEG.Rule
+data Context start doc a = Context
+    { ctxInitials   :: EnumMap.EnumMap start LAPEG.Var
+    , ctxNextAltNum :: LAPEG.AltNum
+    , ctxAlts       :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt a)
+    , ctxNextVar    :: LAPEG.Var
+    , ctxRules      :: AlignableMap.T LAPEG.Var LAPEG.Rule
+    , ctxDisplayVars :: AlignableMap.T LAPEG.Var doc
     }
     deriving (Eq, Show)
 
-build :: Monad m => BuilderT s a m () -> m (LAPEG.T s a)
+build :: Monad m => BuilderT start doc a m () -> m (LAPEG.T start doc a)
 build builder = do
     finalCtx <- execStateT builder initialCtx
     pure do
@@ -35,38 +35,45 @@ build builder = do
             , rules = AlignableArray.fromTotalMap
                 do ctxNextVar finalCtx
                 do ctxRules finalCtx
+            , displayVars = AlignableArray.fromTotalMap
+                do ctxNextVar finalCtx
+                do ctxDisplayVars finalCtx
             }
     where
         initialCtx = Context
-            {
-                ctxInitials = EnumMap.empty,
-                ctxNextAltNum = Alignable.initialAlign,
-                ctxAlts = AlignableMap.empty,
-                ctxNextVar = Alignable.initialAlign,
-                ctxRules = AlignableMap.empty
+            { ctxInitials = EnumMap.empty
+            , ctxNextAltNum = Alignable.initialAlign
+            , ctxAlts = AlignableMap.empty
+            , ctxNextVar = Alignable.initialAlign
+            , ctxRules = AlignableMap.empty
+            , ctxDisplayVars = AlignableMap.empty
             }
 
-genNewAltNum :: Monad m => BuilderT s a m LAPEG.AltNum
+genNewAltNum :: Monad m => BuilderT start doc a m LAPEG.AltNum
 genNewAltNum = do
     ctx <- get
     let n = ctxNextAltNum ctx
     put do ctx { ctxNextAltNum = Alignable.nextAlign n }
     pure n
 
-genNewVar :: Monad m => BuilderT s a m LAPEG.Var
-genNewVar = do
-    ctx <- get
-    let v = ctxNextVar ctx
-    put do ctx { ctxNextVar = Alignable.nextAlign v }
+genNewVar :: Monad m => doc -> BuilderT start doc a m LAPEG.Var
+genNewVar d = do
+    v <- ctxNextVar <$> get
+    modify' \ctx -> ctx
+        { ctxNextVar = Alignable.nextAlign v
+        , ctxDisplayVars = AlignableMap.insert v d
+            do ctxDisplayVars ctx
+        }
     pure v
 
-registerInitial :: Monad m => Enum s => s -> LAPEG.Var -> BuilderT s a m ()
+registerInitial :: Monad m => Enum start
+    => start -> LAPEG.Var -> BuilderT start doc a m ()
 registerInitial i v = modify' \ctx -> ctx
     {
         ctxInitials = EnumMap.insert i v do ctxInitials ctx
     }
 
-addAlt :: Monad m => LAPEG.Alt a -> BuilderT s a m LAPEG.AltNum
+addAlt :: Monad m => LAPEG.Alt a -> BuilderT start doc a m LAPEG.AltNum
 addAlt alt = do
     n <- genNewAltNum
     modify' \ctx -> ctx
@@ -76,9 +83,8 @@ addAlt alt = do
         }
     pure n
 
-addRule :: Monad m => LAPEG.Var -> LAPEG.Rule -> BuilderT s a m ()
+addRule :: Monad m => LAPEG.Var -> LAPEG.Rule -> BuilderT start doc a m ()
 addRule v e = modify' \ctx -> ctx
-    {
-        ctxRules = AlignableMap.insert v e
-            do ctxRules ctx
+    { ctxRules = AlignableMap.insert v e
+        do ctxRules ctx
     }

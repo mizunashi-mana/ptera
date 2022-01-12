@@ -9,25 +9,37 @@ import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB  as SafeGrammar2
 import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
 import qualified Language.Parser.Ptera.TH.Syntax                 as Syntax
 import qualified Type.Membership                                 as Membership
+import qualified Prettyprinter
 
 grammar2ParserDec
     :: forall initials rules tokens ctx elem
-    .  Syntax.GrammarToken tokens elem => Membership.Generate (Syntax.TokensTag tokens)
-    => PipelineParam -> Syntax.GrammarM ctx rules tokens elem initials -> Maybe (TH.Q [TH.Dec])
+    .  Syntax.GrammarToken tokens elem
+    => Membership.Generate (Syntax.TokensTag tokens)
+    => PipelineParam
+    -> Syntax.GrammarM ctx rules tokens elem initials
+    -> TH.Q [TH.Dec]
 grammar2ParserDec param g = do
-    srb <- SafeGrammar2SRB.safeGrammar2Srb g
-    pure
-        do SRB2ParserDec.srb2QParser
-            do SRB2ParserDec.PipelineParam
-                {
-                    startsTy = startsTy param,
-                    rulesTy = rulesTy param,
-                    tokensTy = tokensTy param,
-                    tokenTy = tokenTy param,
-                    customCtxTy = customCtxTy param,
-                    tokenBounds = (0, Membership.hcount do Proxy @(Syntax.TokensTag tokens))
-                }
-            do srb
+    srb <- case SafeGrammar2SRB.safeGrammar2Srb g of
+        Right x -> pure x
+        Left vs -> do
+            let errorMsg
+                    =  Prettyprinter.pretty "Detect left recursions at"
+                    <> Prettyprinter.pretty vs
+            fail do show errorMsg
+    SRB2ParserDec.srb2QParser
+        do SRB2ParserDec.PipelineParam
+            {
+                startsTy = startsTy param,
+                rulesTy = rulesTy param,
+                tokensTy = tokensTy param,
+                tokenTy = tokenTy param,
+                customCtxTy = customCtxTy param,
+                tokenBounds =
+                    ( 0
+                    , Membership.hcount do Proxy @(Syntax.TokensTag tokens)
+                    )
+            }
+        do srb
 
 data PipelineParam = PipelineParam
     {

@@ -11,11 +11,12 @@ import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 
 type T = SRB
 
-data SRB s a = SRB
+data SRB start doc a = SRB
     {
-        initials :: EnumMap.EnumMap s StateNum,
+        initials :: EnumMap.EnumMap start StateNum,
         states   :: AlignableArray.T StateNum MState,
-        alts     :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
+        alts     :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt a),
+        displayVars :: AlignableArray.T LAPEG.Var doc
     }
     deriving (Eq, Show, Functor)
 

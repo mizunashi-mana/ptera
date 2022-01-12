@@ -21,41 +21,41 @@ import           Language.Parser.Ptera.Prelude
 import qualified Data.EnumMap.Strict           as EnumMap
 
 
-type T start nonTerminal terminal elem action =
-    GrammarT start nonTerminal terminal elem action
+type T start nonTerminal terminal elem doc action =
+    GrammarT start nonTerminal terminal elem doc action
 
-type GrammarT start nonTerminal terminal elem action =
-    StateT (Context start nonTerminal terminal elem action)
+type GrammarT start nonTerminal terminal elem doc action =
+    StateT (Context start nonTerminal terminal elem doc action)
 
-data Context start nonTerminal terminal elem action = Context
-    {
-        ctxStarts :: EnumMap.EnumMap start nonTerminal,
-        ctxRules  :: EnumMap.EnumMap nonTerminal (RuleExpr nonTerminal terminal elem action)
+data Context start nonTerminal terminal elem doc action = Context
+    { ctxStarts :: EnumMap.EnumMap start nonTerminal
+    , ctxRules  :: EnumMap.EnumMap nonTerminal (RuleExpr nonTerminal terminal elem action)
+    , ctxDisplayNonTerminals :: EnumMap.EnumMap nonTerminal doc
     }
 
 fixGrammarT :: Monad m
-    => GrammarT start nonTerminal terminal elem action m ()
-    -> m (FixedGrammar start nonTerminal terminal elem action)
+    => GrammarT start nonTerminal terminal elem doc action m ()
+    -> m (FixedGrammar start nonTerminal terminal elem doc action)
 fixGrammarT builder = do
         finalCtx <- execStateT builder initialCtx
         pure do fromCtx finalCtx
     where
         initialCtx = Context
-            {
-                ctxStarts = EnumMap.empty,
-                ctxRules = EnumMap.empty
+            { ctxStarts = EnumMap.empty
+            , ctxRules = EnumMap.empty
+            , ctxDisplayNonTerminals = EnumMap.empty
             }
 
         fromCtx ctx = FixedGrammar
-            {
-                grammarStarts = ctxStarts ctx,
-                grammarRules = ctxRules ctx
+            { grammarStarts = ctxStarts ctx
+            , grammarRules = ctxRules ctx
+            , grammarDisplayNonTerminals = ctxDisplayNonTerminals ctx
             }
 
-data FixedGrammar start nonTerminal terminal elem action = FixedGrammar
-    {
-        grammarStarts :: EnumMap.EnumMap start nonTerminal,
-        grammarRules  :: EnumMap.EnumMap nonTerminal (RuleExpr nonTerminal terminal elem action)
+data FixedGrammar start nonTerminal terminal elem doc action = FixedGrammar
+    { grammarStarts :: EnumMap.EnumMap start nonTerminal
+    , grammarRules  :: EnumMap.EnumMap nonTerminal (RuleExpr nonTerminal terminal elem action)
+    , grammarDisplayNonTerminals :: EnumMap.EnumMap nonTerminal doc
     }
 
 data Action (action :: [Type] -> Type -> Type) where
@@ -80,7 +80,7 @@ data Unit nonTerminal terminal elem u where
     UnitVar :: nonTerminal -> Unit nonTerminal terminal elem u
 
 initialT :: Enum start => Monad m => start -> nonTerminal
-    -> GrammarT start nonTerminal terminal elem action m ()
+    -> GrammarT start nonTerminal terminal elem doc action m ()
 initialT s v = modify' \ctx -> ctx
     {
         ctxStarts = EnumMap.insert s v
@@ -88,10 +88,11 @@ initialT s v = modify' \ctx -> ctx
     }
 
 ruleT :: Enum nonTerminal => Monad m
-    => nonTerminal -> RuleExpr nonTerminal terminal elem action
-    -> GrammarT start nonTerminal terminal elem action m ()
-ruleT v e = modify' \ctx -> ctx
-    {
-        ctxRules = EnumMap.insert v e
-            do ctxRules ctx
+    => nonTerminal -> doc -> RuleExpr nonTerminal terminal elem action
+    -> GrammarT start nonTerminal terminal elem doc action m ()
+ruleT v d e = modify' \ctx -> ctx
+    { ctxRules = EnumMap.insert v e
+        do ctxRules ctx
+    , ctxDisplayNonTerminals = EnumMap.insert v d
+        do ctxDisplayNonTerminals ctx
     }

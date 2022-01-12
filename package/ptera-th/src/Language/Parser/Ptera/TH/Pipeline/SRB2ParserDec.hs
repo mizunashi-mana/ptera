@@ -30,7 +30,10 @@ data PipelineParam = PipelineParam
         tokenBounds :: (Int, Int)
     }
 
-srb2QParser :: PipelineParam -> SRB.T Int (SemanticAction ctx) -> TH.Q [TH.Dec]
+srb2QParser
+    :: PipelineParam
+    -> SRB.T Int StringLit (SemanticAction ctx)
+    -> TH.Q [TH.Dec]
 srb2QParser param srb = do
     let runnerFnName = TH.mkName "pteraTHRunner"
     let parserInitialFnName = TH.mkName "pteraTHParserInitial"

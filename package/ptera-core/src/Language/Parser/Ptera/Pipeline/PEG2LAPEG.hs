@@ -13,16 +13,17 @@ import qualified Language.Parser.Ptera.Machine.LAPEG.RuleBuilder as LARuleBuilde
 import qualified Language.Parser.Ptera.Machine.PEG               as PEG
 
 
-peg2LaPeg :: Enum s => PEG.T s a -> Except (AlignableSet.T PEG.Var) (LAPEG.T s a)
+peg2LaPeg :: Enum start
+    => PEG.T start doc a -> Except (AlignableSet.T PEG.Var) (LAPEG.T start doc a)
 peg2LaPeg g = LAPEGBuilder.build do
     initialCtxBuilder <- get
     let initialCtx = Context
-            {
-                ctxBuilder = initialCtxBuilder,
-                ctxVarMap = AlignableMap.empty,
-                ctxAvailables = AlignableMap.empty,
-                ctxUpdateVarStack = [],
-                ctxOriginalRules = PEG.rules g
+            { ctxBuilder = initialCtxBuilder
+            , ctxVarMap = AlignableMap.empty
+            , ctxAvailables = AlignableMap.empty
+            , ctxUpdateVarStack = []
+            , ctxOriginalDisplayVars = PEG.displayVars g
+            , ctxOriginalRules = PEG.rules g
             }
     let (mx, finalCtx) = runState
             do runExceptT do pipeline do PEG.initials g
@@ -51,18 +52,18 @@ peg2LaPeg g = LAPEGBuilder.build do
             pegVarStackPipeline
 
 
-type Pipeline s a = ExceptT (AlignableSet.T PEG.Var) (State (Context s a))
+type Pipeline start doc a = ExceptT (AlignableSet.T PEG.Var) (State (Context start doc a))
 
-data Context s a = Context
-    {
-        ctxBuilder        :: LAPEGBuilder.Context s a,
-        ctxVarMap         :: AlignableMap.T PEG.Var LAPEG.Var,
-        ctxAvailables     :: AlignableMap.T LAPEG.Var (Maybe SymbolicIntSet.T),
-        ctxUpdateVarStack :: [PEG.Var],
-        ctxOriginalRules  :: AlignableArray.T PEG.Var (PEG.Rule a)
+data Context start doc a = Context
+    { ctxBuilder        :: LAPEGBuilder.Context start doc a
+    , ctxVarMap         :: AlignableMap.T PEG.Var LAPEG.Var
+    , ctxAvailables     :: AlignableMap.T LAPEG.Var (Maybe SymbolicIntSet.T)
+    , ctxUpdateVarStack :: [PEG.Var]
+    , ctxOriginalDisplayVars :: AlignableArray.T PEG.Var doc
+    , ctxOriginalRules  :: AlignableArray.T PEG.Var (PEG.Rule a)
     }
 
-pegInitialPipeline :: Enum s => s -> PEG.Var -> Pipeline s a ()
+pegInitialPipeline :: Enum start => start -> PEG.Var -> Pipeline start doc a ()
 pegInitialPipeline s v = do
     newV <- getAvailableVar v >>= \case
         Just x ->
@@ -72,7 +73,7 @@ pegInitialPipeline s v = do
             pure x
     liftBuilder do LAPEGBuilder.registerInitial s newV
 
-pegVarPipeline :: PEG.Var -> Pipeline s a (LAPEG.Var, SymbolicIntSet.T)
+pegVarPipeline :: PEG.Var -> Pipeline start doc a (LAPEG.Var, SymbolicIntSet.T)
 pegVarPipeline v = do
     ctx <- lift get
     case AlignableMap.lookup v do ctxVarMap ctx of
@@ -94,7 +95,7 @@ pegVarPipeline v = do
             r <- pegRulePipeline v pe
             pure r
 
-pegVarStackPipeline :: Pipeline s a ()
+pegVarStackPipeline :: Pipeline start doc a ()
 pegVarStackPipeline = popUpdateVar >>= \case
     Nothing ->
         pure ()
@@ -105,7 +106,9 @@ pegVarStackPipeline = popUpdateVar >>= \case
             _ <- pegVarPipeline v
             pegVarStackPipeline
 
-pegRulePipeline :: PEG.Var -> PEG.Rule a -> Pipeline s a (LAPEG.Var, SymbolicIntSet.T)
+pegRulePipeline
+    :: PEG.Var -> PEG.Rule a
+    -> Pipeline start doc a (LAPEG.Var, SymbolicIntSet.T)
 pegRulePipeline v (PEG.Rule alts) = do
     newV <- getNewVar v
     lift do
@@ -129,7 +132,9 @@ pegRulePipeline v (PEG.Rule alts) = do
             }
     pure (newV, newAvailable)
 
-pegAltPipeline :: LAPEG.Var -> PEG.Alt a -> Pipeline s a (LAPEG.AltNum, SymbolicIntSet.T)
+pegAltPipeline
+    :: LAPEG.Var -> PEG.Alt a
+    -> Pipeline start doc a (LAPEG.AltNum, SymbolicIntSet.T)
 pegAltPipeline ruleV alt = case PEG.altKind alt of
         PEG.AltSeq -> goStraight
         PEG.AltNot -> goNegative
@@ -179,14 +184,16 @@ pegAltPipeline ruleV alt = case PEG.altKind alt of
                 newV <- getNewVar v
                 pure do LAPEG.UnitNonTerminal newV
 
-getNewVar :: PEG.Var -> Pipeline s a LAPEG.Var
+getNewVar :: PEG.Var -> Pipeline start doc a LAPEG.Var
 getNewVar v = do
     vm0 <- ctxVarMap <$> lift get
     case AlignableMap.lookup v vm0 of
         Just newV ->
             pure newV
         Nothing -> do
-            newV <- liftBuilder do LAPEGBuilder.genNewVar
+            originalDisplayVars <- ctxOriginalDisplayVars <$> lift get
+            let d = AlignableArray.forceIndex originalDisplayVars v
+            newV <- liftBuilder do LAPEGBuilder.genNewVar d
             lift do
                 modify' \ctx -> ctx
                     {
@@ -195,7 +202,7 @@ getNewVar v = do
                     }
             pure newV
 
-getAvailableVar :: PEG.Var -> Pipeline s a (Maybe LAPEG.Var)
+getAvailableVar :: PEG.Var -> Pipeline start doc a (Maybe LAPEG.Var)
 getAvailableVar v = do
     ctx <- lift get
     case AlignableMap.lookup v do ctxVarMap ctx of
@@ -209,7 +216,7 @@ getAvailableVar v = do
             Just (Just _) ->
                 pure do Just newV
 
-popUpdateVar :: Pipeline s a (Maybe PEG.Var)
+popUpdateVar :: Pipeline start doc a (Maybe PEG.Var)
 popUpdateVar = do
     ctx <- lift get
     case ctxUpdateVarStack ctx of
@@ -219,7 +226,7 @@ popUpdateVar = do
             lift do put do ctx { ctxUpdateVarStack = vs }
             pure do Just v
 
-pushUpdateVar :: PEG.Var -> Pipeline s a ()
+pushUpdateVar :: PEG.Var -> Pipeline start doc a ()
 pushUpdateVar v = getAvailableVar v >>= \case
     Just _ ->
         pure ()
@@ -228,10 +235,10 @@ pushUpdateVar v = getAvailableVar v >>= \case
             modify' \ctx -> ctx
                 { ctxUpdateVarStack = v:ctxUpdateVarStack ctx }
 
-throwV :: PEG.Var -> Pipeline s a r
+throwV :: PEG.Var -> Pipeline start doc a r
 throwV v = throwE do AlignableSet.singleton v
 
-liftBuilder :: LAPEGBuilder.T s a Identity r -> Pipeline s a r
+liftBuilder :: LAPEGBuilder.T start doc a Identity r -> Pipeline start doc a r
 liftBuilder builder = do
     ctx <- lift get
     let (x, builderCtx) = runState builder do ctxBuilder ctx

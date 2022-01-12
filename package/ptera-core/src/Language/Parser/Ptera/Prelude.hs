@@ -1,7 +1,7 @@
 module Language.Parser.Ptera.Prelude (
   module Language.Parser.Ptera.Prelude.Core,
-  module Language.Parser.Ptera.Prelude.Debug,
+  module Language.Parser.Ptera.Prelude.Alias,
 ) where
 
 import           Language.Parser.Ptera.Prelude.Core
-import           Language.Parser.Ptera.Prelude.Debug
+import           Language.Parser.Ptera.Prelude.Alias

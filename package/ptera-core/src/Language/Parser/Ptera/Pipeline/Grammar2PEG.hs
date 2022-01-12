@@ -8,15 +8,16 @@ import qualified Language.Parser.Ptera.Machine.PEG.Builder as PEGBuilder
 import qualified Language.Parser.Ptera.Syntax.Grammar      as Grammar
 
 
-grammar2Peg :: Enum s => Enum n => Enum t
-    => Grammar.FixedGrammar s n t e f -> PEG.T s (Grammar.Action f)
+grammar2Peg :: Enum start => Enum nonTerminal => Enum terminal
+    => Grammar.FixedGrammar start nonTerminal terminal elem doc action
+    -> PEG.T start doc (Grammar.Action action)
 grammar2Peg g = runIdentity do PEGBuilder.build builder where
     builder = do
         initialBuilderCtx <- get
         let initialCtx = Context
-                {
-                    ctxBuilder = initialBuilderCtx,
-                    ctxVarMap = EnumMap.empty
+                { ctxBuilder = initialBuilderCtx
+                , ctxVarMap = EnumMap.empty
+                , ctxDisplayNonTerminals = Grammar.grammarDisplayNonTerminals g
                 }
         let finalCtx = execState pipeline initialCtx
         put do ctxBuilder finalCtx
@@ -27,29 +28,32 @@ grammar2Peg g = runIdentity do PEGBuilder.build builder where
         forM_ do EnumMap.assocs do Grammar.grammarRules g
             do \(v, e) -> grammarRulePipeline v e
 
-type Pipeline s n f = State (Context s n f)
+type Pipeline start nonTerminal doc action = State (Context start nonTerminal doc action)
 
-data Context s n f = Context
-    {
-        ctxBuilder :: PEGBuilder.Context s (Grammar.Action f),
-        ctxVarMap  :: EnumMap.EnumMap n PEG.Var
+data Context start nonTerminal doc action = Context
+    { ctxBuilder :: PEGBuilder.Context start doc (Grammar.Action action)
+    , ctxVarMap  :: EnumMap.EnumMap nonTerminal PEG.Var
+    , ctxDisplayNonTerminals :: EnumMap.EnumMap nonTerminal doc
     }
 
-grammarStartPipeline :: Enum s => Enum n => s -> n -> Pipeline s n f ()
+grammarStartPipeline :: Enum start => Enum nonTerminal
+    => start -> nonTerminal -> Pipeline start nonTerminal doc action ()
 grammarStartPipeline s v = do
     newV <- getNewVar v
     liftBuilder do PEGBuilder.addInitial s newV
 
-grammarRulePipeline :: Enum n => Enum t
-    => n -> Grammar.RuleExpr n t e f -> Pipeline s n f ()
+grammarRulePipeline :: Enum nonTerminal => Enum terminal
+    => nonTerminal -> Grammar.RuleExpr nonTerminal terminal elem action
+    -> Pipeline start nonTerminal doc action ()
 grammarRulePipeline v (Grammar.RuleExpr alts) = do
     newV <- getNewVar v
     newAlts <- forM alts \alt -> grammarAltPipeline alt
     let newRule = PEG.Rule newAlts
     liftBuilder do PEGBuilder.addRule newV newRule
 
-grammarAltPipeline :: Enum n => Enum t
-    => Grammar.Alt n t e f r -> Pipeline s n f (PEG.Alt (Grammar.Action f))
+grammarAltPipeline :: Enum nonTerminal => Enum terminal
+    => Grammar.Alt nonTerminal terminal elem action r
+    -> Pipeline start nonTerminal doc action (PEG.Alt (Grammar.Action action))
 grammarAltPipeline (Grammar.Alt e act) = do
     newUs <- grammarExprPipeline e
     let newAct = Grammar.Action act
@@ -61,10 +65,15 @@ grammarAltPipeline (Grammar.Alt e act) = do
             }
     pure newAlt
 
-grammarExprPipeline :: forall s n t e f us. Enum n => Enum t
-    => Grammar.Expr n t e us -> Pipeline s n f [PEG.Unit]
+grammarExprPipeline :: forall start nonTerminal terminal elem doc action us
+    .  Enum nonTerminal => Enum terminal
+    => Grammar.Expr nonTerminal terminal elem us
+    -> Pipeline start nonTerminal doc action [PEG.Unit]
 grammarExprPipeline = \e -> go [] e where
-    go :: [PEG.Unit] -> Grammar.Expr n t e us' -> Pipeline s n f [PEG.Unit]
+    go
+        :: [PEG.Unit]
+        -> Grammar.Expr nonTerminal terminal elem us'
+        -> Pipeline start nonTerminal doc action [PEG.Unit]
     go acc = \case
         Grammar.Eps ->
             pure do reverse acc
@@ -74,8 +83,9 @@ grammarExprPipeline = \e -> go [] e where
                 do newU:acc
                 do e
 
-grammarUnitPipeline :: Enum n => Enum t
-    => Grammar.Unit n t e u -> Pipeline s n f PEG.Unit
+grammarUnitPipeline :: Enum nonTerminal => Enum terminal
+    => Grammar.Unit nonTerminal terminal elem u
+    -> Pipeline start nonTerminal doc action PEG.Unit
 grammarUnitPipeline = \case
     Grammar.UnitToken t ->
         pure do PEG.UnitTerminal do fromEnum t
@@ -83,14 +93,19 @@ grammarUnitPipeline = \case
         newV <- getNewVar v
         pure do PEG.UnitNonTerminal newV
 
-getNewVar :: Enum n => n -> Pipeline s n f PEG.Var
+getNewVar :: Enum nonTerminal
+    => nonTerminal -> Pipeline start nonTerminal doc action PEG.Var
 getNewVar v = do
     vmap <- ctxVarMap <$> get
     case EnumMap.lookup v vmap of
         Just newV ->
             pure newV
         Nothing -> do
-            newV <- liftBuilder PEGBuilder.genNewVar
+            displayNonTerminals <- ctxDisplayNonTerminals <$> get
+            let d = case EnumMap.lookup v displayNonTerminals of
+                    Just x  -> x
+                    Nothing -> error "Not found any rules for a non-terminal."
+            newV <- liftBuilder do PEGBuilder.genNewVar d
             modify' \ctx -> ctx
                 {
                     ctxVarMap = EnumMap.insert v newV
@@ -98,7 +113,9 @@ getNewVar v = do
                 }
             pure newV
 
-liftBuilder :: PEGBuilder.T s (Grammar.Action f) Identity r -> Pipeline s n f r
+liftBuilder
+    :: PEGBuilder.T start doc (Grammar.Action action) Identity r
+    -> Pipeline start nonTerminal doc action r
 liftBuilder builder = do
     ctx <- get
     let (x, builderCtx) = runState builder do ctxBuilder ctx
