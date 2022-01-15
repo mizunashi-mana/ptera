@@ -19,8 +19,8 @@ import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Runner.Parser      as Parser
 import qualified Language.Parser.Ptera.Scanner            as Scanner
 import qualified Language.Parser.Ptera.Syntax             as Syntax
-import qualified Unsafe.Coerce                            as Unsafe
 import qualified Prettyprinter
+import qualified Unsafe.Coerce                            as Unsafe
 
 type T = RunT
 

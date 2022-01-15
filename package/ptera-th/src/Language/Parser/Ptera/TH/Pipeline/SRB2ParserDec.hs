@@ -4,7 +4,6 @@ module Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec where
 
 import           Language.Parser.Ptera.Prelude
 
-import           Prelude (String)
 import qualified Data.Bits                                  as Bits
 import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Data.HashMap.Strict                        as HashMap
@@ -18,6 +17,7 @@ import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
 import qualified Language.Parser.Ptera.TH.Data.Bits.MaxBit  as Bits
 import           Language.Parser.Ptera.TH.ParserLib
 import qualified Language.Parser.Ptera.TH.Syntax            as Syntax
+import           Prelude                                    (String)
 
 type SemanticAction ctx = Grammar.Action (Syntax.SemActM ctx)
 

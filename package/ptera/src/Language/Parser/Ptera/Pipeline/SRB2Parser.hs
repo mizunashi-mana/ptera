@@ -12,8 +12,8 @@ import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Runner.Parser        as Parser
 import qualified Language.Parser.Ptera.Syntax               as Syntax
 import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
-import qualified Unsafe.Coerce                              as Unsafe
 import qualified Prettyprinter
+import qualified Unsafe.Coerce                              as Unsafe
 
 type Action ctx = Grammar.Action (Syntax.SemActM ctx)
 

@@ -34,9 +34,9 @@ import           Language.Parser.Ptera.Runner.Parser (ActionM, ActionTask,
                                                       failAction, getAction,
                                                       modifyAction)
 import qualified Language.Parser.Ptera.Runner.Parser as RunnerParser
-import qualified Unsafe.Coerce                       as Unsafe
-import           Prettyprinter (Doc)
+import           Prettyprinter                       (Doc)
 import qualified Prettyprinter
+import qualified Unsafe.Coerce                       as Unsafe
 
 type Parser = Runner.T
 
