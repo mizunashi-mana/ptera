@@ -46,7 +46,9 @@ import qualified Type.Membership                      as Membership
 
 type T = Grammar
 
-type Grammar :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> [Symbol] -> Type
+type Grammar
+    :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> [Symbol]
+    -> Type
 newtype Grammar action rules tokens elem initials = UnsafeGrammar
     {
         unsafeGrammar :: SyntaxGrammar.FixedGrammar
@@ -55,6 +57,7 @@ newtype Grammar action rules tokens elem initials = UnsafeGrammar
             Terminal
             elem
             StringLit
+            (Maybe ())
             action
     }
 
@@ -65,9 +68,10 @@ type family RuleExprType (rules :: Type) :: Type -> Type
 class GrammarToken tokens elem where
     tokenToTerminal :: Proxy tokens -> elem -> HEnum.T (TokensTag tokens)
 
-class ( KnownSymbol v,
-        HasField v rules ((RuleExprType rules) (RuleExprReturnType rules v))
-        ) => HasRuleExprField rules v where
+class
+    ( KnownSymbol v
+    , HasField v rules ((RuleExprType rules) (RuleExprReturnType rules v))
+    ) => HasRuleExprField rules v where
     type RuleExprReturnType rules v :: Type
 
     nonTerminalName :: Proxy# rules -> Proxy# v -> String
@@ -79,6 +83,7 @@ type GrammarMForFixGrammar elem action = SyntaxGrammar.GrammarT
     Terminal
     elem
     StringLit
+    (Maybe ())
     action
     Identity
 
@@ -127,15 +132,17 @@ fixGrammar ruleDefs = UnsafeGrammar do
                 fixRuleExpr do getField @v ruleDefs
 
         fixRuleExpr :: RuleExpr action rules tokens elem a
-            -> SyntaxGrammar.RuleExpr NonTerminal Terminal elem action
-        fixRuleExpr (UnsafeRuleExpr alts) = SyntaxGrammar.RuleExpr
-            [ coerce fixAlt origAlt | origAlt <- alts ]
+            -> SyntaxGrammar.RuleExpr NonTerminal Terminal elem (Maybe ()) action
+        fixRuleExpr = \case
+            RuleExpr alts -> SyntaxGrammar.RuleExpr
+                [ fixAlt origAlt | origAlt <- alts ]
 
         fixAlt :: Alt action rules tokens elem a
-            -> SyntaxGrammar.Alt NonTerminal Terminal elem action a
+            -> SyntaxGrammar.Alt NonTerminal Terminal elem (Maybe ()) action a
         fixAlt (UnsafeAlt origAlt) = case origAlt of
-            SyntaxGrammar.Alt e act -> SyntaxGrammar.Alt
+            SyntaxGrammar.Alt e h act -> SyntaxGrammar.Alt
                 do coerce fixExpr e
+                do h
                 do act
 
         fixExpr :: Expr rules tokens elem us
@@ -198,15 +205,14 @@ genRulesTagMap _ = Membership.henumerateFor
             do m
 
 type RuleExpr :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> Type -> Type
-newtype RuleExpr action rules tokens elem a = UnsafeRuleExpr
-    {
-        unsafeRuleExpr :: [SyntaxGrammar.Alt IntermNonTerminal Terminal elem action a]
+newtype RuleExpr action rules tokens elem a = RuleExpr
+    { unRuleExpr :: [Alt action rules tokens elem a]
     }
 
 type Alt :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> Type -> Type
 newtype Alt action rules tokens elem a = UnsafeAlt
-    {
-        unsafeAlt :: SyntaxGrammar.Alt IntermNonTerminal Terminal elem action a
+    { unsafeAlt
+        :: SyntaxGrammar.Alt IntermNonTerminal Terminal elem (Maybe ()) action a
     }
 
 type Expr :: Type -> Type -> Type -> [Type] -> Type
@@ -222,10 +228,10 @@ newtype Unit rules tokens elem u = UnsafeUnit
     }
 
 ruleExpr :: [Alt action rules tokens elem a] -> RuleExpr action rules tokens elem a
-ruleExpr alts = UnsafeRuleExpr do coerce alts
+ruleExpr alts = RuleExpr alts
 
 alt :: (Expr rules tokens elem us, action us a) -> Alt action rules tokens elem a
-alt (UnsafeExpr us, act) = UnsafeAlt do SyntaxGrammar.Alt us act
+alt (UnsafeExpr us, act) = UnsafeAlt do SyntaxGrammar.Alt us Nothing act
 
 (<^>) :: Unit rules tokens elem u -> (Expr rules tokens elem us1, action us2 a)
     -> (Expr rules tokens elem (u ': us1), action us2 a)
@@ -239,7 +245,7 @@ UnsafeUnit u <:> act = (UnsafeExpr do u SyntaxGrammar.:^ SyntaxGrammar.Eps, act)
 infixr 5 <:>
 
 eps :: action '[] a -> Alt action rules tokens elem a
-eps act = UnsafeAlt do SyntaxGrammar.Alt SyntaxGrammar.Eps act
+eps act = UnsafeAlt do SyntaxGrammar.Alt SyntaxGrammar.Eps Nothing act
 
 var :: forall v rules tokens elem a proxy.
     HasRuleExprField rules v

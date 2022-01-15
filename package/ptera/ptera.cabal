@@ -97,7 +97,6 @@ common general
         unordered-containers,
         membership,
         enummapset-th,
-        prettyprinter,
 
     autogen-modules:
         Paths_ptera

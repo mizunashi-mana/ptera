@@ -11,12 +11,11 @@ import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 type T = LAPEG
 
-data LAPEG start doc a = LAPEG
-    {
-        initials    :: EnumMap.EnumMap start Var,
-        alts        :: AlignableArray.T AltNum (Alt a),
-        rules       :: AlignableArray.T Var Rule,
-        displayVars :: AlignableArray.T Var doc
+data LAPEG start varDoc altDoc a = LAPEG
+    { initials    :: EnumMap.EnumMap start VarNum
+    , alts        :: AlignableArray.T AltNum (Alt altDoc a)
+    , rules       :: AlignableArray.T VarNum Rule
+    , vars        :: AlignableArray.T VarNum (PEG.Var varDoc)
     }
     deriving (Eq, Show, Functor)
 
@@ -32,12 +31,12 @@ newtype AltNum = AltNum Int
     deriving Hashable via Int
     deriving Alignable.T via Alignable.Inst
 
-data Alt a = Alt
-    {
-        altVar     :: Var,
-        altKind    :: PEG.AltKind,
-        altUnitSeq :: AlignableArray.T Position Unit,
-        altAction  :: a
+data Alt altDoc a = Alt
+    { altVar     :: VarNum
+    , altKind    :: PEG.AltKind
+    , altUnitSeq :: AlignableArray.T Position Unit
+    , altAction  :: a
+    , altHelp    :: altDoc
     }
     deriving (Eq, Show, Functor)
 
@@ -46,13 +45,13 @@ newtype Position = Position Int
     deriving Hashable via Int
     deriving Alignable.T via Alignable.Inst
 
-newtype Var = Var Int
+newtype VarNum = VarNum Int
     deriving (Eq, Show)
     deriving Hashable via Int
     deriving Alignable.T via Alignable.Inst
 
 data Unit
     = UnitTerminal PEG.Terminal
-    | UnitNonTerminal Var
+    | UnitNonTerminal VarNum
     | UnitNot
     deriving (Eq, Show)

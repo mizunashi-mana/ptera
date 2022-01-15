@@ -15,25 +15,25 @@ import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Machine.SRB.Builder  as SRBBuilder
 
-laPeg2Srb :: Enum start => LAPEG.T start doc a -> SRB.T start doc a
+laPeg2Srb :: Enum start
+    => LAPEG.T start varDoc altDoc a -> SRB.T start varDoc altDoc a
 laPeg2Srb g = runIdentity do
         SRBBuilder.build
-            do LAPEG.displayVars g
+            do LAPEG.vars g
             do LAPEG.alts g
             do builder
     where
         builder = do
             initialBuilderCtx <- get
             let initialCtx = Context
-                    {
-                        ctxBuilder = initialBuilderCtx,
-                        ctxInitialVarState = AlignableMap.empty,
-                        ctxReduceNotState = AlignableMap.empty,
-                        ctxVarMap = AlignableMap.empty,
-                        ctxStateMap = HashMap.empty,
-                        ctxStateQueue = [],
-                        ctxOriginalRules = LAPEG.rules g,
-                        ctxAlts = LAPEG.alts g
+                    { ctxBuilder = initialBuilderCtx
+                    , ctxInitialVarState = AlignableMap.empty
+                    , ctxReduceNotState = AlignableMap.empty
+                    , ctxVarMap = AlignableMap.empty
+                    , ctxStateMap = HashMap.empty
+                    , ctxStateQueue = []
+                    , ctxOriginalRules = LAPEG.rules g
+                    , ctxOriginalAlts = LAPEG.alts g
                     }
             let finalCtx = execState pipeline initialCtx
             put do ctxBuilder finalCtx
@@ -44,21 +44,21 @@ laPeg2Srb g = runIdentity do
                 do \(s, v) -> laPegInitialPipeline s v
             laPegStateQueuePipeline
 
-type Pipeline s a = State (Context s a)
+type Pipeline start altDoc a = State (Context start altDoc a)
 
-data Context s a = Context
-    {
-        ctxBuilder :: SRBBuilder.Context s a,
-        ctxInitialVarState :: AlignableMap.T LAPEG.Var SRB.StateNum,
-        ctxReduceNotState :: AlignableMap.T LAPEG.AltNum SRB.StateNum,
-        ctxVarMap  :: AlignableMap.T LAPEG.Var (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum)),
-        ctxStateMap :: HashMap.HashMap (LAPEG.Position, NonEmpty LAPEG.AltNum) SRB.StateNum,
-        ctxStateQueue :: [(SRB.StateNum, LAPEG.Position, NonEmpty LAPEG.AltNum)],
-        ctxOriginalRules :: AlignableArray.T LAPEG.Var LAPEG.Rule,
-        ctxAlts :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
+data Context start altDoc a = Context
+    { ctxBuilder :: SRBBuilder.Context start a
+    , ctxInitialVarState :: AlignableMap.T LAPEG.VarNum SRB.StateNum
+    , ctxReduceNotState :: AlignableMap.T LAPEG.AltNum SRB.StateNum
+    , ctxVarMap  :: AlignableMap.T LAPEG.VarNum (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
+    , ctxStateMap :: HashMap.HashMap (LAPEG.Position, NonEmpty LAPEG.AltNum) SRB.StateNum
+    , ctxStateQueue :: [(SRB.StateNum, LAPEG.Position, NonEmpty LAPEG.AltNum)]
+    , ctxOriginalRules :: AlignableArray.T LAPEG.VarNum LAPEG.Rule
+    , ctxOriginalAlts :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt altDoc a)
     }
 
-laPegInitialPipeline :: Enum s => s -> LAPEG.Var -> Pipeline s a ()
+laPegInitialPipeline :: Enum start
+    => start -> LAPEG.VarNum -> Pipeline start altDoc a ()
 laPegInitialPipeline s v = do
     m0 <- ctxInitialVarState <$> get
     newSn <- case AlignableMap.lookup v m0 of
@@ -83,7 +83,7 @@ laPegInitialPipeline s v = do
             pure sn
     liftBuilder do SRBBuilder.registerInitial s newSn
 
-laPegStateQueuePipeline :: Pipeline s a ()
+laPegStateQueuePipeline :: Pipeline start altDoc a ()
 laPegStateQueuePipeline = do
     ctx <- get
     case ctxStateQueue ctx of
@@ -94,7 +94,8 @@ laPegStateQueuePipeline = do
             laPegStatePipeline sn p alts
             laPegStateQueuePipeline
 
-laPegVarPipeline :: LAPEG.Var -> Pipeline s a (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
+laPegVarPipeline :: LAPEG.VarNum
+    -> Pipeline start altDoc a (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegVarPipeline v = do
     ctx <- get
     case AlignableMap.lookup v do ctxVarMap ctx of
@@ -106,8 +107,9 @@ laPegVarPipeline v = do
                     do v
             laPegRulePipeline v r
 
-laPegRulePipeline :: LAPEG.Var -> LAPEG.Rule
-    -> Pipeline s a (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
+laPegRulePipeline
+    :: LAPEG.VarNum -> LAPEG.Rule
+    -> Pipeline start altDoc a (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegRulePipeline v r = do
     sm <- case LAPEG.ruleAlts r of
         [] ->
@@ -122,8 +124,9 @@ laPegRulePipeline v r = do
         }
     pure ss
 
-laPegEnterStatePipeline :: NonEmpty LAPEG.AltNum
-    -> Pipeline s a (SymbolicIntMap.T (Bool, SRB.StateNum))
+laPegEnterStatePipeline
+    :: NonEmpty LAPEG.AltNum
+    -> Pipeline start altDoc a (SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegEnterStatePipeline = \alts -> go do revTails [] alts where
     revTails accs = \case
         alts@(_:|[]) -> alts:accs
@@ -161,7 +164,7 @@ laPegEnterStatePipeline = \alts -> go do revTails [] alts where
 
 laPegStatePipeline
     :: SRB.StateNum -> LAPEG.Position -> NonEmpty LAPEG.AltNum
-    -> Pipeline s a ()
+    -> Pipeline start altDoc a ()
 laPegStatePipeline sn p alts = do
         trans <- laPegTransPipeline p alts
         let st = SRB.MState
@@ -178,8 +181,9 @@ laPegStatePipeline sn p alts = do
                 altItemCurPos = p
             }
 
-laPegTransPipeline :: LAPEG.Position -> NonEmpty LAPEG.AltNum
-    -> Pipeline s a (SymbolicIntMap.T SRB.Trans)
+laPegTransPipeline
+    :: LAPEG.Position -> NonEmpty LAPEG.AltNum
+    -> Pipeline start altDoc a (SymbolicIntMap.T SRB.Trans)
 laPegTransPipeline p0 alts0 = do
         m <- genAltMapForTrans p0 alts0
         let p1 = Alignable.nextAlign p0
@@ -226,8 +230,9 @@ laPegTransPipeline p0 alts0 = do
                     let altn = NonEmpty.last do altItemsForTransRevAlts altItems
                     pure do SRB.TransReduce altn
 
-genAltMapForTrans :: LAPEG.Position -> NonEmpty LAPEG.AltNum
-    -> Pipeline s a (SymbolicIntMap.T AltItemsForTrans)
+genAltMapForTrans
+    :: LAPEG.Position -> NonEmpty LAPEG.AltNum
+    -> Pipeline start altDoc a (SymbolicIntMap.T AltItemsForTrans)
 genAltMapForTrans p (alt0 :| alts0) = go SymbolicIntMap.empty do alt0:alts0 where
     go m0 = \case
         [] ->
@@ -342,12 +347,14 @@ data AltItemsForTrans = AltMapForTrans
 
 data AltItemsOpForTrans
     = AltItemsOpShift
-    | AltItemsOpEnter LAPEG.Var Bool SRB.StateNum
+    | AltItemsOpEnter LAPEG.VarNum Bool SRB.StateNum
     | AltItemsOpNot
     | AltItemsOpReduce
     deriving (Eq, Show)
 
-getStateForAltItems :: LAPEG.Position -> NonEmpty LAPEG.AltNum -> Pipeline s a SRB.StateNum
+getStateForAltItems
+    :: LAPEG.Position -> NonEmpty LAPEG.AltNum
+    -> Pipeline start altDoc a SRB.StateNum
 getStateForAltItems p alts = do
     m <- ctxStateMap <$> get
     case HashMap.lookup (p, alts) m of
@@ -362,7 +369,7 @@ getStateForAltItems p alts = do
                 }
             pure sn
 
-isNeedBackAlts :: NonEmpty LAPEG.AltNum -> Pipeline s a Bool
+isNeedBackAlts :: NonEmpty LAPEG.AltNum -> Pipeline start altDoc a Bool
 isNeedBackAlts = \(altn :| rest) -> go altn rest where
     go altn0 rest = do
         alt0 <- getAlt altn0
@@ -377,19 +384,21 @@ isNeedBackAlts = \(altn :| rest) -> go altn rest where
                 altn1:alts ->
                     go altn1 alts
 
-getUnitForAltItem :: LAPEG.Position -> LAPEG.AltNum -> Pipeline s a (Maybe LAPEG.Unit)
+getUnitForAltItem
+    :: LAPEG.Position -> LAPEG.AltNum
+    -> Pipeline start altDoc a (Maybe LAPEG.Unit)
 getUnitForAltItem p altn = do
     alt <- getAlt altn
     let us = LAPEG.altUnitSeq alt
     pure do AlignableArray.index us p
 
-getAlt :: LAPEG.AltNum -> Pipeline s a (LAPEG.Alt a)
+getAlt :: LAPEG.AltNum -> Pipeline start altDoc a (LAPEG.Alt altDoc a)
 getAlt altn = do
     ctx <- get
-    let alts = ctxAlts ctx
+    let alts = ctxOriginalAlts ctx
     pure do AlignableArray.forceIndex alts altn
 
-liftBuilder :: SRBBuilder.T s a Identity r -> Pipeline s a r
+liftBuilder :: SRBBuilder.T start a Identity r -> Pipeline start altDoc a r
 liftBuilder builder = do
     ctx <- get
     let (x, builderCtx) = runIdentity

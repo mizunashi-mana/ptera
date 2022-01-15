@@ -2,7 +2,8 @@ module Language.Parser.Ptera.Runner (
     T,
 
     RunnerM (..),
-    RunT.Result (..),
+    Result,
+    RunT.ParseResult (..),
     runParserM,
     runParser,
 ) where
@@ -19,21 +20,23 @@ import qualified Type.Membership.Internal                 as MembershipInternal
 
 type T = RunnerM
 
-type RunnerM :: Type -> Type -> Type -> [Symbol] -> Type -> Type
-newtype RunnerM ctx rules elem initials docann = UnsafeRunnerM
-    { unRunnerM :: Parser.T ctx elem docann
+type RunnerM :: Type -> Type -> Type -> [Symbol] -> Type
+newtype RunnerM ctx rules elem initials = UnsafeRunnerM
+    { unRunnerM :: Parser.T ctx elem ()
     }
 
 type Runner = RunnerM ()
 
-runParserM :: forall v initials ctx posMark m rules elem docann proxy
+type Result posMark = RunT.ParseResult posMark ()
+
+runParserM :: forall v initials ctx posMark m rules elem proxy
     .  Membership.Member initials v => Scanner.T posMark elem m
-    => proxy v -> RunnerM ctx rules elem initials docann -> ctx
-    -> m (RunT.Result posMark docann (Syntax.RuleExprReturnType rules v))
+    => proxy v -> RunnerM ctx rules elem initials -> ctx
+    -> m (Result posMark (Syntax.RuleExprReturnType rules v))
 runParserM _ (UnsafeRunnerM p) customCtx0 =
     case RunT.initialContext p customCtx0 pos of
         Nothing ->
-            error "Not found the start point"
+            error "Not found the start point."
         Just initialCtx ->
             evalStateT
                 do RunT.unRunT RunT.runT
@@ -42,8 +45,8 @@ runParserM _ (UnsafeRunnerM p) customCtx0 =
         pos = SafeGrammar.genStartPoint
             do MembershipInternal.membership @initials @v
 
-runParser :: forall v initials posMark m rules elem docann proxy
+runParser :: forall v initials posMark m rules elem proxy
     .  Membership.Member initials v => Scanner.T posMark elem m
-    => proxy v -> Runner rules elem initials docann
-    -> m (RunT.Result posMark docann (Syntax.RuleExprReturnType rules v))
+    => proxy v -> Runner rules elem initials
+    -> m (Result posMark (Syntax.RuleExprReturnType rules v))
 runParser p r = runParserM p r ()

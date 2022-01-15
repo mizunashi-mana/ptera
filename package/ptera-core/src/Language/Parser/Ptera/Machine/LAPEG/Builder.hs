@@ -6,24 +6,26 @@ import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
+import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 
 
-type T start doc a = BuilderT start doc a
+type T start varDoc altDoc a = BuilderT start varDoc altDoc a
 
-type BuilderT start doc a = StateT (Context start doc a)
+type BuilderT start varDoc altDoc a = StateT (Context start varDoc altDoc a)
 
-data Context start doc a = Context
-    { ctxInitials    :: EnumMap.EnumMap start LAPEG.Var
+data Context start varDoc altDoc a = Context
+    { ctxInitials    :: EnumMap.EnumMap start LAPEG.VarNum
     , ctxNextAltNum  :: LAPEG.AltNum
-    , ctxAlts        :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt a)
-    , ctxNextVar     :: LAPEG.Var
-    , ctxRules       :: AlignableMap.T LAPEG.Var LAPEG.Rule
-    , ctxDisplayVars :: AlignableMap.T LAPEG.Var doc
+    , ctxNextVar     :: LAPEG.VarNum
+    , ctxRules       :: AlignableMap.T LAPEG.VarNum LAPEG.Rule
+    , ctxVars        :: AlignableMap.T LAPEG.VarNum (PEG.Var varDoc)
+    , ctxAlts        :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt altDoc a)
     }
     deriving (Eq, Show)
 
-build :: Monad m => BuilderT start doc a m () -> m (LAPEG.T start doc a)
+build :: Monad m
+    => BuilderT start varDoc altDoc a m () -> m (LAPEG.T start varDoc altDoc a)
 build builder = do
     finalCtx <- execStateT builder initialCtx
     pure do
@@ -35,9 +37,9 @@ build builder = do
             , rules = AlignableArray.fromTotalMap
                 do ctxNextVar finalCtx
                 do ctxRules finalCtx
-            , displayVars = AlignableArray.fromTotalMap
+            , vars = AlignableArray.fromTotalMap
                 do ctxNextVar finalCtx
-                do ctxDisplayVars finalCtx
+                do ctxVars finalCtx
             }
     where
         initialCtx = Context
@@ -46,34 +48,36 @@ build builder = do
             , ctxAlts = AlignableMap.empty
             , ctxNextVar = Alignable.initialAlign
             , ctxRules = AlignableMap.empty
-            , ctxDisplayVars = AlignableMap.empty
+            , ctxVars = AlignableMap.empty
             }
 
-genNewAltNum :: Monad m => BuilderT start doc a m LAPEG.AltNum
+genNewAltNum :: Monad m => BuilderT start varDoc altDoc a m LAPEG.AltNum
 genNewAltNum = do
     ctx <- get
     let n = ctxNextAltNum ctx
     put do ctx { ctxNextAltNum = Alignable.nextAlign n }
     pure n
 
-genNewVar :: Monad m => doc -> BuilderT start doc a m LAPEG.Var
-genNewVar d = do
-    v <- ctxNextVar <$> get
+genNewVar :: Monad m
+    => PEG.Var varDoc -> BuilderT start varDoc altDoc a m LAPEG.VarNum
+genNewVar v = do
+    vn <- ctxNextVar <$> get
     modify' \ctx -> ctx
-        { ctxNextVar = Alignable.nextAlign v
-        , ctxDisplayVars = AlignableMap.insert v d
-            do ctxDisplayVars ctx
+        { ctxNextVar = Alignable.nextAlign vn
+        , ctxVars = AlignableMap.insert vn v
+            do ctxVars ctx
         }
-    pure v
+    pure vn
 
 registerInitial :: Monad m => Enum start
-    => start -> LAPEG.Var -> BuilderT start doc a m ()
+    => start -> LAPEG.VarNum -> BuilderT start varDoc altDoc a m ()
 registerInitial i v = modify' \ctx -> ctx
     {
         ctxInitials = EnumMap.insert i v do ctxInitials ctx
     }
 
-addAlt :: Monad m => LAPEG.Alt a -> BuilderT start doc a m LAPEG.AltNum
+addAlt :: Monad m
+    => LAPEG.Alt altDoc a -> BuilderT start varDoc altDoc a m LAPEG.AltNum
 addAlt alt = do
     n <- genNewAltNum
     modify' \ctx -> ctx
@@ -83,7 +87,8 @@ addAlt alt = do
         }
     pure n
 
-addRule :: Monad m => LAPEG.Var -> LAPEG.Rule -> BuilderT start doc a m ()
+addRule :: Monad m
+    => LAPEG.VarNum -> LAPEG.Rule -> BuilderT start varDoc altDoc a m ()
 addRule v e = modify' \ctx -> ctx
     { ctxRules = AlignableMap.insert v e
         do ctxRules ctx

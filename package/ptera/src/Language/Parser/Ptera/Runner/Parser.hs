@@ -25,7 +25,6 @@ import           Language.Parser.Ptera.Prelude
 
 import           Language.Parser.Ptera.Machine.PEG (AltKind (..))
 import qualified Language.Parser.Ptera.Syntax      as Syntax
-import qualified Prettyprinter
 
 type StartNum = Int
 type StateNum = Int
@@ -40,19 +39,19 @@ newtype ActionM ctx = ActionM
         runActionM :: forall a b. [a] -> Syntax.ActionTask ctx b
     }
 
-data RunnerParser ctx elem docann = RunnerParser
+data RunnerParser ctx elem altHelp = RunnerParser
     { parserInitial     :: StartNum -> Maybe StateNum
     , parserGetTokenNum :: elem -> TokenNum
     , parserTrans       :: StateNum -> TokenNum -> Trans
     , parserAltKind     :: AltNum -> AltKind
-    , parserAltHelp     :: AltNum -> (StringLit, Prettyprinter.Doc docann)
+    , parserStateHelp   :: StateNum -> [(AltNum, Int)]
+    , parserAltHelp     :: AltNum -> (StringLit, Maybe altHelp)
     , parserAction      :: AltNum -> ActionM ctx
     }
 
 data Trans = Trans
-    {
-        transState :: StateNum,
-        transOps   :: [TransOp]
+    { transState :: StateNum
+    , transOps   :: [TransOp]
     }
     deriving (Eq, Show)
 

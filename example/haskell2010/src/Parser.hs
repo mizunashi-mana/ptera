@@ -21,12 +21,12 @@ $(PteraTH.genRunner
     Rules.grammar
     )
 
-moduleParser :: PteraTH.Scanner p Token m => m (PteraTH.Result p ann Program)
+moduleParser :: PteraTH.Scanner p Token m => m (PteraTH.Result p Program)
 moduleParser = PteraTH.runParserM (Proxy :: Proxy "module") pteraTHRunner []
 
 parseModule :: [Token] -> Either String Program
 parseModule toks = case PteraTH.runListScanner moduleParser toks of
     PteraTH.Parsed x ->
         Right x
-    PteraTH.ParseFail p e ->
+    PteraTH.ParseFailed p e ->
         Left $ show ("ParseFail", e, p)

@@ -12,16 +12,16 @@ import qualified Language.Parser.Ptera.Pipeline.PEG2LAPEG   as PEG2LAPEG
 import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar   as SafeGrammar
 
-safeGrammar2Srb :: SafeGrammar.Grammar action vars rules tokens elem
-    -> Either [StringLit] (SRB.T Int StringLit (Grammar.Action action))
+safeGrammar2Srb :: SafeGrammar.T action rules tokens elem initials
+    -> Either [StringLit] (SRB.T Int StringLit (Maybe ()) (Grammar.Action action))
 safeGrammar2Srb (SafeGrammar.UnsafeGrammar g) = do
     let peg = Grammar2PEG.grammar2Peg g
     laPeg <- case runExcept do PEG2LAPEG.peg2LaPeg peg of
         Right x -> Right x
-        Left vs -> do
-            let displayVs = PEG.displayVars peg
+        Left vns -> do
+            let vs = PEG.vars peg
             Left
-                [ AlignableArray.forceIndex displayVs v
-                | v <- AlignableSet.toList vs
+                [ PEG.varHelp do AlignableArray.forceIndex vs vn
+                | vn <- AlignableSet.toList vns
                 ]
     pure do LAPEG2SRB.laPeg2Srb laPeg

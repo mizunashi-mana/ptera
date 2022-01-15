@@ -9,20 +9,20 @@ import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
-type T start doc a = BuilderT start doc a
+type T start varDoc altDoc a = BuilderT start varDoc altDoc a
 
-type BuilderT start doc a = StateT (Context start doc a)
+type BuilderT start varDoc altDoc a = StateT (Context start varDoc altDoc a)
 
-data Context start doc a = Context
-    {
-        ctxInitials    :: EnumMap.EnumMap start PEG.Var,
-        ctxNextVar     :: PEG.Var,
-        ctxRules       :: AlignableMap.T PEG.Var (PEG.Rule a),
-        ctxDisplayVars :: AlignableMap.T PEG.Var doc
+data Context start varDoc altDoc a = Context
+    { ctxInitials    :: EnumMap.EnumMap start PEG.VarNum
+    , ctxNextVar     :: PEG.VarNum
+    , ctxRules       :: AlignableMap.T PEG.VarNum (PEG.Rule altDoc a)
+    , ctxVars        :: AlignableMap.T PEG.VarNum (PEG.Var varDoc)
     }
     deriving (Eq, Show)
 
-build :: Monad m => BuilderT start doc a m () -> m (PEG.T start doc a)
+build :: Monad m
+    => BuilderT start varDoc altDoc a m () -> m (PEG.T start varDoc altDoc a)
 build builder = do
     finalCtx <- execStateT builder initialCtx
     pure do
@@ -31,9 +31,9 @@ build builder = do
             , rules = AlignableArray.fromTotalMap
                 do ctxNextVar finalCtx
                 do ctxRules finalCtx
-            , displayVars = AlignableArray.fromTotalMap
+            , vars = AlignableArray.fromTotalMap
                 do ctxNextVar finalCtx
-                do ctxDisplayVars finalCtx
+                do ctxVars finalCtx
             }
     where
         initialCtx = Context
@@ -41,26 +41,29 @@ build builder = do
                 ctxInitials = EnumMap.empty,
                 ctxNextVar = Alignable.initialAlign,
                 ctxRules = AlignableMap.empty,
-                ctxDisplayVars = AlignableMap.empty
+                ctxVars = AlignableMap.empty
             }
 
-genNewVar :: Monad m => doc -> BuilderT start doc a m PEG.Var
-genNewVar d = do
-    v <- ctxNextVar <$> get
+genNewVar :: Monad m
+    => PEG.Var varDoc -> BuilderT start varDoc altDoc a m PEG.VarNum
+genNewVar v = do
+    vn <- ctxNextVar <$> get
     modify' \ctx -> ctx
-        { ctxNextVar = Alignable.nextAlign v
-        , ctxDisplayVars = AlignableMap.insert v d
-            do ctxDisplayVars ctx
+        { ctxNextVar = Alignable.nextAlign vn
+        , ctxVars = AlignableMap.insert vn v
+            do ctxVars ctx
         }
-    pure v
+    pure vn
 
-addInitial :: Monad m => Enum start => start -> PEG.Var -> BuilderT start doc a m ()
+addInitial :: Monad m => Enum start
+    => start -> PEG.VarNum -> BuilderT start varDoc altDoc a m ()
 addInitial i v = modify' \ctx -> ctx
     {
         ctxInitials = EnumMap.insert i v do ctxInitials ctx
     }
 
-addRule :: Monad m => PEG.Var -> PEG.Rule a -> BuilderT start doc a m ()
+addRule :: Monad m
+    => PEG.VarNum -> PEG.Rule altDoc a -> BuilderT start varDoc altDoc a m ()
 addRule v e = modify' \ctx -> ctx
     { ctxRules = AlignableMap.insert v e
         do ctxRules ctx

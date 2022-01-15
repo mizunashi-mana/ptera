@@ -29,7 +29,7 @@ library
         Lexer.PreprocessLayout
         Parser
         Parser.Rules
-        --Parser.Debug
+        Parser.Debug
 
     build-depends:
         base,

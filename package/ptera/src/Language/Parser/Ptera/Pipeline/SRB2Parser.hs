@@ -7,19 +7,20 @@ import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.HEnum           as HEnum
 import qualified Language.Parser.Ptera.Data.HList           as HList
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
+import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Runner.Parser        as Parser
 import qualified Language.Parser.Ptera.Syntax               as Syntax
 import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
-import qualified Prettyprinter
 import qualified Unsafe.Coerce                              as Unsafe
 
 type Action ctx = Grammar.Action (Syntax.SemActM ctx)
 
-srb2Parser :: forall ctx tokens elem docann. Syntax.GrammarToken tokens elem
-    => Proxy tokens -> SRB.T Int StringLit (Action ctx)
-    -> Parser.T ctx elem docann
+srb2Parser :: forall ctx tokens elem altHelp
+    .  Syntax.GrammarToken tokens elem
+    => Proxy tokens -> SRB.T Int StringLit (Maybe altHelp) (Action ctx)
+    -> Parser.T ctx elem altHelp
 srb2Parser p srb = Parser.RunnerParser
     { parserInitial = \s -> coerce do EnumMap.lookup s do SRB.initials srb
     , parserGetTokenNum = \tok ->
@@ -44,15 +45,20 @@ srb2Parser p srb = Parser.RunnerParser
             do AlignableArray.forceIndex
                 do SRB.alts srb
                 do LAPEG.AltNum alt
+    , parserStateHelp = \s ->
+        let srbSt = AlignableArray.forceIndex
+                do SRB.states srb
+                do SRB.StateNum s
+        in buildStateHelp do SRB.stateAltItems srbSt
     , parserAltHelp = \alt ->
-        let v = LAPEG.altVar
+        let vn = LAPEG.altVar
                 do AlignableArray.forceIndex
                     do SRB.alts srb
                     do LAPEG.AltNum alt
-            displayV = AlignableArray.forceIndex
-                do SRB.displayVars srb
-                do v
-        in (displayV, Prettyprinter.pretty "Not support alternative help yet.")
+            v = AlignableArray.forceIndex
+                do SRB.vars srb
+                do vn
+        in (PEG.varHelp v, Nothing)
     }
 
 buildTrans :: Int -> SRB.MState -> Parser.Trans
@@ -76,9 +82,18 @@ buildTrans t srbSt = case SymbolicIntMap.lookup t do SRB.stateTrans srbSt of
                 transOps = [Parser.TransOpReduce alt]
             }
 
+buildStateHelp :: [SRB.AltItem] -> [(Parser.AltNum, Int)]
+buildStateHelp altItems =
+    [
+        ( coerce do SRB.altItemAltNum altItem
+        , coerce do SRB.altItemCurPos altItem
+        )
+    | altItem <- altItems
+    ]
+
 transOp :: SRB.TransOp -> Parser.TransOp
 transOp = \case
-    SRB.TransOpEnter (LAPEG.Var v) needBack mEnterSn ->
+    SRB.TransOpEnter (LAPEG.VarNum v) needBack mEnterSn ->
         let enterSn = case mEnterSn of
                 Nothing ->
                     -1

@@ -25,7 +25,6 @@ library
         Types
         Parser
         Parser.Rules
-        Parser.Debug
         Lexer
         Lexer.Rules
 

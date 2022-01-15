@@ -14,7 +14,7 @@ module Language.Parser.Ptera.TH (
 import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Haskell.TH                                 as TH
-import           Language.Parser.Ptera.Runner                        (Result (..),
+import           Language.Parser.Ptera.Runner                        (Result, ParseResult (..),
                                                                       runParser,
                                                                       runParserM)
 import           Language.Parser.Ptera.Scanner                       hiding (T)

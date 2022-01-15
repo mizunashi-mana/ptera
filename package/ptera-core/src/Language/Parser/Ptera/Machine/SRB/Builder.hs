@@ -6,6 +6,7 @@ import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
+import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 
@@ -22,11 +23,13 @@ data Context start a = Context
     }
     deriving (Eq, Show)
 
-type Docs doc = AlignableArray.T LAPEG.Var doc
-type Alts a = AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
+type Vars varDoc = AlignableArray.T LAPEG.VarNum (PEG.Var varDoc)
+type Alts altDoc a = AlignableArray.T LAPEG.AltNum (LAPEG.Alt altDoc a)
 
-build :: Monad m => Docs doc -> Alts a -> BuilderT start a m () -> m (SRB.T start doc a)
-build docs alts builder = do
+build :: Monad m
+    => Vars varDoc -> Alts altDoc a -> BuilderT start a m ()
+    -> m (SRB.T start varDoc altDoc a)
+build vars alts builder = do
     finalCtx <- execStateT builder initialCtx
     pure do
         SRB.SRB
@@ -35,7 +38,7 @@ build docs alts builder = do
                 do ctxNextStateNum finalCtx
                 do ctxStates finalCtx
             , alts = alts
-            , displayVars = docs
+            , vars = vars
             }
     where
         initialCtx = Context

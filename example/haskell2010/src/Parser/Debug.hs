@@ -22,15 +22,15 @@ import           Types
 
 type SemanticAction = SRB2ParserDec.SemanticAction Rules.GrammarContext
 
-peg :: PEG.T Int SemanticAction
+peg :: PEG.T Int String (Maybe ()) SemanticAction
 peg = Grammar2PEG.grammar2Peg $ SafeGrammar.unsafeGrammar Rules.grammar
 
-laPeg :: LAPEG.T Int SemanticAction
+laPeg :: LAPEG.T Int String (Maybe ()) SemanticAction
 laPeg = case runExcept $ PEG2LAPEG.peg2LaPeg peg of
     Right x -> x
     Left vs -> error $ "unreachable: " ++ show vs
 
-srb :: SRB.T Int SemanticAction
+srb :: SRB.T Int String (Maybe ()) SemanticAction
 srb = LAPEG2SRB.laPeg2Srb laPeg
 
 showProgram :: IO String
