@@ -24,4 +24,8 @@ main = do
         Right xs ->
             pure xs
     print ("Tokens", toks)
-    print ("ParseResult", Parser.parseModule toks)
+    case Parser.parseModule toks of
+        Right x ->
+            print ("ParseResult", x)
+        Left err ->
+            putStrLn err

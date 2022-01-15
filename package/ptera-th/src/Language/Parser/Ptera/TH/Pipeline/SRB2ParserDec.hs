@@ -4,6 +4,7 @@ module Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec where
 
 import           Language.Parser.Ptera.Prelude
 
+import           Prelude (String)
 import qualified Data.Bits                                  as Bits
 import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Data.HashMap.Strict                        as HashMap
@@ -40,6 +41,7 @@ srb2QParser param srb = do
     let parserGetTokenNumFnName = TH.mkName "pteraTHParserGetTokenNum"
     let parserTransFnName = TH.mkName "pteraTHParserTrans"
     let parserAltKindFnName = TH.mkName "pteraTHParserAltKind"
+    let parserAltHelpFnName = TH.mkName "pteraTHParserAltHelp"
     let parserActionFnName = TH.mkName "pteraTHParserAction"
 
     sequence
@@ -65,22 +67,30 @@ srb2QParser param srb = do
             [t|Int -> AltKind|]
         , outputParserAltKindFn parserAltKindFnName do SRB.alts srb
 
+        , TH.SigD parserAltHelpFnName <$>
+            [t|forall ann. Int -> (String, Doc ann)|]
+        , outputParserAltHelpFn parserAltHelpFnName
+            do SRB.alts srb
+            do SRB.displayVars srb
+
         , TH.SigD parserActionFnName <$>
             [t|Int -> ActionM $(customCtxTy param)|]
         , outputParserActionFn parserActionFnName do SRB.alts srb
 
         , TH.SigD runnerFnName <$>
-            [t|Parser
+            [t|forall docann. Parser
                 $(customCtxTy param)
                 $(rulesTy param)
                 $(tokenTy param)
                 $(startsTy param)
+                docann
             |]
         , outputRunnerFn runnerFnName
             parserInitialFnName
             parserGetTokenNumFnName
             parserTransFnName
             parserAltKindFnName
+            parserAltHelpFnName
             parserActionFnName
         ]
 
@@ -296,6 +306,24 @@ outputParserAltKindFn parserAltKindFnName alts = TH.ValD
             AltAnd -> [e|AltAnd|]
             AltNot -> [e|AltNot|]
 
+outputParserAltHelpFn
+    :: TH.Name
+    -> AlignableArray.T LAPEG.AltNum (LAPEG.Alt a)
+    -> AlignableArray.T LAPEG.Var StringLit
+    -> TH.Q TH.Dec
+outputParserAltHelpFn parserAltHelpFnName alts displayVars = TH.ValD
+    do TH.VarP parserAltHelpFnName
+    <$> fmap TH.NormalB [e|
+        let arr = pteraTHArrayFromList $(TH.lift do length alts - 1)
+                $(TH.ListE <$> traverse altHelpExp do toList alts)
+        in \i -> pteraTHArrayIndex arr i
+    |]
+    <*> pure []
+    where
+        altHelpExp alt =
+            let vn = AlignableArray.forceIndex displayVars do LAPEG.altVar alt
+            in [e|($(TH.lift vn), pteraTHHelpNotYetMessage)|]
+
 outputParserActionFn :: TH.Name
     -> AlignableArray.T LAPEG.AltNum (LAPEG.Alt (SemanticAction ctx)) -> TH.Q TH.Dec
 outputParserActionFn parserActionFnName alts = TH.ValD
@@ -325,12 +353,15 @@ outputParserActionFn parserActionFnName alts = TH.ValD
                 pteraTHAction $(Syntax.unsafeSemanticAction act)
                 |]
 
-outputRunnerFn :: TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Q TH.Dec
+outputRunnerFn
+    :: TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name
+    -> TH.Q TH.Dec
 outputRunnerFn runnerFnName = \
         parserInitialFnName
         parserGetTokenNumFnName
         parserTransFnName
         parserAltKindFnName
+        parserAltHelpFnName
         parserActionFnName
     -> TH.ValD do TH.VarP runnerFnName
         <$> fmap TH.NormalB [e|pteraTHUnsafeRunner parser|]
@@ -340,5 +371,6 @@ outputRunnerFn runnerFnName = \
                 $(pure do TH.VarE parserGetTokenNumFnName)
                 $(pure do TH.VarE parserTransFnName)
                 $(pure do TH.VarE parserAltKindFnName)
+                $(pure do TH.VarE parserAltHelpFnName)
                 $(pure do TH.VarE parserActionFnName)
         |]

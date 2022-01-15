@@ -13,11 +13,13 @@ import qualified Language.Parser.Ptera.Runner.Parser        as Parser
 import qualified Language.Parser.Ptera.Syntax               as Syntax
 import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
 import qualified Unsafe.Coerce                              as Unsafe
+import qualified Prettyprinter
 
 type Action ctx = Grammar.Action (Syntax.SemActM ctx)
 
-srb2Parser :: forall ctx tokens elem. Syntax.GrammarToken tokens elem
-    => Proxy tokens -> SRB.T Int StringLit (Action ctx) -> Parser.T ctx elem
+srb2Parser :: forall ctx tokens elem docann. Syntax.GrammarToken tokens elem
+    => Proxy tokens -> SRB.T Int StringLit (Action ctx)
+    -> Parser.T ctx elem docann
 srb2Parser p srb = Parser.RunnerParser
     { parserInitial = \s -> coerce do EnumMap.lookup s do SRB.initials srb
     , parserGetTokenNum = \tok ->
@@ -42,6 +44,15 @@ srb2Parser p srb = Parser.RunnerParser
             do AlignableArray.forceIndex
                 do SRB.alts srb
                 do LAPEG.AltNum alt
+    , parserAltHelp = \alt ->
+        let v = LAPEG.altVar
+                do AlignableArray.forceIndex
+                    do SRB.alts srb
+                    do LAPEG.AltNum alt
+            displayV = AlignableArray.forceIndex
+                do SRB.displayVars srb
+                do v
+        in (displayV, Prettyprinter.pretty "Not support alternative help yet.")
     }
 
 buildTrans :: Int -> SRB.MState -> Parser.Trans

@@ -20,21 +20,25 @@ import qualified Language.Parser.Ptera.Runner.Parser      as Parser
 import qualified Language.Parser.Ptera.Scanner            as Scanner
 import qualified Language.Parser.Ptera.Syntax             as Syntax
 import qualified Unsafe.Coerce                            as Unsafe
+import qualified Prettyprinter
 
 type T = RunT
 
-newtype RunT ctx posMark elem m a = RunT
+newtype RunT ctx posMark elem docann m a = RunT
     {
-        unRunT :: StateT (Context ctx posMark elem) m a
+        unRunT :: StateT (Context ctx posMark elem docann) m a
     }
     deriving Functor
-    deriving (Applicative, Monad) via (StateT (Context ctx posMark elem) m)
+    deriving (
+        Applicative,
+        Monad
+    ) via (StateT (Context ctx posMark elem docann) m)
 
-instance MonadTrans (RunT ctx posMark elem) where
+instance MonadTrans (RunT ctx posMark elem docann) where
     lift mx = RunT do lift mx
 
-runT :: forall ctx posMark elem m a. Scanner.T posMark elem m
-    => RunT ctx posMark elem m (Result a)
+runT :: forall ctx posMark elem docann m a. Scanner.T posMark elem m
+    => RunT ctx posMark elem docann m (Result posMark docann a)
 runT = go where
     go = do
         (tok, _) <- consumeIfNeeded
@@ -45,38 +49,56 @@ runT = go where
                 ContParse ->
                     go
                 CantContParse ->
-                    pure ParseFail
+                    goFailed
 
-    goResult :: Parser.TokenNum -> RunT ctx posMark elem m (Result a)
+    goResult
+        :: Parser.TokenNum
+        -> RunT ctx posMark elem docann m (Result posMark docann a)
     goResult tok = if
-        | tok >= 0 ->
-            pure ParseFail
+        | tok >= 0 -> do
+            reportError FailedByEarlyParsed
+            goFailed
         | otherwise ->
             getCtx ctxItemStack >>= \case
                 [ItemArgument x] ->
                     pure do Parsed do Unsafe.unsafeCoerce x
-                _ ->
-                    pure ParseFail
+                _ -> do
+                    reportError FailedByNotEnoughInput
+                    goFailed
 
-data Result a
+    goFailed :: RunT ctx posMark elem docann m (Result posMark docann a)
+    goFailed = getCtx ctxDeepestError >>= \case
+        Just (_, posMark0, failedReason) ->
+            pure do ParseFail posMark0 failedReason
+        Nothing ->
+            error "unreachable: any errors are available."
+
+data Result posMark docann a
     = Parsed a
-    | ParseFail
-    deriving (Eq, Show, Functor)
+    | ParseFail posMark (FailedReason docann)
+    deriving (Show, Functor)
 
-data Context ctx posMark elem = Context
-    {
-        ctxParser             :: Parser.T ctx elem,
-        ctxState              :: Parser.StateNum,
-        ctxItemStack          :: [Item posMark],
-        ctxLookAHeadToken     :: Maybe (Position, posMark, Parser.TokenNum, Maybe elem),
-        ctxNextPosition       :: Position,
-        ctxMemoTable          :: AlignableMap.T Position (IntMap.IntMap (MemoItem posMark)),
-        ctxNeedBackItemsCount :: Int,
-        ctxCustomContext      :: ctx
+data FailedReason docann
+    = FailedWithHelp StringLit (Prettyprinter.Doc docann)
+    | FailedToStart
+    | FailedByEarlyParsed
+    | FailedByNotEnoughInput
+    deriving (Show, Functor)
+
+data Context ctx posMark elem docann = Context
+    { ctxParser             :: Parser.T ctx elem docann
+    , ctxState              :: Parser.StateNum
+    , ctxItemStack          :: [Item posMark]
+    , ctxLookAHeadToken     :: Maybe (Position, posMark, Parser.TokenNum, Maybe elem)
+    , ctxNextPosition       :: Position
+    , ctxDeepestError       :: Maybe (Position, posMark, FailedReason docann)
+    , ctxMemoTable          :: AlignableMap.T Position (IntMap.IntMap (MemoItem posMark))
+    , ctxNeedBackItemsCount :: Int
+    , ctxCustomContext      :: ctx
     }
 
 newtype Position = Position Int
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
     deriving Alignable.T via Alignable.Inst
 
 data MemoItem posMark where
@@ -94,37 +116,38 @@ data RunningResult
     | CantContParse
     deriving (Eq, Show)
 
-initialContext :: Parser.T ctx elem -> ctx -> Parser.StartNum -> Maybe (Context ctx posMark elem)
+initialContext
+    :: Parser.T ctx elem docann -> ctx -> Parser.StartNum
+    -> Maybe (Context ctx posMark elem docann)
 initialContext parser ctx0 s0 = do
     sn0 <- Parser.parserInitial parser s0
     pure do
         Context
-            {
-                ctxParser = parser,
-                ctxState = sn0,
-                ctxLookAHeadToken = Nothing,
-                ctxItemStack = [],
-                ctxNextPosition = Alignable.initialAlign,
-                ctxMemoTable = AlignableMap.empty,
-                ctxNeedBackItemsCount = 0,
-                ctxCustomContext = ctx0
+            { ctxParser = parser
+            , ctxState = sn0
+            , ctxLookAHeadToken = Nothing
+            , ctxItemStack = []
+            , ctxNextPosition = Alignable.initialAlign
+            , ctxMemoTable = AlignableMap.empty
+            , ctxNeedBackItemsCount = 0
+            , ctxCustomContext = ctx0
+            , ctxDeepestError = Nothing
             }
 
-transByInput :: forall ctx posMark elem m. Scanner.T posMark elem m
-    => Parser.TokenNum -> RunT ctx posMark elem m RunningResult
+transByInput :: forall ctx posMark elem docann m
+    .  Scanner.T posMark elem m
+    => Parser.TokenNum -> RunT ctx posMark elem docann m RunningResult
 transByInput tok = go where
     go = do
         parser <- getCtx ctxParser
         sn0 <- getCtx ctxState
         let trans1 = Parser.parserTrans parser sn0 tok
-        {-debugTrace
-            do show (sn0, tok) ++ " -> " ++ show (Parser.transState trans1)
-            do pure ()-}
         setNextState do Parser.transState trans1
         let ops = Parser.transOps trans1
         goTransOps ops
 
-    goTransOps :: [Parser.TransOp] -> RunT ctx posMark elem m RunningResult
+    goTransOps :: [Parser.TransOp]
+        -> RunT ctx posMark elem docann m RunningResult
     goTransOps = \case
         [] ->
             pure ContParse
@@ -137,7 +160,7 @@ transByInput tok = go where
                     pure CantContParse
 
 runTransOp :: Scanner.T posMark elem m
-    => Parser.TransOp -> RunT ctx posMark elem m RunningResult
+    => Parser.TransOp -> RunT ctx posMark elem docann m RunningResult
 runTransOp = \case
     Parser.TransOpEnter v needBack enterSn ->
         runEnter v needBack enterSn
@@ -150,7 +173,7 @@ runTransOp = \case
         pure ContParse
     Parser.TransOpShift -> consumeIfNeeded >>= \case
         (_, Nothing) ->
-            parseFail
+            parseFail do Just FailedByNotEnoughInput
         (_, Just x) -> do
             pushItem do ItemArgument x
             shift
@@ -159,7 +182,8 @@ runTransOp = \case
         runReduce alt
 
 runEnter :: Scanner.T posMark elem m
-    => Parser.VarNum -> Bool -> Parser.StateNum -> RunT ctx posMark elem m RunningResult
+    => Parser.VarNum -> Bool -> Parser.StateNum
+    -> RunT ctx posMark elem docann m RunningResult
 runEnter v needBack enterSn = do
     (pos0, mark0) <- getCurrentPosition
     memoTable <- getCtx ctxMemoTable
@@ -180,12 +204,13 @@ runEnter v needBack enterSn = do
                 seekToMark pos1 mark1
                 pure ContParse
             MemoItemFailed ->
-                parseFail
+                parseFail Nothing
 
-runReduce :: forall ctx posMark elem m. Scanner.T posMark elem m
-    => Parser.AltNum -> RunT ctx posMark elem m RunningResult
+runReduce :: forall ctx posMark elem docann m
+    .  Scanner.T posMark elem m
+    => Parser.AltNum -> RunT ctx posMark elem docann m RunningResult
 runReduce alt = go [] where
-    go :: [u] -> RunT ctx posMark elem m RunningResult
+    go :: [u] -> RunT ctx posMark elem docann m RunningResult
     go args = popItem >>= \case
         Nothing ->
             pure CantContParse
@@ -195,24 +220,25 @@ runReduce alt = go [] where
             ItemBackpoint{} ->
                 go args
             ItemHandleNot{} ->
-                parseFail
+                parseFailWithAlt alt
             ItemEnter pos mmark v enterSn ->
                 goEnter args pos mmark v enterSn
 
-    goEnter :: [u] -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
-        -> RunT ctx posMark elem m RunningResult
+    goEnter
+        :: [u] -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
+        -> RunT ctx posMark elem docann m RunningResult
     goEnter args pos0 mmark0 v enterSn = do
         parser <- getCtx ctxParser
         case Parser.parserAltKind parser alt of
             PEG.AltSeq -> runActionAndSaveEnterResult v pos0 alt args >>= \case
                 False ->
-                    parseFail
+                    parseFailWithAlt alt
                 True -> do
                     setNextState enterSn
                     pure ContParse
             PEG.AltAnd -> runActionAndSaveEnterResult v pos0 alt args >>= \case
                 False ->
-                    parseFail
+                    parseFailWithAlt alt
                 True -> do
                     let mark0 = case mmark0 of
                             Nothing ->
@@ -225,10 +251,28 @@ runReduce alt = go [] where
             PEG.AltNot ->
                 pure CantContParse
 
-parseFail :: forall ctx posMark elem m. Scanner.T posMark elem m
-    => RunT ctx posMark elem m RunningResult
-parseFail = go where
-    go :: RunT ctx posMark elem m RunningResult
+parseFailWithAlt :: forall ctx posMark elem docann m
+    .  Scanner.T posMark elem m
+    => Parser.AltNum -> RunT ctx posMark elem docann m RunningResult
+parseFailWithAlt alt = do
+    parser <- getCtx ctxParser
+    let (varHelp, altHelp) = Parser.parserAltHelp parser alt
+    parseFail do Just do FailedWithHelp varHelp altHelp
+
+parseFail :: forall ctx posMark elem docann m
+    .  Scanner.T posMark elem m
+    => Maybe (FailedReason docann) -> RunT ctx posMark elem docann m RunningResult
+parseFail = go0 where
+    go0 :: Maybe (FailedReason docann) -> RunT ctx posMark elem docann m RunningResult
+    go0 alt = do
+        case alt of
+            Nothing ->
+                pure ()
+            Just failedReason -> do
+                reportError failedReason
+        go
+
+    go :: RunT ctx posMark elem docann m RunningResult
     go = popItem >>= \case
         Nothing ->
             pure CantContParse
@@ -254,8 +298,9 @@ parseFail = go where
             _ ->
                 goHandleNot alt
 
-    goEnter :: Parser.AltNum -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
-        -> RunT ctx posMark elem m RunningResult
+    goEnter
+        :: Parser.AltNum -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
+        -> RunT ctx posMark elem docann m RunningResult
     goEnter alt pos0 mmark0 v enterSn = do
         parser <- getCtx ctxParser
         case Parser.parserAltKind parser alt of
@@ -265,7 +310,7 @@ parseFail = go where
                 error "unreachable: a not handling with and alternative"
             PEG.AltNot -> runActionAndSaveEnterResult v pos0 alt [] >>= \case
                 False ->
-                    go
+                    parseFailWithAlt alt
                 True -> do
                     let mark0 = case mmark0 of
                             Nothing ->
@@ -276,8 +321,10 @@ parseFail = go where
                     setNextState enterSn
                     pure ContParse
 
-runActionAndSaveEnterResult :: Scanner.T posMark elem m
-    => Parser.VarNum -> Position -> Parser.AltNum -> [u] -> RunT ctx posMark elem m Bool
+runActionAndSaveEnterResult
+    :: Scanner.T posMark elem m
+    => Parser.VarNum -> Position -> Parser.AltNum -> [u]
+    -> RunT ctx posMark elem docann m Bool
 runActionAndSaveEnterResult v pos0 alt args = runAction alt args >>= \case
     Syntax.ActionTaskFail -> do
         saveFailedEnterAction v pos0
@@ -291,7 +338,7 @@ runActionAndSaveEnterResult v pos0 alt args = runAction alt args >>= \case
 
 runAction :: Scanner.T posMark elem m
     => Parser.AltNum -> [u]
-    -> RunT ctx posMark elem m (Syntax.ActionTaskResult ctx a)
+    -> RunT ctx posMark elem docann m (Syntax.ActionTaskResult ctx a)
 runAction alt args = do
     parser <- getCtx ctxParser
     ctx0 <- getCtx ctxCustomContext
@@ -300,9 +347,10 @@ runAction alt args = do
             do args
     pure do Syntax.runActionTask actionTask ctx0
 
-saveParsedEnterAction :: Scanner.T posMark elem m
+saveParsedEnterAction
+    :: Scanner.T posMark elem m
     => Parser.VarNum -> Position -> Maybe ctx -> a
-    -> RunT ctx posMark elem m ()
+    -> RunT ctx posMark elem docann m ()
 saveParsedEnterAction v pos0 mctx1 res = do
     forM_ mctx1 \ctx1 -> updateCustomContext ctx1
     insertMemoItemIfNeeded v pos0 do
@@ -310,14 +358,31 @@ saveParsedEnterAction v pos0 mctx1 res = do
         pure do MemoItemParsed pos1 pm1 res
     pushItem do ItemArgument res
 
-saveFailedEnterAction :: Scanner.T posMark elem m
-    => Parser.VarNum -> Position -> RunT ctx posMark elem m ()
+saveFailedEnterAction
+    :: Monad m
+    => Parser.VarNum -> Position -> RunT ctx posMark elem docann m ()
 saveFailedEnterAction v pos = insertMemoItemIfNeeded v pos do
     pure MemoItemFailed
 
-insertMemoItemIfNeeded :: Monad m
-    => Parser.VarNum -> Position -> RunT ctx posMark elem m (MemoItem posMark)
-    -> RunT ctx posMark elem m ()
+reportError
+    :: Scanner.T posMark elem m
+    => FailedReason docann -> RunT ctx posMark elem docann m ()
+reportError failedReason = do
+    (pos0, posMark0) <- getCurrentPosition
+    RunT do
+        modify' \ctx -> ctx
+            { ctxDeepestError = case ctxDeepestError ctx of
+                oldErr@(Just (pos1, _, _)) | pos0 < pos1 ->
+                    oldErr
+                _ ->
+                    Just (pos0, posMark0, failedReason)
+            }
+
+insertMemoItemIfNeeded
+    :: Monad m
+    => Parser.VarNum -> Position
+    -> RunT ctx posMark elem docann m (MemoItem posMark)
+    -> RunT ctx posMark elem docann m ()
 insertMemoItemIfNeeded v pos mitem = do
     needBack <- isNeedBack
     when needBack do
@@ -331,7 +396,7 @@ insertMemoItemIfNeeded v pos mitem = do
                     do ctxMemoTable ctx
                 }
 
-updateCustomContext :: Monad m => ctx -> RunT ctx posMark elem m ()
+updateCustomContext :: Monad m => ctx -> RunT ctx posMark elem docann m ()
 updateCustomContext customCtx = RunT do
     modify' \ctx -> ctx
         {
@@ -339,7 +404,7 @@ updateCustomContext customCtx = RunT do
             ctxCustomContext = customCtx
         }
 
-setNextState :: Monad m => Parser.StateNum -> RunT ctx posMark elem m ()
+setNextState :: Monad m => Parser.StateNum -> RunT ctx posMark elem docann m ()
 setNextState sn = RunT do
     modify' \ctx -> ctx
         {
@@ -347,12 +412,13 @@ setNextState sn = RunT do
         }
 
 getCtx :: Monad m
-    => (Context ctx posMark elem -> a) -> RunT ctx posMark elem m a
+    => (Context ctx posMark elem docann -> a)
+    -> RunT ctx posMark elem docann m a
 getCtx f = RunT do f <$> get
 {-# INLINE getCtx #-}
 
 getCurrentPosition :: Scanner.T posMark elem m
-    => RunT ctx posMark elem m (Position, posMark)
+    => RunT ctx posMark elem docann m (Position, posMark)
 getCurrentPosition = getCtx ctxLookAHeadToken >>= \case
     Just (pos, pm, _, _) ->
         pure (pos, pm)
@@ -362,7 +428,7 @@ getCurrentPosition = getCtx ctxLookAHeadToken >>= \case
         pure (pos, pm)
 
 consumeIfNeeded :: Scanner.T posMark elem m
-    => RunT ctx posMark elem m (Parser.TokenNum, Maybe elem)
+    => RunT ctx posMark elem docann m (Parser.TokenNum, Maybe elem)
 consumeIfNeeded = getCtx ctxLookAHeadToken >>= \case
     Just (_, _, tn, mt) ->
         pure (tn, mt)
@@ -384,7 +450,7 @@ consumeIfNeeded = getCtx ctxLookAHeadToken >>= \case
                 }
         pure r
 
-shift :: Monad m => RunT ctx posMark elem m ()
+shift :: Monad m => RunT ctx posMark elem docann m ()
 shift = getCtx ctxLookAHeadToken >>= \case
     Nothing ->
         error "Must consume before shift"
@@ -398,7 +464,7 @@ shift = getCtx ctxLookAHeadToken >>= \case
                 }
 
 seekToMark :: Scanner.T posMark elem m
-    => Position -> posMark -> RunT ctx posMark elem m ()
+    => Position -> posMark -> RunT ctx posMark elem docann m ()
 seekToMark pos pm = do
     RunT do
         modify' \ctx -> ctx
@@ -407,13 +473,13 @@ seekToMark pos pm = do
             }
     lift do Scanner.seekToPosMark pm
 
-isNeedBack :: Monad m => RunT ctx posMark elem m Bool
+isNeedBack :: Monad m => RunT ctx posMark elem docann m Bool
 isNeedBack = do
     needBackItemsCount <- getCtx ctxNeedBackItemsCount
     pure do needBackItemsCount > 0
 
 pushItem :: Scanner.T posMark elem m
-    => Item posMark -> RunT ctx posMark elem m ()
+    => Item posMark -> RunT ctx posMark elem docann m ()
 pushItem item = do
     (pos, p) <- getCurrentPosition
     bc0 <- getCtx ctxNeedBackItemsCount
@@ -433,7 +499,8 @@ pushItem item = do
                     ctxMemoTable ctx
             }
 
-popItem :: Scanner.T posMark elem m => RunT ctx posMark elem m (Maybe (Item posMark))
+popItem :: Scanner.T posMark elem m
+    => RunT ctx posMark elem docann m (Maybe (Item posMark))
 popItem = getCtx ctxItemStack >>= \case
     [] ->
         pure Nothing

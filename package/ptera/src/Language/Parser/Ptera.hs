@@ -21,5 +21,5 @@ type Parser = Runner.T
 
 genRunner :: GrammarToken tokens elem
     => GrammarM ctx rules tokens elem initials
-    -> Either (Prettyprinter.Doc ann) (Parser ctx rules elem initials)
+    -> Either (Prettyprinter.Doc docann) (Parser ctx rules elem initials docann)
 genRunner g = Grammar2Runner.grammar2Runner g

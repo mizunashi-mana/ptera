@@ -1,6 +1,7 @@
 module Language.Parser.Ptera.TH.ParserLib (
     module Language.Parser.Ptera.Runner.Parser,
     module Data.Proxy,
+    module Prettyprinter,
     Parser,
     pteraTHTokenToTerminal,
     pteraTHArrayIndex,
@@ -12,6 +13,7 @@ module Language.Parser.Ptera.TH.ParserLib (
     pteraTHUnsafeRunner,
     pteraTHAction,
     pteraTHActionPure,
+    pteraTHHelpNotYetMessage,
 ) where
 
 import           Language.Parser.Ptera.Prelude
@@ -33,6 +35,8 @@ import           Language.Parser.Ptera.Runner.Parser (ActionM, ActionTask,
                                                       modifyAction)
 import qualified Language.Parser.Ptera.Runner.Parser as RunnerParser
 import qualified Unsafe.Coerce                       as Unsafe
+import           Prettyprinter (Doc)
+import qualified Prettyprinter
 
 type Parser = Runner.T
 
@@ -76,7 +80,8 @@ pteraTHLookupTable32 offset table# s c = do
 pteraTHUnsafeCoerce :: a -> b
 pteraTHUnsafeCoerce = Unsafe.unsafeCoerce
 
-pteraTHUnsafeRunner :: RunnerParser ctx elem -> Parser ctx rules elem initials
+pteraTHUnsafeRunner
+    :: RunnerParser ctx elem docann -> Parser ctx rules elem initials docann
 pteraTHUnsafeRunner p = Runner.UnsafeRunnerM p
 
 pteraTHAction :: ([a] -> ActionTask ctx b) -> ActionM ctx
@@ -84,3 +89,6 @@ pteraTHAction f = RunnerParser.ActionM do Unsafe.unsafeCoerce f
 
 pteraTHActionPure :: a -> ActionTask ctx a
 pteraTHActionPure x = pure x
+
+pteraTHHelpNotYetMessage :: Doc ann
+pteraTHHelpNotYetMessage = Prettyprinter.pretty "Not support alternative help yet."

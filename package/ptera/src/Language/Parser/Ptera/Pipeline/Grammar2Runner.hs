@@ -8,10 +8,10 @@ import qualified Language.Parser.Ptera.Runner                   as Runner
 import qualified Language.Parser.Ptera.Syntax                   as Syntax
 import qualified Prettyprinter
 
-grammar2Runner :: forall initials ctx rules tokens ann elem
+grammar2Runner :: forall initials ctx rules tokens docann elem
     .  Syntax.GrammarToken tokens elem
     => Syntax.GrammarM ctx rules tokens elem initials
-    -> Either (Prettyprinter.Doc ann) (Runner.T ctx rules elem initials)
+    -> Either (Prettyprinter.Doc docann) (Runner.T ctx rules elem initials docann)
 grammar2Runner g = do
     srb <- case SafeGrammar2SRB.safeGrammar2Srb g of
         Right x -> Right x

@@ -19,30 +19,31 @@ import qualified Type.Membership.Internal                 as MembershipInternal
 
 type T = RunnerM
 
-type RunnerM :: Type -> Type -> Type -> [Symbol] -> Type
-newtype RunnerM ctx rules elem initials = UnsafeRunnerM (Parser.T ctx elem)
+type RunnerM :: Type -> Type -> Type -> [Symbol] -> Type -> Type
+newtype RunnerM ctx rules elem initials docann = UnsafeRunnerM
+    { unRunnerM :: Parser.T ctx elem docann
+    }
 
 type Runner = RunnerM ()
 
-runParserM :: forall v initials ctx posMark m rules elem proxy
+runParserM :: forall v initials ctx posMark m rules elem docann proxy
     .  Membership.Member initials v => Scanner.T posMark elem m
-    => proxy v -> RunnerM ctx rules elem initials -> ctx
-    -> m (RunT.Result (Syntax.RuleExprReturnType rules v))
+    => proxy v -> RunnerM ctx rules elem initials docann -> ctx
+    -> m (RunT.Result posMark docann (Syntax.RuleExprReturnType rules v))
 runParserM _ (UnsafeRunnerM p) customCtx0 =
     case RunT.initialContext p customCtx0 pos of
         Nothing ->
-            pure do RunT.ParseFail
+            error "Not found the start point"
         Just initialCtx ->
-            evalStateT runner initialCtx
+            evalStateT
+                do RunT.unRunT RunT.runT
+                initialCtx
     where
-        runner :: StateT (RunT.Context ctx posMark elem) m (RunT.Result a)
-        runner = RunT.unRunT RunT.runT
-
         pos = SafeGrammar.genStartPoint
             do MembershipInternal.membership @initials @v
 
-runParser :: forall v initials posMark m rules elem proxy
+runParser :: forall v initials posMark m rules elem docann proxy
     .  Membership.Member initials v => Scanner.T posMark elem m
-    => proxy v -> Runner rules elem initials
-    -> m (RunT.Result (Syntax.RuleExprReturnType rules v))
+    => proxy v -> Runner rules elem initials docann
+    -> m (RunT.Result posMark docann (Syntax.RuleExprReturnType rules v))
 runParser p r = runParserM p r ()
