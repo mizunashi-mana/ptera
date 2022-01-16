@@ -48,9 +48,6 @@ $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
     , ("{",         [p|TokSpOpenBrace{}|])
     , ("}",         [p|TokSpCloseBrace{}|])
 
-    , ("{n}",       [p|TokVirtExpBrace{}|])
-    , ("<n>",       [p|TokVirtNewline{}|])
-
     , ("case",      [p|TokKwCase{}|])
     , ("class",     [p|TokKwClass{}|])
     , ("data",      [p|TokKwData{}|])
@@ -97,6 +94,10 @@ $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
     , ("float",     [p|TokLitFloat{}|])
     , ("char",      [p|TokLitChar{}|])
     , ("string",    [p|TokLitString{}|])
+
+    , ("{n}",       [p|TokVirtExpBrace{}|])
+    , ("<n>",       [p|TokVirtNewline{}|])
+    , ("EOS",       [p|TokVirtEndOfInput{}|])
     ])
 
 type GrammarContext = [Int]
@@ -108,16 +109,19 @@ $(Ptera.genRules
         , Ptera.genRulesTokensTy = [t|Tokens|]
         , Ptera.genRulesTokenTy = [t|Token|]
         }
-    [ (TH.mkName "rmodule", "module", [t|Program|])
+    [ (TH.mkName "rmoduleeos", "module EOS", [t|Program|])
+
+    , (TH.mkName "rmodule", "module", [t|Program|])
     , (TH.mkName "rbody", "body", [t|ProgramBody|])
     , (TH.mkName "rbodyinl", "bodyinl", [t|ProgramBody|])
     , (TH.mkName "rimpdecls", "impdecls", [t|Seq ImportDecl|])
+    , (TH.mkName "rimpdecls1", "(impdecl semi+)* impdecl", [t|Seq ImportDecl|])
     , (TH.mkName "rexports", "exports", [t|[ExportItem]|])
     , (TH.mkName "rexports0", "(export ',')* export?", [t|Seq ExportItem|])
     , (TH.mkName "rexport", "export", [t|ExportItem|])
     , (TH.mkName "rcnames", "((cname ',')* cname)?", [t|[Id]|])
     , (TH.mkName "rcnames1", "(cname ',')* cname", [t|Seq Id|])
-    , (TH.mkName "rimpdecl", "impdecl", [t|ImportDecl|])
+    , (TH.mkName "rimpdecl", "impdecl", [t|Seq ImportDecl|])
     , (TH.mkName "rasmodidopt", "('as' modid)?", [t|Maybe QualifiedId|])
     , (TH.mkName "rimpspecopt", "impspec?", [t|Maybe ImportSpec|])
     , (TH.mkName "rimpspec", "impspec", [t|ImportSpec|])
@@ -286,16 +290,21 @@ $(Ptera.genRules
     , (TH.mkName "rimpbo", "impbo", [t|()|])
     , (TH.mkName "rimpbc", "impbc", [t|()|])
     , (TH.mkName "rsemi", "semi", [t|()|])
+    , (TH.mkName "rsemis0", "semi*", [t|()|])
+    , (TH.mkName "rsemis1", "semi+", [t|()|])
 
     , (TH.mkName "rskip", "skip", [t|()|])
     ])
 
 grammar :: Ptera.GrammarM GrammarContext Rules Tokens Token ParsePoints
 grammar = Ptera.fixGrammar $ Rules
-    { rmodule = rModule
+    { rmoduleeos = rModuleEos
+
+    , rmodule = rModule
     , rbody = rBody
     , rbodyinl = rBodyInL
     , rimpdecls = rImpDecls
+    , rimpdecls1 = rImpDecls1
     , rexports = rExports
     , rexports0 = rExports0
     , rexport = rExport
@@ -469,17 +478,26 @@ grammar = Ptera.fixGrammar $ Rules
     , rimpbo = rImpBo
     , rimpbc = rImpBc
     , rsemi = rSemi
+    , rsemis0 = rSemis0
+    , rsemis1 = rSemis1
 
     , rskip = rSkip
     }
 
-type ParsePoints = '[ "module" ]
+type ParsePoints = '[ "module EOS" ]
 
 type RuleExpr = Ptera.RuleExprM GrammarContext Rules Tokens Token
 type Alt = Ptera.AltM GrammarContext Rules Tokens Token
 type Expr = Ptera.Expr Rules Tokens Token
 type Unit = Ptera.Unit Rules Tokens Token
 type SemAct = Ptera.SemActM GrammarContext
+
+rModuleEos :: RuleExpr Program
+rModuleEos = ruleExpr
+    [ alt $ varA @"module" <^> tokA @"EOS"
+        <::> semAct \(mod :* _ :* _ :* HNil) ->
+            mod
+    ]
 
 rModule :: RuleExpr Program
 rModule = ruleExpr
@@ -517,12 +535,19 @@ rBodyInL = ruleExpr
 
 rImpDecls :: RuleExpr (Seq ImportDecl)
 rImpDecls = ruleExpr
-    [ alt $ varA @"impdecl" <^> varA @"semi" <^> varA @"impdecls"
+    [ alt $ varA @"semi*" <^> varA @"(impdecl semi+)* impdecl"
+        <:> semAct \(_ :* impdecls :* HNil) ->
+            impdecls
+    ]
+
+rImpDecls1 :: RuleExpr (Seq ImportDecl)
+rImpDecls1 = ruleExpr
+    [ alt $ varA @"impdecl" <^> varA @"semi+" <^> varA @"(impdecl semi+)* impdecl"
         <:> semAct \(impdecl :* _ :* impdecls :* HNil) ->
-            [||$$(impdecl) Seq.:<| $$(impdecls)||]
+            [||$$(impdecl) Seq.>< $$(impdecls)||]
     , alt $ varA @"impdecl"
         <:> semAct \(impdecl :* HNil) ->
-            [||Seq.singleton $$(impdecl)||]
+            impdecl
     ]
 
 rExports :: RuleExpr [ExportItem]
@@ -578,14 +603,14 @@ rCnames1 = ruleExpr
             [||Seq.singleton $$(cname)||]
     ]
 
-rImpDecl :: RuleExpr ImportDecl
+rImpDecl :: RuleExpr (Seq ImportDecl)
 rImpDecl = ruleExpr
     [ alt $ tokA @"import" <^^> varA @"'qualified'" <^> varA @"modid" <^> varA @"('as' modid)?" <^> varA @"impspec?"
         <:> semAct \(_ :* _ :* _ :* modid :* asmodidOpt :* impspecOpt :* HNil) ->
-            [||ImportDecl True $$(modid) $$(asmodidOpt) $$(impspecOpt)||]
+            [||Seq.singleton $ ImportDecl True $$(modid) $$(asmodidOpt) $$(impspecOpt)||]
     , alt $ tokA @"import" <^^> varA @"modid" <^> varA @"('as' modid)?" <^> varA @"impspec?"
         <:> semAct \(_ :* _ :* modid :* asmodidOpt :* impspecOpt :* HNil) ->
-            [||ImportDecl False $$(modid) $$(asmodidOpt) $$(impspecOpt)||]
+            [||Seq.singleton $ ImportDecl False $$(modid) $$(asmodidOpt) $$(impspecOpt)||]
     ]
 
 rAsModIdOpt :: RuleExpr (Maybe QualifiedId)
@@ -807,10 +832,7 @@ rDeclsInL1 = ruleExpr
 
 rDecl :: RuleExpr (Seq Decl)
 rDecl = ruleExpr
-    [ alt $ varA @"gendecl"
-        <:> semAct \(gendecl :* HNil) ->
-            gendecl
-    , alt $ varA @"funlhs" <^> varA @"rhs"
+    [ alt $ varA @"funlhs" <^> varA @"rhs"
         <:> semAct \(funlhs :* rhs :* HNil) ->
             [||case $$(funlhs) of
                 (f, args) ->
@@ -819,6 +841,9 @@ rDecl = ruleExpr
     , alt $ varA @"pat" <^> varA @"rhs"
         <:> semAct \(pat :* rhs :* HNil) ->
             [||Seq.singleton $ DeclVar $$(pat) $$(rhs)||]
+    , alt $ varA @"gendecl"
+        <:> semAct \(gendecl :* HNil) ->
+            gendecl
     ]
 
 rCdecls :: RuleExpr [Decl]
@@ -853,10 +878,7 @@ rCdeclsInL1 = ruleExpr
 
 rCdecl :: RuleExpr (Seq Decl)
 rCdecl = ruleExpr
-    [ alt $ varA @"gendecl"
-        <:> semAct \(gendecl :* HNil) ->
-            gendecl
-    , alt $ varA @"funlhs" <^> varA @"rhs"
+    [ alt $ varA @"funlhs" <^> varA @"rhs"
         <:> semAct \(funlhs :* rhs :* HNil) ->
             [||case $$(funlhs) of
                 (f, args) ->
@@ -865,6 +887,9 @@ rCdecl = ruleExpr
     , alt $ varA @"var" <^> varA @"rhs"
         <:> semAct \(var :* rhs :* HNil) ->
             [||Seq.singleton $ DeclVar (PatId $$(var) Nothing) $$(rhs)||]
+    , alt $ varA @"gendecl"
+        <:> semAct \(gendecl :* HNil) ->
+            gendecl
     ]
 
 rIdecls :: RuleExpr [Decl]
@@ -2328,6 +2353,23 @@ rImpBc = ruleExpr
                     _ ->
                         failAction
             ||]
+    ]
+
+rSemis0 :: RuleExpr ()
+rSemis0 = ruleExpr
+    [ alt $ varA @"semi" <^> varA @"semi*"
+        <:> semAct \(_ :* _ :* HNil) ->
+            [||()||]
+    , eps
+        $ semAct \HNil ->
+            [||()||]
+    ]
+
+rSemis1 :: RuleExpr ()
+rSemis1 = ruleExpr
+    [ alt $ varA @"semi" <^> varA @"semi*"
+        <:> semAct \(_ :* _ :* HNil) ->
+            [||()||]
     ]
 
 rSemi :: RuleExpr ()

@@ -22,8 +22,6 @@ data Token
     | TokSpBacktick
     | TokSpOpenBrace
     | TokSpCloseBrace
-    | TokVirtExpBrace Int
-    | TokVirtNewline Int
     | TokKwCase
     | TokKwClass
     | TokKwData
@@ -67,6 +65,9 @@ data Token
     | TokLitFloat Text
     | TokLitChar Text
     | TokLitString Text
+    | TokVirtExpBrace Int
+    | TokVirtNewline Int
+    | TokVirtEndOfInput
     deriving (Eq, Show)
 
 data Location = Location

@@ -12,20 +12,20 @@ spec = do
     describe "parseExpr" $ do
         it "parse valid programs" $ do
             parseExpr
-                [
-                    TokParenOpen,
-                    TokIdentifier $ Char8.pack "x1",
-                    TokPlus,
-                    TokLitInteger 200,
-                    TokMulti,
-                    TokIdentifier $ Char8.pack "z",
-                    TokParenClose,
-                    TokMulti,
-                    TokParenOpen,
-                    TokLitInteger 1,
-                    TokPlus,
-                    TokLitInteger 2,
-                    TokParenClose
+                [ TokParenOpen
+                , TokIdentifier $ Char8.pack "x1"
+                , TokPlus
+                , TokLitInteger 200
+                , TokMulti
+                , TokIdentifier $ Char8.pack "z"
+                , TokParenClose
+                , TokMulti
+                , TokParenOpen
+                , TokLitInteger 1
+                , TokPlus
+                , TokLitInteger 2
+                , TokParenClose
+                , TokEndOfInput
                 ]
                 `shouldBe`
                     Right
@@ -53,3 +53,18 @@ spec = do
                     TokPlus
                 ]
                 `shouldSatisfy` isLeft
+            parseExpr
+                [ TokParenOpen
+                , TokIdentifier $ Char8.pack "x1"
+                , TokPlus
+                , TokLitInteger 200
+                , TokMulti
+                , TokIdentifier $ Char8.pack "z"
+                , TokParenClose
+                , TokMulti
+                , TokParenOpen
+                , TokLitInteger 1
+                , TokPlus
+                , TokLitInteger 2
+                , TokParenClose
+                ] `shouldSatisfy` isLeft

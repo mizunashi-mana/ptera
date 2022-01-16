@@ -13,7 +13,7 @@ preprocessLayout ts0 = case ts0 of
                 c' = locCol loc
             in TokVirtExpBrace c':TokVirtNewline c':go1 r' ts0
     [] ->
-        [TokVirtExpBrace 0]
+        go1 1 ts0
     where
         go1 r ts = case ts of
             (loc,t):ts' ->
@@ -23,7 +23,7 @@ preprocessLayout ts0 = case ts0 of
                     then TokVirtNewline c':go2 r' c' t ts'
                     else go2 r' c' t ts'
             [] ->
-                []
+                [TokVirtEndOfInput]
 
         go2 r1 c1 t1 ts
             | isLayoutToken t1 = case ts of
@@ -34,7 +34,7 @@ preprocessLayout ts0 = case ts0 of
                         then t1:t2:go1 r2 ts'
                         else t1:TokVirtExpBrace c2:TokVirtNewline c2:t2:go1 r2 ts'
                 [] ->
-                    [t1, TokVirtExpBrace 0]
+                    [t1, TokVirtExpBrace 1, TokVirtEndOfInput]
             | otherwise =
                 t1:go1 r1 ts
 

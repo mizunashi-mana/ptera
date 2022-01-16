@@ -12,20 +12,20 @@ spec = do
     describe "parseExpr" $ do
         it "parse valid programs" $ do
             parseExpr
-                [
-                    TokParenOpen,
-                    TokIdentifier $ Char8.pack "x1",
-                    TokPlus,
-                    TokLitInteger 200,
-                    TokMulti,
-                    TokIdentifier $ Char8.pack "z",
-                    TokParenClose,
-                    TokMulti,
-                    TokParenOpen,
-                    TokLitInteger 1,
-                    TokPlus,
-                    TokLitInteger 2,
-                    TokParenClose
+                [ TokParenOpen
+                , TokIdentifier $ Char8.pack "x1"
+                , TokPlus
+                , TokLitInteger 200
+                , TokMulti
+                , TokIdentifier $ Char8.pack "z"
+                , TokParenClose
+                , TokMulti
+                , TokParenOpen
+                , TokLitInteger 1
+                , TokPlus
+                , TokLitInteger 2
+                , TokParenClose
+                , TokEndOfInput
                 ]
                 `shouldBe`
                     Right
@@ -36,20 +36,35 @@ spec = do
 
         it "failed to parse invalid programs" $ do
             parseExpr
-                [
-                    TokParenOpen,
-                    TokIdentifier $ Char8.pack "x1",
-                    TokPlus,
-                    TokLitInteger 200
+                [ TokParenOpen
+                , TokIdentifier $ Char8.pack "x1"
+                , TokPlus
+                , TokLitInteger 200
+                , TokEndOfInput
                 ]
                 `shouldSatisfy` isLeft
             parseExpr
-                [
-                    TokParenOpen,
-                    TokIdentifier $ Char8.pack "x1",
-                    TokPlus,
-                    TokLitInteger 200,
-                    TokParenClose,
-                    TokPlus
+                [ TokParenOpen
+                , TokIdentifier $ Char8.pack "x1"
+                , TokPlus
+                , TokLitInteger 200
+                , TokParenClose
+                , TokPlus
+                , TokEndOfInput
                 ]
                 `shouldSatisfy` isLeft
+            parseExpr
+                [ TokParenOpen
+                , TokIdentifier $ Char8.pack "x1"
+                , TokPlus
+                , TokLitInteger 200
+                , TokMulti
+                , TokIdentifier $ Char8.pack "z"
+                , TokParenClose
+                , TokMulti
+                , TokParenOpen
+                , TokLitInteger 1
+                , TokPlus
+                , TokLitInteger 2
+                , TokParenClose
+                ] `shouldSatisfy` isLeft

@@ -22,7 +22,7 @@ $(PteraTH.genRunner
     )
 
 moduleParser :: PteraTH.Scanner p Token m => m (PteraTH.Result p Program)
-moduleParser = PteraTH.runParserM (Proxy :: Proxy "module") pteraTHRunner []
+moduleParser = PteraTH.runParserM (Proxy :: Proxy "module EOS") pteraTHRunner []
 
 parseModule :: [Token] -> Either String Program
 parseModule toks = case PteraTH.runListScanner moduleParser toks of

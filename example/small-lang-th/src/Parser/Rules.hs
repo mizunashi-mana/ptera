@@ -27,6 +27,7 @@ $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
     , (")", [p|TokParenClose{}|])
     , ("int", [p|TokLitInteger{}|])
     , ("id", [p|TokIdentifier{}|])
+    , ("EOS", [p|TokEndOfInput{}|])
     ])
 
 $(Ptera.genRules
@@ -36,7 +37,8 @@ $(Ptera.genRules
         , genRulesTokensTy = [t|Tokens|]
         , genRulesTokenTy = [t|Token|]
         }
-    [ (TH.mkName "rexpr", "expr", [t|Ast|])
+    [ (TH.mkName "rexpreos", "expr EOS", [t|Ast|])
+    , (TH.mkName "rexpr", "expr", [t|Ast|])
     , (TH.mkName "rsum", "sum", [t|Ast|])
     , (TH.mkName "rproduct", "product", [t|Ast|])
     , (TH.mkName "rvalue", "value", [t|Ast|])
@@ -45,20 +47,29 @@ $(Ptera.genRules
 
 grammar :: Grammar Rules Tokens Token ParsePoints
 grammar = fixGrammar $ Rules
-    { rexpr = rExpr
+    { rexpreos = rExprEos
+    , rexpr = rExpr
     , rsum = rSum
     , rproduct = rProduct
     , rvalue = rValue
     }
 
-type ParsePoints = '[ "expr" ]
+type ParsePoints = '[ "expr EOS" ]
 
 type RuleExpr = Ptera.RuleExpr Rules Tokens Token
 
 
+rExprEos :: RuleExpr Ast
+rExprEos = ruleExpr
+    [ alt $ varA @"expr" <^> tokA @"EOS"
+        <:> semAct \(e :* _ :* HNil) ->
+            e
+    ]
+
 rExpr :: RuleExpr Ast
 rExpr = ruleExpr
-    [ alt $ varA @"sum" <:> semAct \(e :* HNil) -> e
+    [ alt $ varA @"sum"
+        <:> semAct \(e :* HNil) -> e
     ]
 
 rSum :: RuleExpr Ast

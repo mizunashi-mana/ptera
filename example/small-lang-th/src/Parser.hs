@@ -24,7 +24,7 @@ $(PteraTH.genRunner
 
 exprParser :: PteraTH.Scanner posMark Token m
     => m (PteraTH.Result posMark Ast)
-exprParser = PteraTH.runParser (Proxy :: Proxy "expr") pteraTHRunner
+exprParser = PteraTH.runParser (Proxy :: Proxy "expr EOS") pteraTHRunner
 
 parseExpr :: [Token] -> Either String Ast
 parseExpr toks = case PteraTH.runListScanner exprParser toks of

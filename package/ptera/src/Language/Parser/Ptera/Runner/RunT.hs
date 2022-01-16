@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Language.Parser.Ptera.Runner.RunT (
     T,
 
@@ -20,6 +22,8 @@ import qualified Language.Parser.Ptera.Runner.Parser      as Parser
 import qualified Language.Parser.Ptera.Scanner            as Scanner
 import qualified Language.Parser.Ptera.Syntax             as Syntax
 import qualified Unsafe.Coerce                            as Unsafe
+
+#define DEBUG 1
 
 type T = RunT
 
@@ -54,7 +58,7 @@ runT = go where
         :: Parser.TokenNum
         -> RunT ctx posMark elem altHelp m (ParseResult posMark altHelp a)
     goResult tok = getCtx ctxItemStack >>= \case
-        [ItemArgument x] | tok < 0 ->
+        [ItemArgument x] ->
             pure do Parsed do Unsafe.unsafeCoerce x
         _ -> do
             if tok >= 0
@@ -140,8 +144,10 @@ transByInput tok = go where
         let trans1 = Parser.parserTrans parser sn0 tok
         let sn1 = Parser.transState trans1
         setNextState sn1
+#if DEBUG
         itemStackShow <- prettyShowItemStack
         debugTraceShow ("transByInput", sn0, tok, trans1, itemStackShow) do pure ()
+#endif
         case Parser.transOps trans1 of
             ops@(_:_) ->
                 goTransOps ops
@@ -164,6 +170,7 @@ transByInput tok = go where
                 CantContParse ->
                     pure CantContParse
 
+#if DEBUG
 prettyShowItemStack :: Monad m => RunT ctx posMark elem altHelp m [StringLit]
 prettyShowItemStack = do
     itemStack <- getCtx ctxItemStack
@@ -178,6 +185,7 @@ prettyShowItemStack = do
                 "ItemBackpoint " <> show (p, s)
             ItemArgument _ ->
                 "ItemArgument"
+#endif
 
 runTransOp :: Scanner.T posMark elem m
     => Parser.TransOp -> RunT ctx posMark elem altHelp m RunningResult
@@ -226,45 +234,58 @@ runEnter v needBack enterSn = do
             MemoItemFailed ->
                 parseFail Nothing
 
+#if DEBUG
 debugShowHelpAlt :: Monad m
     => StringLit -> Parser.AltNum -> RunT ctx posMark elem altHelp m ()
 debugShowHelpAlt msg alt = do
     parser <- getCtx ctxParser
     let (dv, _) = Parser.parserAltHelp parser alt
     debugTraceShow (msg, alt, dv) do pure ()
+#endif
 
 runReduce :: forall ctx posMark elem altHelp m
     .  Scanner.T posMark elem m
     => Parser.AltNum -> RunT ctx posMark elem altHelp m RunningResult
-runReduce alt = debugShowHelpAlt "runReduce" alt >> go [] where
-    go :: [u] -> RunT ctx posMark elem altHelp m RunningResult
-    go args = popItem >>= \case
+runReduce alt = go0 where
+    go0 :: RunT ctx posMark elem altHelp m RunningResult
+    go0 = do
+#if DEBUG
+        debugShowHelpAlt "runReduce" alt
+#endif
+        capturedCtxForFail <- captureCtx
+        go capturedCtxForFail []
+
+    go :: Context ctx posMark elem altHelp -> [u] -> RunT ctx posMark elem altHelp m RunningResult
+    go capturedCtxForFail args = popItem >>= \case
         Nothing ->
             pure CantContParse
         Just item -> case item of
             ItemArgument x ->
-                go do Unsafe.unsafeCoerce x:args
-            ItemBackpoint{} ->
-                go args
+                go capturedCtxForFail do Unsafe.unsafeCoerce x:args
+            ItemBackpoint{} -> do
+                go capturedCtxForFail args
             ItemHandleNot{} ->
                 parseFailWithAlt alt
             ItemEnter pos mmark v enterSn ->
-                goEnter args pos mmark v enterSn
+                goEnter capturedCtxForFail args pos mmark v enterSn
 
     goEnter
-        :: [u] -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
+        :: Context ctx posMark elem altHelp -> [u]
+        -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
         -> RunT ctx posMark elem altHelp m RunningResult
-    goEnter args pos0 mmark0 v enterSn = do
+    goEnter capturedCtxForFail args pos0 mmark0 v enterSn = do
         parser <- getCtx ctxParser
         case Parser.parserAltKind parser alt of
             PEG.AltSeq -> runActionAndSaveEnterResult v pos0 alt args >>= \case
-                False ->
+                False -> do
+                    restoreCtx capturedCtxForFail
                     parseFailWithAlt alt
                 True -> do
                     setNextState enterSn
                     pure ContParse
             PEG.AltAnd -> runActionAndSaveEnterResult v pos0 alt args >>= \case
-                False ->
+                False -> do
+                    restoreCtx capturedCtxForFail
                     parseFailWithAlt alt
                 True -> do
                     let mark0 = case mmark0 of
@@ -309,7 +330,9 @@ parseFail :: forall ctx posMark elem altHelp m
 parseFail = go0 where
     go0 :: Maybe (FailedReason altHelp) -> RunT ctx posMark elem altHelp m RunningResult
     go0 mayFailedReason = do
+#if DEBUG
         debugTraceShow ("parseFail", fmap (const ()) <$> mayFailedReason) do pure ()
+#endif
         case mayFailedReason of
             Nothing ->
                 pure ()
@@ -460,6 +483,12 @@ getCtx :: Monad m
     -> RunT ctx posMark elem altHelp m a
 getCtx f = RunT do f <$> get
 {-# INLINE getCtx #-}
+
+captureCtx :: Monad m => RunT ctx posMark elem altHelp m (Context ctx posMark elem altHelp)
+captureCtx = RunT get
+
+restoreCtx :: Monad m => Context ctx posMark elem altHelp -> RunT ctx posMark elem altHelp m ()
+restoreCtx ctx = RunT do put ctx
 
 getCurrentPosition :: Scanner.T posMark elem m
     => RunT ctx posMark elem altHelp m (Position, posMark)

@@ -24,8 +24,8 @@ lexText input = PreprocessLayout.preprocessLayout <$> go initialLctx [] where
         { commentNestLevel = 0
         , currentLexingCtx = LexingContext
             { currentLocation = Location
-                { locRow = 0
-                , locCol = 0
+                { locRow = 1
+                , locCol = 1
                 , locAbs = 0
                 }
             , currentLocCtx = LocCtxNext
@@ -41,9 +41,9 @@ lexText input = PreprocessLayout.preprocessLayout <$> go initialLctx [] where
         let istate = initialState lctx0
             lexingCtx0 = currentLexingCtx lctx0
         in case runLexingM (tlexScan istate) lexingCtx0 of
-            (Tlex.TlexEndOfInput, _)      ->
+            (Tlex.TlexEndOfInput, _) ->
                 Right $ reverse acc0
-            (Tlex.TlexError, lexingCtx1)  ->
+            (Tlex.TlexError, lexingCtx1) ->
                 Left $ show (lexingCtx1, reverse acc0)
             (Tlex.TlexAccepted lexingCtx1 mact, _) ->
                 goAccepted lctx0 acc0 lexingCtx0 lexingCtx1 mact
@@ -137,13 +137,13 @@ instance Tlex.TlexContext LexingContext CodeUnit.CodeUnit LexingM where
 
             newlineLoc loc = Location
                 { locRow = locRow loc + 1
-                , locCol = 0
+                , locCol = 1
                 , locAbs = locAbs loc + 1
                 }
 
             crlfLoc loc = Location
                 { locRow = locRow loc
-                , locCol = 0
+                , locCol = 1
                 , locAbs = locAbs loc + 1
                 }
 

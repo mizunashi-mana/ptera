@@ -9,6 +9,7 @@ data Token
     | TokParenClose
     | TokLitInteger Integer
     | TokIdentifier ByteString
+    | TokEndOfInput
     deriving (Eq, Show)
 
 data Ast

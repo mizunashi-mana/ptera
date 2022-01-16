@@ -21,7 +21,8 @@ import           Types
 
 grammar :: Grammar Rules Tokens Token ParsePoints
 grammar = fixGrammar $ Rules
-    { rexpr = rExpr
+    { rexpreos = rExprEos
+    , rexpr = rExpr
     , rsum = rSum
     , rproduct = rProduct
     , rvalue = rValue
@@ -33,12 +34,14 @@ type instance TokensTag Tokens =
         "+", "*",
         "(", ")",
         "int",
-        "id"
+        "id",
+        "EOS"
     ]
 
-type ParsePoints = '[ "expr" ]
+type ParsePoints = '[ "expr EOS" ]
 data Rules = Rules
-    { rexpr    :: RuleExpr Ast
+    { rexpreos :: RuleExpr Ast
+    , rexpr    :: RuleExpr Ast
     , rsum     :: RuleExpr Ast
     , rproduct :: RuleExpr Ast
     , rvalue   :: RuleExpr Ast
@@ -46,7 +49,8 @@ data Rules = Rules
 
 type instance RulesTag Rules =
     '[
-      "expr"
+      "expr EOS"
+    , "expr"
     , "sum"
     , "product"
     , "value"
@@ -70,6 +74,22 @@ instance TokensMember Tokens "int" where
 instance TokensMember Tokens "id" where
     tokensMembership _ = MembershipInternal.membership
 
+instance TokensMember Tokens "EOS" where
+    tokensMembership _ = MembershipInternal.membership
+
+instance GrammarToken Tokens Token where
+    tokenToTerminal Proxy token = case token of
+        TokPlus{}       -> henumA @"+"
+        TokMulti{}      -> henumA @"*"
+        TokParenOpen{}  -> henumA @"("
+        TokParenClose{} -> henumA @")"
+        TokLitInteger{} -> henumA @"int"
+        TokIdentifier{} -> henumA @"id"
+        TokEndOfInput{} -> henumA @"EOS"
+
+instance HasField "expr EOS" Rules (RuleExpr Ast) where
+    getField = rexpreos
+
 instance HasField "expr" Rules (RuleExpr Ast) where
     getField = rexpr
 
@@ -81,6 +101,9 @@ instance HasField "product" Rules (RuleExpr Ast) where
 
 instance HasField "value" Rules (RuleExpr Ast) where
     getField = rvalue
+
+instance HasRuleExprField Rules "expr EOS" where
+    type RuleExprReturnType Rules "expr EOS" = Ast
 
 instance HasRuleExprField Rules "expr" where
     type RuleExprReturnType Rules "expr" = Ast
@@ -97,19 +120,17 @@ instance HasRuleExprField Rules "value" where
 type RuleExpr = Ptera.RuleExpr Rules Tokens Token
 type instance RuleExprType Rules = RuleExpr
 
-instance GrammarToken Tokens Token where
-    tokenToTerminal Proxy token = case token of
-        TokPlus{}       -> henumA @"+"
-        TokMulti{}      -> henumA @"*"
-        TokParenOpen{}  -> henumA @"("
-        TokParenClose{} -> henumA @")"
-        TokLitInteger{} -> henumA @"int"
-        TokIdentifier{} -> henumA @"id"
 
+rExprEos :: RuleExpr Ast
+rExprEos = ruleExpr
+    [ alt $ varA @"expr" <^> tokA @"EOS"
+        <:> semAct \(e :* _ :* HNil) -> e
+    ]
 
 rExpr :: RuleExpr Ast
 rExpr = ruleExpr
-    [ alt $ varA @"sum" <:> semAct \(e :* HNil) -> e
+    [ alt $ varA @"sum"
+        <:> semAct \(e :* HNil) -> e
     ]
 
 rSum :: RuleExpr Ast

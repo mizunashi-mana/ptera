@@ -11,7 +11,7 @@ import           Types
 
 exprParser :: Ptera.Scanner posMark Token m
     => m (Ptera.Result posMark Ast)
-exprParser = Ptera.runParser (Proxy :: Proxy "expr") runner where
+exprParser = Ptera.runParser (Proxy :: Proxy "expr EOS") runner where
     runner = case Ptera.genRunner Rules.grammar of
         Left err ->
             error $ show err

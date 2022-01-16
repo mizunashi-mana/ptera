@@ -15,8 +15,10 @@ $(Lexer.Rules.buildLexer)
 lexByteString :: ByteString.ByteString -> Either String [Token]
 lexByteString input = go (ByteString.unpack input) id where
     go s acc = case Tlex.runInputString (tlexScan ()) s of
-        (Tlex.TlexEndOfInput, _)      -> Right $ acc []
-        (Tlex.TlexError, ctx)         -> Left $ show (ctx, acc [])
+        (Tlex.TlexEndOfInput, _) ->
+            Right $ acc [TokEndOfInput]
+        (Tlex.TlexError, ctx) ->
+            Left $ show (ctx, acc [])
         (Tlex.TlexAccepted ctx mact, _) -> do
             let rest = Tlex.inputStringCtxRest ctx
             case mact of
