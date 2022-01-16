@@ -56,18 +56,11 @@ runT = go where
     goResult tok = getCtx ctxItemStack >>= \case
         [ItemArgument x] | tok < 0 ->
             pure do Parsed do Unsafe.unsafeCoerce x
-        [] -> do
+        _ -> do
             if tok >= 0
                 then reportError FailedByEarlyParsed
                 else reportError FailedByNotEnoughInput
             goFailed
-        _ -> do
-            lastSn <- getCtx ctxLastState
-            parseFailWithState lastSn >>= \case
-                ContParse ->
-                    go
-                CantContParse ->
-                    goFailed
 
     goFailed :: RunT ctx posMark elem altHelp m (ParseResult posMark altHelp a)
     goFailed = getCtx ctxDeepestError >>= \case
@@ -91,7 +84,6 @@ data FailedReason altHelp
 data Context ctx posMark elem altHelp = Context
     { ctxParser             :: Parser.T ctx elem altHelp
     , ctxState              :: Parser.StateNum
-    , ctxLastState          :: Parser.StateNum
     , ctxItemStack          :: [Item posMark]
     , ctxLookAHeadToken     :: Maybe (Position, posMark, Parser.TokenNum, Maybe elem)
     , ctxNextPosition       :: Position
@@ -129,7 +121,6 @@ initialContext parser ctx0 s0 = do
         Context
             { ctxParser = parser
             , ctxState = sn0
-            , ctxLastState = sn0
             , ctxLookAHeadToken = Nothing
             , ctxItemStack = []
             , ctxNextPosition = Alignable.initialAlign
@@ -147,11 +138,18 @@ transByInput tok = go where
         parser <- getCtx ctxParser
         sn0 <- getCtx ctxState
         let trans1 = Parser.parserTrans parser sn0 tok
-        setNextState do Parser.transState trans1
-        let ops = Parser.transOps trans1
+        let sn1 = Parser.transState trans1
+        setNextState sn1
         itemStackShow <- prettyShowItemStack
         debugTraceShow ("transByInput", sn0, tok, trans1, itemStackShow) do pure ()
-        goTransOps ops
+        case Parser.transOps trans1 of
+            ops@(_:_) ->
+                goTransOps ops
+            []
+                | sn1 < 0 ->
+                    parseFailWithState sn0
+                | otherwise ->
+                    pure ContParse
 
     goTransOps :: [Parser.TransOp]
         -> RunT ctx posMark elem altHelp m RunningResult
@@ -455,9 +453,6 @@ setNextState :: Monad m => Parser.StateNum -> RunT ctx posMark elem altHelp m ()
 setNextState sn = RunT do
     modify' \ctx -> ctx
         { ctxState = sn
-        , ctxLastState = if ctxState ctx >= 0
-            then ctxState ctx
-            else ctxLastState ctx
         }
 
 getCtx :: Monad m
