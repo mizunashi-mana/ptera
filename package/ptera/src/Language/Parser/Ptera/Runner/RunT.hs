@@ -23,7 +23,7 @@ import qualified Language.Parser.Ptera.Scanner            as Scanner
 import qualified Language.Parser.Ptera.Syntax             as Syntax
 import qualified Unsafe.Coerce                            as Unsafe
 
-#define DEBUG 1
+#define DEBUG 0
 
 type T = RunT
 

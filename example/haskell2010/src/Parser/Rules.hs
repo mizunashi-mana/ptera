@@ -2408,6 +2408,8 @@ rSkip = ruleExpr
                 case l of
                     m:_ | m < n ->
                         pure ()
+                    [] ->
+                        pure ()
                     _ ->
                         failAction
             ||]
