@@ -2329,10 +2329,10 @@ rImpBo = ruleExpr
                 l <- getAction
                 case l of
                     m:_
-                        | n < m ->
+                        | n > m ->
                             modifyAction \l' -> n:l'
                         | otherwise ->
-                            modifyAction \l' -> (n + 1):l'
+                            failAction
                     []
                         | n > 0 ->
                             modifyAction \l' -> n:l'

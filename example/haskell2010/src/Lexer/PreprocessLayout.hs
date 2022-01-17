@@ -11,7 +11,7 @@ preprocessLayout ts0 = case ts0 of
         | otherwise ->
             let r' = locRow loc
                 c' = locCol loc
-            in TokVirtExpBrace c':TokVirtNewline c':go1 r' ts0
+            in TokVirtExpBrace c':go1 r' ts0
     [] ->
         go1 1 ts0
     where
@@ -32,7 +32,7 @@ preprocessLayout ts0 = case ts0 of
                         c2 = locCol loc2
                     in if t2 == TokSpOpenBrace
                         then t1:t2:go1 r2 ts'
-                        else t1:TokVirtExpBrace c2:TokVirtNewline c2:t2:go1 r2 ts'
+                        else t1:TokVirtExpBrace c2:t2:go1 r2 ts'
                 [] ->
                     [t1, TokVirtExpBrace 1, TokVirtEndOfInput]
             | otherwise =

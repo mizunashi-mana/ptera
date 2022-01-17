@@ -1,12 +1,12 @@
---module Sample where
+{-module Sample where
 
---type T = Int
+type T = Int
 
---f :: T
+f :: T-}
 f = x where
     x = y
-{-
+
     y =
         let {
-            z = 0;
-        } in z-}
+            ;;z = 0;
+        } in z

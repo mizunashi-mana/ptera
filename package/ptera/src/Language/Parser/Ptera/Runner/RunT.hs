@@ -145,8 +145,9 @@ transByInput tok = go where
         let sn1 = Parser.transState trans1
         setNextState sn1
 #if DEBUG
+        (pos0, _) <- getCurrentPosition
         itemStackShow <- prettyShowItemStack
-        debugTraceShow ("transByInput", sn0, tok, trans1, itemStackShow) do pure ()
+        debugTraceShow ("transByInput", sn0, pos0, tok, trans1, itemStackShow) do pure ()
 #endif
         case Parser.transOps trans1 of
             ops@(_:_) ->
