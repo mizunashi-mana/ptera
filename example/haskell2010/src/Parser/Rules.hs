@@ -581,6 +581,12 @@ rExport = ruleExpr
     , alt $ varA @"qtycon" <^> tokA @"(" <^^> varA @"((cname ',')* cname)?" <^> tokA @")"
         <::> semAct \(qtycon :* _ :* _ :* cnames :* _ :* _ :* HNil) ->
             [||ExportItemTyConSpecified $$(qtycon) (seqToList $$(cnames))||]
+    , alt $ varA @"qtycon"
+        <:> semAct \(qtycon :* HNil) ->
+            [||ExportItemTyConSpecified $$(qtycon) []||]
+    , alt $ tokA @"module" <^^> varA @"modid"
+        <:> semAct \(_ :* _ :* modid :* HNil) ->
+            [||ExportItemModule $$(modid)||]
     ]
 
 rCnames :: RuleExpr [Id]

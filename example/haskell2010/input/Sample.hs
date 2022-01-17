@@ -1,8 +1,8 @@
-{-module Sample where
+module Sample where
 
 type T = Int
 
-f :: T-}
+f :: T
 f = x where
     x = y
 
