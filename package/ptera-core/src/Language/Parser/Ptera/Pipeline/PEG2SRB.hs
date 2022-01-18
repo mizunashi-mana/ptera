@@ -1,4 +1,4 @@
-module Language.Parser.Ptera.Pipeline.LAPEG2SRB where
+module Language.Parser.Ptera.Pipeline.PEG2SRB where
 
 import           Language.Parser.Ptera.Prelude
 
@@ -10,17 +10,16 @@ import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
-import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Machine.SRB.Builder  as SRBBuilder
 
 laPeg2Srb :: Enum start
-    => LAPEG.T start varDoc altDoc a -> SRB.T start varDoc altDoc a
+    => PEG.T start varDoc altDoc a -> SRB.T start varDoc altDoc a
 laPeg2Srb g = runIdentity do
         SRBBuilder.build
-            do LAPEG.vars g
-            do LAPEG.alts g
+            do PEG.vars g
+            do PEG.alts g
             do builder
     where
         builder = do
@@ -32,15 +31,15 @@ laPeg2Srb g = runIdentity do
                     , ctxVarMap = AlignableMap.empty
                     , ctxStateMap = HashMap.empty
                     , ctxStateQueue = []
-                    , ctxOriginalRules = LAPEG.rules g
-                    , ctxOriginalAlts = LAPEG.alts g
+                    , ctxOriginalRules = PEG.rules g
+                    , ctxOriginalAlts = PEG.alts g
                     }
             let finalCtx = execState pipeline initialCtx
             put do ctxBuilder finalCtx
 
         pipeline = do
             forM_
-                do EnumMap.assocs do LAPEG.initials g
+                do EnumMap.assocs do PEG.initials g
                 do \(s, v) -> laPegInitialPipeline s v
             laPegStateQueuePipeline
 
@@ -48,17 +47,17 @@ type Pipeline start altDoc a = State (Context start altDoc a)
 
 data Context start altDoc a = Context
     { ctxBuilder :: SRBBuilder.Context start a
-    , ctxInitialVarState :: AlignableMap.T LAPEG.VarNum SRB.StateNum
-    , ctxReduceNotState :: AlignableMap.T LAPEG.AltNum SRB.StateNum
-    , ctxVarMap  :: AlignableMap.T LAPEG.VarNum (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
-    , ctxStateMap :: HashMap.HashMap (LAPEG.Position, NonEmpty LAPEG.AltNum) SRB.StateNum
-    , ctxStateQueue :: [(SRB.StateNum, LAPEG.Position, NonEmpty LAPEG.AltNum)]
-    , ctxOriginalRules :: AlignableArray.T LAPEG.VarNum LAPEG.Rule
-    , ctxOriginalAlts :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt altDoc a)
+    , ctxInitialVarState :: AlignableMap.T PEG.VarNum SRB.StateNum
+    , ctxReduceNotState :: AlignableMap.T PEG.AltNum SRB.StateNum
+    , ctxVarMap  :: AlignableMap.T PEG.VarNum (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
+    , ctxStateMap :: HashMap.HashMap (PEG.Position, NonEmpty PEG.AltNum) SRB.StateNum
+    , ctxStateQueue :: [(SRB.StateNum, PEG.Position, NonEmpty PEG.AltNum)]
+    , ctxOriginalRules :: AlignableArray.T PEG.VarNum PEG.Rule
+    , ctxOriginalAlts :: AlignableArray.T PEG.AltNum (PEG.Alt altDoc a)
     }
 
 laPegInitialPipeline :: Enum start
-    => start -> LAPEG.VarNum -> Pipeline start altDoc a ()
+    => start -> PEG.VarNum -> Pipeline start altDoc a ()
 laPegInitialPipeline s v = do
     m0 <- ctxInitialVarState <$> get
     newSn <- case AlignableMap.lookup v m0 of
@@ -94,7 +93,7 @@ laPegStateQueuePipeline = do
             laPegStatePipeline sn p alts
             laPegStateQueuePipeline
 
-laPegVarPipeline :: LAPEG.VarNum
+laPegVarPipeline :: PEG.VarNum
     -> Pipeline start altDoc a (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegVarPipeline v = do
     ctx <- get
@@ -108,10 +107,10 @@ laPegVarPipeline v = do
             laPegRulePipeline v r
 
 laPegRulePipeline
-    :: LAPEG.VarNum -> LAPEG.Rule
+    :: PEG.VarNum -> PEG.Rule
     -> Pipeline start altDoc a (SymbolicIntSet.T, SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegRulePipeline v r = do
-    sm <- case LAPEG.ruleAlts r of
+    sm <- case PEG.ruleAlts r of
         [] ->
             pure SymbolicIntMap.empty
         alt:alts ->
@@ -125,7 +124,7 @@ laPegRulePipeline v r = do
     pure ss
 
 laPegEnterStatePipeline
-    :: NonEmpty LAPEG.AltNum
+    :: NonEmpty PEG.AltNum
     -> Pipeline start altDoc a (SymbolicIntMap.T (Bool, SRB.StateNum))
 laPegEnterStatePipeline = \alts -> go do revTails [] alts where
     revTails accs = \case
@@ -151,19 +150,19 @@ laPegEnterStatePipeline = \alts -> go do revTails [] alts where
             s <- case mu of
                 Nothing ->
                     pure do SymbolicIntSet.full
-                Just (LAPEG.UnitTerminal t) ->
+                Just (PEG.UnitTerminal t) ->
                     pure do SymbolicIntSet.singleton t
-                Just (LAPEG.UnitNonTerminal v) -> do
+                Just (PEG.UnitNonTerminal v) -> do
                     (x, _) <- laPegVarPipeline v
                     pure x
-                Just LAPEG.UnitNot ->
+                Just PEG.UnitNot ->
                     pure do SymbolicIntSet.full
             go1
                 do SymbolicIntMap.insertBulk s alts m
                 do rest
 
 laPegStatePipeline
-    :: SRB.StateNum -> LAPEG.Position -> NonEmpty LAPEG.AltNum
+    :: SRB.StateNum -> PEG.Position -> NonEmpty PEG.AltNum
     -> Pipeline start altDoc a ()
 laPegStatePipeline sn p alts = do
         trans <- laPegTransPipeline p alts
@@ -182,7 +181,7 @@ laPegStatePipeline sn p alts = do
             }
 
 laPegTransPipeline
-    :: LAPEG.Position -> NonEmpty LAPEG.AltNum
+    :: PEG.Position -> NonEmpty PEG.AltNum
     -> Pipeline start altDoc a (SymbolicIntMap.T SRB.Trans)
 laPegTransPipeline p0 alts0 = do
         m <- genAltMapForTrans p0 alts0
@@ -231,7 +230,7 @@ laPegTransPipeline p0 alts0 = do
                     pure do SRB.TransReduce altn
 
 genAltMapForTrans
-    :: LAPEG.Position -> NonEmpty LAPEG.AltNum
+    :: PEG.Position -> NonEmpty PEG.AltNum
     -> Pipeline start altDoc a (SymbolicIntMap.T AltItemsForTrans)
 genAltMapForTrans p (alt0 :| alts0) = go SymbolicIntMap.empty do alt0:alts0 where
     go m0 = \case
@@ -261,7 +260,7 @@ genAltMapForTrans p (alt0 :| alts0) = go SymbolicIntMap.empty do alt0:alts0 wher
                     do SymbolicIntSet.full
                     do m0
             pure m1
-        Just (LAPEG.UnitTerminal t) -> do
+        Just (PEG.UnitTerminal t) -> do
             let m1 = SymbolicIntMap.alter
                     do \case
                         e@(Just altItems) | hasRest altItems ->
@@ -287,7 +286,7 @@ genAltMapForTrans p (alt0 :| alts0) = go SymbolicIntMap.empty do alt0:alts0 wher
                     do t
                     do m0
             pure m1
-        Just (LAPEG.UnitNonTerminal v) -> do
+        Just (PEG.UnitNonTerminal v) -> do
             (_, vm) <- laPegVarPipeline v
             let m1 = SymbolicIntMap.merge
                     do \altItems (needBack, sn) -> case altItemsForTransOp altItems of
@@ -315,7 +314,7 @@ genAltMapForTrans p (alt0 :| alts0) = go SymbolicIntMap.empty do alt0:alts0 wher
                     do m0
                     do vm
             pure m1
-        Just LAPEG.UnitNot -> do
+        Just PEG.UnitNot -> do
             let m1 = SymbolicIntMap.alterBulk
                     do \case
                         e@(Just altItems) | hasRest altItems ->
@@ -340,20 +339,20 @@ genAltMapForTrans p (alt0 :| alts0) = go SymbolicIntMap.empty do alt0:alts0 wher
 data AltItemsForTrans = AltMapForTrans
     {
         altItemsForTransOp      :: AltItemsOpForTrans,
-        altItemsForTransRevAlts :: NonEmpty LAPEG.AltNum,
-        altItemsForTransRest    :: [LAPEG.AltNum]
+        altItemsForTransRevAlts :: NonEmpty PEG.AltNum,
+        altItemsForTransRest    :: [PEG.AltNum]
     }
     deriving (Eq, Show)
 
 data AltItemsOpForTrans
     = AltItemsOpShift
-    | AltItemsOpEnter LAPEG.VarNum Bool SRB.StateNum
+    | AltItemsOpEnter PEG.VarNum Bool SRB.StateNum
     | AltItemsOpNot
     | AltItemsOpReduce
     deriving (Eq, Show)
 
 getStateForAltItems
-    :: LAPEG.Position -> NonEmpty LAPEG.AltNum
+    :: PEG.Position -> NonEmpty PEG.AltNum
     -> Pipeline start altDoc a SRB.StateNum
 getStateForAltItems p alts = do
     m <- ctxStateMap <$> get
@@ -369,11 +368,11 @@ getStateForAltItems p alts = do
                 }
             pure sn
 
-isNeedBackAlts :: NonEmpty LAPEG.AltNum -> Pipeline start altDoc a Bool
+isNeedBackAlts :: NonEmpty PEG.AltNum -> Pipeline start altDoc a Bool
 isNeedBackAlts = \(altn :| rest) -> go altn rest where
     go altn0 rest = do
         alt0 <- getAlt altn0
-        case LAPEG.altKind alt0 of
+        case PEG.altKind alt0 of
             PEG.AltNot ->
                 pure True
             PEG.AltAnd ->
@@ -385,14 +384,14 @@ isNeedBackAlts = \(altn :| rest) -> go altn rest where
                     go altn1 alts
 
 getUnitForAltItem
-    :: LAPEG.Position -> LAPEG.AltNum
-    -> Pipeline start altDoc a (Maybe LAPEG.Unit)
+    :: PEG.Position -> PEG.AltNum
+    -> Pipeline start altDoc a (Maybe PEG.Unit)
 getUnitForAltItem p altn = do
     alt <- getAlt altn
-    let us = LAPEG.altUnitSeq alt
+    let us = PEG.altUnitSeq alt
     pure do AlignableArray.index us p
 
-getAlt :: LAPEG.AltNum -> Pipeline start altDoc a (LAPEG.Alt altDoc a)
+getAlt :: PEG.AltNum -> Pipeline start altDoc a (PEG.Alt altDoc a)
 getAlt altn = do
     ctx <- get
     let alts = ctxOriginalAlts ctx

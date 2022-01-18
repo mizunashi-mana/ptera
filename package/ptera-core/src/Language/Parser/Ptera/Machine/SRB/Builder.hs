@@ -7,7 +7,6 @@ import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
 import qualified Language.Parser.Ptera.Machine.PEG        as PEG
-import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 
 
@@ -23,8 +22,8 @@ data Context start a = Context
     }
     deriving (Eq, Show)
 
-type Vars varDoc = AlignableArray.T LAPEG.VarNum (PEG.Var varDoc)
-type Alts altDoc a = AlignableArray.T LAPEG.AltNum (LAPEG.Alt altDoc a)
+type Vars varDoc = AlignableArray.T PEG.VarNum (PEG.Var varDoc)
+type Alts altDoc a = AlignableArray.T PEG.AltNum (PEG.Alt altDoc a)
 
 build :: Monad m
     => Vars varDoc -> Alts altDoc a -> BuilderT start a m ()

@@ -11,25 +11,38 @@ type T = PEG
 
 data PEG start varDoc altDoc a = PEG
     { vars        :: AlignableArray.T VarNum (Var varDoc)
-    , rules       :: AlignableArray.T VarNum (Rule altDoc a)
+    , rules       :: AlignableArray.T VarNum Rule
+    , alts        :: AlignableArray.T AltNum (Alt altDoc a)
     , initials    :: EnumMap.EnumMap start VarNum
     }
     deriving (Eq, Show, Functor)
 
-newtype Rule altDoc a = Rule [Alt altDoc a]
-    deriving (Eq, Show, Functor)
+newtype VarNum = VarNum Int
+    deriving (Eq, Show)
+    deriving Hashable via Int
+    deriving Alignable.T via Alignable.Inst
+
+newtype AltNum = AltNum Int
+    deriving (Eq, Show)
+    deriving Hashable via Int
+    deriving Alignable.T via Alignable.Inst
+
+newtype Rule = Rule
+    { ruleAlts :: [AltNum]
+    }
+    deriving (Eq, Show)
 
 newtype Var varDoc = Var
     { varHelp :: varDoc
     }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Functor)
 
 data Alt altDoc a = Alt
-    {
-        altKind    :: AltKind,
-        altUnitSeq :: [Unit],
-        altAction  :: a,
-        altHelp    :: altDoc
+    { altVar     :: VarNum
+    , altKind    :: AltKind
+    , altUnitSeq :: AlignableArray.T Position Unit
+    , altAction  :: a
+    , altHelp    :: altDoc
     }
     deriving (Eq, Show, Functor)
 
@@ -39,14 +52,15 @@ data AltKind
     | AltAnd
     deriving (Eq, Show)
 
+newtype Position = Position Int
+    deriving (Eq, Show)
+    deriving Hashable via Int
+    deriving Alignable.T via Alignable.Inst
+
 data Unit
     = UnitTerminal Terminal
     | UnitNonTerminal VarNum
+    | UnitNot
     deriving (Eq, Show)
 
 type Terminal = Int
-
-newtype VarNum = VarNum Int
-    deriving (Eq, Show)
-    deriving Enum via Int
-    deriving Alignable.T via Alignable.Inst
