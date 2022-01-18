@@ -21,10 +21,28 @@ data LAPEG start varDoc altDoc a = LAPEG
 
 data Rule = Rule
     {
-        ruleRange :: SymbolicIntSet.T,
+        ruleRange :: LookAHeadRange,
         ruleAlts  :: [AltNum]
     }
     deriving (Eq, Show)
+
+data LookAHeadRange = LookAHeadRange
+    { lookAHeadEpsilon :: Bool
+    , lookAHeadConsume :: SymbolicIntSet.T
+    }
+    deriving (Eq, Show)
+
+instance Semigroup LookAHeadRange where
+    lr1 <> lr2 = LookAHeadRange
+        { lookAHeadEpsilon = lookAHeadEpsilon lr1 || lookAHeadEpsilon lr2
+        , lookAHeadConsume = lookAHeadConsume lr1 <> lookAHeadConsume lr2
+        }
+
+instance Monoid LookAHeadRange where
+    mempty = LookAHeadRange
+        { lookAHeadEpsilon = False
+        , lookAHeadConsume = mempty
+        }
 
 newtype AltNum = AltNum Int
     deriving (Eq, Show)

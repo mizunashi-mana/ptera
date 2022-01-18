@@ -22,7 +22,7 @@ data Context start varDoc altDoc a = Context
     , ctxVars        :: AlignableMap.T LAPEG.VarNum (PEG.Var varDoc)
     , ctxAlts        :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt altDoc a)
     }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Functor)
 
 build :: Monad m
     => BuilderT start varDoc altDoc a m () -> m (LAPEG.T start varDoc altDoc a)

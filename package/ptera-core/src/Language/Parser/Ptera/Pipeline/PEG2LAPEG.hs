@@ -13,8 +13,6 @@ import qualified Language.Parser.Ptera.Machine.LAPEG.RuleBuilder as LARuleBuilde
 import qualified Language.Parser.Ptera.Machine.PEG               as PEG
 
 
--- TODO: look-a-head a head token
--- Current algorithm give up look-a-head early if rules have epsilon transitions.
 peg2LaPeg :: Enum start
     => PEG.T start varDoc altDoc a
     -> Except (AlignableSet.T PEG.VarNum) (LAPEG.T start varDoc altDoc a)
@@ -61,11 +59,12 @@ type Pipeline start varDoc altDoc a =
 data Context start varDoc altDoc a = Context
     { ctxBuilder        :: LAPEGBuilder.Context start varDoc altDoc a
     , ctxVarMap         :: AlignableMap.T PEG.VarNum LAPEG.VarNum
-    , ctxAvailables     :: AlignableMap.T LAPEG.VarNum (Maybe SymbolicIntSet.T)
+    , ctxAvailables     :: AlignableMap.T LAPEG.VarNum (Maybe LAPEG.LookAHeadRange)
     , ctxUpdateVarStack :: [PEG.VarNum]
     , ctxOriginalVars :: AlignableArray.T PEG.VarNum (PEG.Var varDoc)
     , ctxOriginalRules  :: AlignableArray.T PEG.VarNum (PEG.Rule altDoc a)
     }
+    deriving (Eq, Show, Functor)
 
 pegInitialPipeline :: Enum start
     => start -> PEG.VarNum -> Pipeline start varDoc altDoc a ()
@@ -80,7 +79,7 @@ pegInitialPipeline s v = do
 
 pegVarPipeline
     :: PEG.VarNum
-    -> Pipeline start varDoc altDoc a (LAPEG.VarNum, SymbolicIntSet.T)
+    -> Pipeline start varDoc altDoc a (LAPEG.VarNum, LAPEG.LookAHeadRange)
 pegVarPipeline v = do
     ctx <- lift get
     case AlignableMap.lookup v do ctxVarMap ctx of
@@ -115,7 +114,7 @@ pegVarStackPipeline = popUpdateVar >>= \case
 
 pegRulePipeline
     :: PEG.VarNum -> PEG.Rule altDoc a
-    -> Pipeline start varDoc altDoc a (LAPEG.VarNum, SymbolicIntSet.T)
+    -> Pipeline start varDoc altDoc a (LAPEG.VarNum, LAPEG.LookAHeadRange)
 pegRulePipeline v (PEG.Rule alts) = do
     newV <- getNewVar v
     lift do
@@ -141,30 +140,30 @@ pegRulePipeline v (PEG.Rule alts) = do
 
 pegAltPipeline
     :: LAPEG.VarNum -> PEG.Alt altDoc a
-    -> Pipeline start varDoc altDoc a (LAPEG.AltNum, SymbolicIntSet.T)
+    -> Pipeline start varDoc altDoc a (LAPEG.AltNum, LAPEG.LookAHeadRange)
 pegAltPipeline ruleV alt = case PEG.altKind alt of
         PEG.AltSeq -> goStraight
         PEG.AltNot -> goNegative
         PEG.AltAnd -> goStraight
     where
-        goStraight = case PEG.altUnitSeq alt of
-            [] -> do
-                n <- newAltNum []
-                pure (n, SymbolicIntSet.full)
-            u0:us -> do
-                (newU0, is) <- goUnit0 u0
-                newUs <- forM us \u -> goUnit u
-                n <- newAltNum do newU0:newUs
-                pure (n, is)
+        goStraight = goUnitsWithLookAHead [] mempty
+            do PEG.altUnitSeq alt
 
         goNegative = case PEG.altUnitSeq alt of
             [] -> do
                 n <- newAltNum [LAPEG.UnitNot]
                 pure (n, mempty)
-            us@(_:_) -> do
+            u0:us -> do
+                (newU0, lr) <- goUnitWithLookAHead u0
                 newUs <- forM us \u -> goUnit u
-                n <- newAltNum do LAPEG.UnitNot:newUs
-                pure (n, SymbolicIntSet.full)
+                n <- newAltNum do LAPEG.UnitNot:newU0:newUs
+                let lrNot = if LAPEG.lookAHeadEpsilon lr
+                        then mempty
+                        else LAPEG.LookAHeadRange
+                            { lookAHeadEpsilon = True
+                            , lookAHeadConsume = SymbolicIntSet.full
+                            }
+                pure (n, lrNot)
 
         newAltNum us = do
             let newAlt = LAPEG.Alt
@@ -176,12 +175,42 @@ pegAltPipeline ruleV alt = case PEG.altKind alt of
                     }
             liftBuilder do LAPEGBuilder.addAlt newAlt
 
-        goUnit0 = \case
-            PEG.UnitTerminal t ->
-                pure (LAPEG.UnitTerminal t, SymbolicIntSet.singleton t)
+        goUnitsWithLookAHead newRevUs0 is0 = \case
+            [] -> do
+                let lr1 = LAPEG.LookAHeadRange
+                        { lookAHeadEpsilon = True
+                        , lookAHeadConsume = is0
+                        }
+                n <- newAltNum do reverse newRevUs0
+                pure (n, lr1)
+            u0:us -> do
+                (newU0, lm) <- goUnitWithLookAHead u0
+                let is1 = is0 <> LAPEG.lookAHeadConsume lm
+                if LAPEG.lookAHeadEpsilon lm
+                    then
+                        goUnitsWithLookAHead
+                            do newU0:newRevUs0
+                            do is1
+                            do us
+                    else do
+                        newUs <- forM us \u -> goUnit u
+                        n <- newAltNum do reverse newRevUs0 ++ newU0:newUs
+                        let lr1 = LAPEG.LookAHeadRange
+                                { lookAHeadEpsilon = False
+                                , lookAHeadConsume = is1
+                                }
+                        pure (n, lr1)
+
+        goUnitWithLookAHead = \case
+            PEG.UnitTerminal t -> do
+                let lr = LAPEG.LookAHeadRange
+                        { lookAHeadEpsilon = False
+                        , lookAHeadConsume = SymbolicIntSet.singleton t
+                        }
+                pure (LAPEG.UnitTerminal t, lr)
             PEG.UnitNonTerminal v -> do
-                (newV, is) <- pegVarPipeline v
-                pure (LAPEG.UnitNonTerminal newV, is)
+                (newV, lr) <- pegVarPipeline v
+                pure (LAPEG.UnitNonTerminal newV, lr)
 
         goUnit = \case
             PEG.UnitTerminal t ->

@@ -2,7 +2,6 @@ module Language.Parser.Ptera.Machine.LAPEG.RuleBuilder where
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 
 
@@ -12,7 +11,7 @@ type BuilderT = StateT Context
 
 data Context = Context
     {
-        ctxRange :: SymbolicIntSet.T,
+        ctxRange :: LAPEG.LookAHeadRange,
         ctxAlts  :: [LAPEG.AltNum]
     }
     deriving (Eq, Show)
@@ -33,8 +32,8 @@ build builder = do
                 ctxAlts = []
             }
 
-addAlt :: Monad m => SymbolicIntSet.T -> LAPEG.AltNum -> BuilderT m ()
+addAlt :: Monad m => LAPEG.LookAHeadRange -> LAPEG.AltNum -> BuilderT m ()
 addAlt is alt = modify' \ctx -> ctx
-    { ctxRange = SymbolicIntSet.union is do ctxRange ctx
+    { ctxRange = is <> ctxRange ctx
     , ctxAlts = alt:ctxAlts ctx
     }
