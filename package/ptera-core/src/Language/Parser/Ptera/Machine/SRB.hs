@@ -6,6 +6,7 @@ import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
+import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 
 
@@ -14,8 +15,8 @@ type T = SRB
 data SRB start varDoc altDoc a = SRB
     { initials    :: EnumMap.EnumMap start StateNum
     , states      :: AlignableArray.T StateNum MState
-    , alts        :: AlignableArray.T PEG.AltNum (PEG.Alt altDoc a)
-    , vars :: AlignableArray.T PEG.VarNum (PEG.Var varDoc)
+    , alts        :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt altDoc a)
+    , vars :: AlignableArray.T LAPEG.VarNum (PEG.Var varDoc)
     }
     deriving (Eq, Show, Functor)
 
@@ -34,21 +35,20 @@ data MState = MState
 
 data Trans
     = TransWithOps [TransOp] StateNum
-    | TransReduce PEG.AltNum
+    | TransReduce LAPEG.AltNum
     deriving (Eq, Show)
 
 data TransOp
-    = TransOpEnter PEG.VarNum Bool (Maybe StateNum)
+    = TransOpEnter LAPEG.VarNum Bool (Maybe StateNum)
     | TransOpPushBackpoint StateNum
-    | TransOpHandleNot PEG.AltNum
+    | TransOpHandleNot LAPEG.AltNum
     | TransOpShift
     deriving (Eq, Show, Generic)
 
 instance Hashable TransOp
 
 data AltItem = AltItem
-    {
-        altItemAltNum :: PEG.AltNum,
-        altItemCurPos :: PEG.Position
+    { altItemAltNum :: LAPEG.AltNum
+    , altItemCurPos :: LAPEG.Position
     }
     deriving (Eq, Show)

@@ -220,6 +220,49 @@ keys m = case intMapNegative m of
             , case mv of { Nothing -> False; Just{} -> True }
             ]
 
+restrictKeys :: IntMap a -> IntSet.T -> IntMap a
+restrictKeys m s = case intMapNegative m of
+    Nothing -> case s of
+        IntSet.StraightSet is ->
+            IntMap
+                { intMapNegative = Nothing
+                , intMapStraight = DataIntMap.restrictKeys
+                    do intMapStraight m
+                    do is
+                }
+        IntSet.NegativeSet is ->
+            IntMap
+                { intMapNegative = Nothing
+                , intMapStraight = DataIntMap.withoutKeys
+                    do intMapStraight m
+                    do is
+                }
+    notMx@Just{} -> case s of
+        IntSet.StraightSet is -> do
+            let notM = DataIntMap.fromSet
+                    do \_ -> notMx
+                    do is
+            IntMap
+                { intMapNegative = Nothing
+                , intMapStraight = DataIntMap.unionWith
+                    do \x _ -> x
+                    do intMapStraight m
+                    do notM
+                }
+        IntSet.NegativeSet is -> do
+            let deleteM = DataIntMap.fromSet
+                    do \_ -> Nothing
+                    do is
+            IntMap
+                { intMapNegative = notMx
+                , intMapStraight = DataIntMap.unionWith
+                    do \_ x -> x
+                    do intMapStraight m
+                    do deleteM
+                }
+
+
+
 merge :: (a -> b -> Maybe c) -> (a -> Maybe c) -> (b -> Maybe c) -> IntMap a -> IntMap b -> IntMap c
 merge fab fa fb = \sma0 smb0 -> case intMapNegative sma0 of
     Nothing -> case intMapNegative smb0 of

@@ -38,9 +38,8 @@ newtype Var varDoc = Var
     deriving (Eq, Show, Functor)
 
 data Alt altDoc a = Alt
-    { altVar     :: VarNum
-    , altKind    :: AltKind
-    , altUnitSeq :: AlignableArray.T Position Unit
+    { altKind    :: AltKind
+    , altUnitSeq :: [Unit]
     , altAction  :: a
     , altHelp    :: altDoc
     }
@@ -52,15 +51,9 @@ data AltKind
     | AltAnd
     deriving (Eq, Show)
 
-newtype Position = Position Int
-    deriving (Eq, Show)
-    deriving Hashable via Int
-    deriving Alignable.T via Alignable.Inst
-
 data Unit
     = UnitTerminal Terminal
     | UnitNonTerminal VarNum
-    | UnitNot
     deriving (Eq, Show)
 
 type Terminal = Int

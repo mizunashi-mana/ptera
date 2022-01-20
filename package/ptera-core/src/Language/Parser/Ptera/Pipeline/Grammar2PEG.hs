@@ -6,7 +6,6 @@ import qualified Data.EnumMap.Strict                       as EnumMap
 import qualified Language.Parser.Ptera.Machine.PEG         as PEG
 import qualified Language.Parser.Ptera.Machine.PEG.Builder as PEGBuilder
 import qualified Language.Parser.Ptera.Syntax.Grammar      as Grammar
-import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 
 
 grammar2Peg :: Enum start => Enum nonTerminal => Enum terminal
@@ -49,20 +48,19 @@ grammarRulePipeline :: Enum nonTerminal => Enum terminal
     -> Pipeline start nonTerminal varDoc altDoc action ()
 grammarRulePipeline v (Grammar.RuleExpr alts) = do
     newV <- getNewVar v
-    newAlts <- forM alts \alt -> grammarAltPipeline newV alt
+    newAlts <- forM alts \alt -> grammarAltPipeline alt
     let newRule = PEG.Rule newAlts
     liftBuilder do PEGBuilder.addRule newV newRule
 
 grammarAltPipeline :: Enum nonTerminal => Enum terminal
-    => PEG.VarNum -> Grammar.Alt nonTerminal terminal elem altDoc action r
+    => Grammar.Alt nonTerminal terminal elem altDoc action r
     -> Pipeline start nonTerminal varDoc altDoc action PEG.AltNum
-grammarAltPipeline v (Grammar.Alt e d act) = do
+grammarAltPipeline (Grammar.Alt e d act) = do
     newUs <- grammarExprPipeline e
     let newAct = Grammar.Action act
     let newAlt = PEG.Alt
-            { altVar = v
-            , altKind = PEG.AltSeq
-            , altUnitSeq = AlignableArray.fromList newUs
+            { altKind = PEG.AltSeq
+            , altUnitSeq = newUs
             , altAction = newAct
             , altHelp = d
             }
