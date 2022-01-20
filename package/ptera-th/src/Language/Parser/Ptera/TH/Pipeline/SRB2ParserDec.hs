@@ -11,8 +11,8 @@ import qualified Language.Haskell.TH                        as TH
 import qualified Language.Haskell.TH.Syntax                 as TH
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
-import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Syntax.Grammar       as Grammar
 import qualified Language.Parser.Ptera.TH.Data.Bits.MaxBit  as Bits

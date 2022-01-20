@@ -7,8 +7,8 @@ import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.HEnum           as HEnum
 import qualified Language.Parser.Ptera.Data.HList           as HList
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
-import qualified Language.Parser.Ptera.Machine.PEG        as PEG
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 import qualified Language.Parser.Ptera.Machine.SRB          as SRB
 import qualified Language.Parser.Ptera.Runner.Parser        as Parser
 import qualified Language.Parser.Ptera.Syntax               as Syntax

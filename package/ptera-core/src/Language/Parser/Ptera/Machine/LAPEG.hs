@@ -1,21 +1,21 @@
 module Language.Parser.Ptera.Machine.LAPEG where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
+import qualified Data.EnumMap.Strict                        as EnumMap
+import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
-import qualified Language.Parser.Ptera.Data.Alignable as Alignable
-import qualified Data.EnumMap.Strict as EnumMap
 import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
 type T = LAPEG
 
 data LAPEG start varDoc altDoc a = LAPEG
-    { vars        :: AlignableArray.T VarNum (PEG.Var varDoc)
-    , rules       :: AlignableArray.T VarNum Rule
-    , alts        :: AlignableArray.T AltNum (Alt altDoc a)
-    , initials    :: EnumMap.EnumMap start VarNum
+    { vars     :: AlignableArray.T VarNum (PEG.Var varDoc)
+    , rules    :: AlignableArray.T VarNum Rule
+    , alts     :: AlignableArray.T AltNum (Alt altDoc a)
+    , initials :: EnumMap.EnumMap start VarNum
     }
     deriving (Eq, Show, Functor)
 
@@ -31,16 +31,16 @@ newtype AltNum = AltNum Int
 
 data Rule = Rule
     { ruleRange :: HeadRange
-    , ruleAlts :: [AltNum]
+    , ruleAlts  :: [AltNum]
     }
     deriving (Eq, Show)
 
 data Alt altDoc a = Alt
-    { altVar     :: VarNum
-    , altKind    :: PEG.AltKind
+    { altVar                  :: VarNum
+    , altKind                 :: PEG.AltKind
     , altUnitSeqWithLookAHead :: AlignableArray.T Position (HeadRange, Unit)
-    , altAction  :: a
-    , altHelp    :: altDoc
+    , altAction               :: a
+    , altHelp                 :: altDoc
     }
     deriving (Eq, Show, Functor)
 

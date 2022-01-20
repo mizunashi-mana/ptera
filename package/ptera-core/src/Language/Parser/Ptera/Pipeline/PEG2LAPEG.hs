@@ -1,15 +1,15 @@
 module Language.Parser.Ptera.Pipeline.PEG2LAPEG where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Machine.PEG as PEG
-import qualified Language.Parser.Ptera.Machine.LAPEG as LAPEG
+import qualified Data.EnumMap.Strict                         as EnumMap
+import qualified Language.Parser.Ptera.Data.Alignable.Array  as AlignableArray
+import qualified Language.Parser.Ptera.Data.Alignable.Map    as AlignableMap
+import qualified Language.Parser.Ptera.Data.Alignable.Set    as AlignableSet
+import qualified Language.Parser.Ptera.Data.Symbolic.IntSet  as SymbolicIntSet
+import qualified Language.Parser.Ptera.Machine.LAPEG         as LAPEG
 import qualified Language.Parser.Ptera.Machine.LAPEG.Builder as LAPEGBuilder
-import qualified Language.Parser.Ptera.Data.Alignable.Map as AlignableMap
-import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
-import qualified Language.Parser.Ptera.Data.Alignable.Set as AlignableSet
-import qualified Language.Parser.Ptera.Data.Symbolic.IntSet as SymbolicIntSet
-import qualified Data.EnumMap.Strict as EnumMap
+import qualified Language.Parser.Ptera.Machine.PEG           as PEG
 
 
 peg2LaPeg :: Enum start

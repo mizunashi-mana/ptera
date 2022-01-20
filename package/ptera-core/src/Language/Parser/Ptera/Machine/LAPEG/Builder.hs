@@ -6,8 +6,8 @@ import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Alignable.Map   as AlignableMap
+import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG
-import qualified Language.Parser.Ptera.Machine.LAPEG          as LAPEG
 
 
 type T start varDoc altDoc a = BuilderT start varDoc altDoc a
@@ -15,12 +15,12 @@ type T start varDoc altDoc a = BuilderT start varDoc altDoc a
 type BuilderT start varDoc altDoc a = StateT (Context start varDoc altDoc a)
 
 data Context start varDoc altDoc a = Context
-    { ctxInitials    :: EnumMap.EnumMap start LAPEG.VarNum
-    , ctxNextVarNum     :: LAPEG.VarNum
+    { ctxInitials   :: EnumMap.EnumMap start LAPEG.VarNum
+    , ctxNextVarNum :: LAPEG.VarNum
     , ctxNextAltNum :: LAPEG.AltNum
-    , ctxVars        :: AlignableMap.T LAPEG.VarNum (PEG.Var varDoc)
-    , ctxRules       :: AlignableMap.T LAPEG.VarNum LAPEG.Rule
-    , ctxAlts :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt altDoc a)
+    , ctxVars       :: AlignableMap.T LAPEG.VarNum (PEG.Var varDoc)
+    , ctxRules      :: AlignableMap.T LAPEG.VarNum LAPEG.Rule
+    , ctxAlts       :: AlignableMap.T LAPEG.AltNum (LAPEG.Alt altDoc a)
     }
     deriving (Eq, Show, Functor)
 

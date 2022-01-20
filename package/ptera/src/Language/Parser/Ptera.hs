@@ -10,7 +10,8 @@ module Language.Parser.Ptera (
 import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Parser.Ptera.Pipeline.Grammar2Runner as Grammar2Runner
-import           Language.Parser.Ptera.Runner                  (Result, ParseResult (..),
+import           Language.Parser.Ptera.Runner                  (ParseResult (..),
+                                                                Result,
                                                                 runParser)
 import qualified Language.Parser.Ptera.Runner                  as Runner
 import           Language.Parser.Ptera.Scanner                 hiding (T)

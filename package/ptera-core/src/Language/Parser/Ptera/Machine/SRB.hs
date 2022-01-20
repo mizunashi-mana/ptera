@@ -7,16 +7,16 @@ import qualified Language.Parser.Ptera.Data.Alignable       as Alignable
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
-import qualified Language.Parser.Ptera.Machine.PEG        as PEG
+import qualified Language.Parser.Ptera.Machine.PEG          as PEG
 
 
 type T = SRB
 
 data SRB start varDoc altDoc a = SRB
-    { initials    :: EnumMap.EnumMap start StateNum
-    , states      :: AlignableArray.T StateNum MState
-    , alts        :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt altDoc a)
-    , vars :: AlignableArray.T LAPEG.VarNum (PEG.Var varDoc)
+    { initials :: EnumMap.EnumMap start StateNum
+    , states   :: AlignableArray.T StateNum MState
+    , alts     :: AlignableArray.T LAPEG.AltNum (LAPEG.Alt altDoc a)
+    , vars     :: AlignableArray.T LAPEG.VarNum (PEG.Var varDoc)
     }
     deriving (Eq, Show, Functor)
 

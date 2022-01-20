@@ -14,12 +14,12 @@ type T start varDoc altDoc a = BuilderT start varDoc altDoc a
 type BuilderT start varDoc altDoc a = StateT (Context start varDoc altDoc a)
 
 data Context start varDoc altDoc a = Context
-    { ctxInitials    :: EnumMap.EnumMap start PEG.VarNum
-    , ctxNextVarNum     :: PEG.VarNum
+    { ctxInitials   :: EnumMap.EnumMap start PEG.VarNum
+    , ctxNextVarNum :: PEG.VarNum
     , ctxNextAltNum :: PEG.AltNum
-    , ctxVars        :: AlignableMap.T PEG.VarNum (PEG.Var varDoc)
-    , ctxRules       :: AlignableMap.T PEG.VarNum PEG.Rule
-    , ctxAlts :: AlignableMap.T PEG.AltNum (PEG.Alt altDoc a)
+    , ctxVars       :: AlignableMap.T PEG.VarNum (PEG.Var varDoc)
+    , ctxRules      :: AlignableMap.T PEG.VarNum PEG.Rule
+    , ctxAlts       :: AlignableMap.T PEG.AltNum (PEG.Alt altDoc a)
     }
     deriving (Eq, Show, Functor)
 

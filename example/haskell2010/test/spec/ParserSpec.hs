@@ -5,7 +5,7 @@ module ParserSpec (spec) where
 import           Parser
 import           Test.Hspec
 
-import           Data.Either           (isLeft)
+import           Data.Either (isLeft)
 import           Types
 
 spec :: Spec
