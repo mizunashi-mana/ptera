@@ -22,6 +22,7 @@ peg2LaPeg g = LAPEGBuilder.build builder where
                 { ctxBuilder = initialCtxBuilder
                 , ctxVarMap = AlignableMap.empty
                 , ctxAvailableRuleRanges = AlignableMap.empty
+                , ctxUpdateRuleStack = []
                 , ctxOriginalVars = PEG.vars g
                 , ctxOriginalRules = PEG.rules g
                 , ctxOriginalAlts = PEG.alts g
@@ -43,6 +44,7 @@ peg2LaPeg g = LAPEGBuilder.build builder where
                     lift do
                         modify' \ctx -> ctx
                             { ctxAvailableRuleRanges = AlignableMap.empty
+                            , ctxUpdateRuleStack = []
                             }
                     pure do AlignableSet.union vs1 vs2
             do AlignableSet.empty
@@ -58,6 +60,7 @@ data Context start varDoc altDoc a = Context
     { ctxBuilder        :: LAPEGBuilder.Context start varDoc altDoc a
     , ctxVarMap         :: AlignableMap.T PEG.VarNum LAPEG.VarNum
     , ctxAvailableRuleRanges     :: AlignableMap.T LAPEG.VarNum (Maybe LAPEG.HeadRange)
+    , ctxUpdateRuleStack :: [(LAPEG.VarNum, LAPEG.HeadRange, [PEG.Alt altDoc a])]
     , ctxOriginalVars :: AlignableArray.T PEG.VarNum (PEG.Var varDoc)
     , ctxOriginalRules  :: AlignableArray.T PEG.VarNum PEG.Rule
     , ctxOriginalAlts  :: AlignableArray.T PEG.AltNum (PEG.Alt altDoc a)
@@ -72,7 +75,16 @@ pegInitialPipeline s v = do
         Nothing -> do
             (x, _) <- pegVarPipeline v
             pure x
+    pegRuleStackPipeline
     liftBuilder do LAPEGBuilder.addInitial s newV
+
+pegRuleStackPipeline :: Pipeline start varDoc altDoc a ()
+pegRuleStackPipeline = popUpdateRuleItem >>= \case
+    Nothing ->
+        pure ()
+    Just (newV, newRange, rule) -> do
+        pegRulePipeline newV newRange rule
+        pegRuleStackPipeline
 
 pegVarPipeline
     :: PEG.VarNum -> Pipeline start varDoc altDoc a (LAPEG.VarNum, LAPEG.HeadRange)
@@ -90,13 +102,13 @@ pegVarPipeline v = do
         goVarUpdate newV = do
             pegRules <- getCtx ctxOriginalRules
             let rule = AlignableArray.forceIndex pegRules v
-            hr <- pegRulePipeline newV rule
+            hr <- pegRuleHeadRangePipeline newV rule
             pure (newV, hr)
 
-pegRulePipeline
+pegRuleHeadRangePipeline
     :: LAPEG.VarNum -> PEG.Rule
     -> Pipeline start varDoc altDoc a LAPEG.HeadRange
-pegRulePipeline newV (PEG.Rule altns) = do
+pegRuleHeadRangePipeline newV (PEG.Rule altns) = do
     originalAlts <- getCtx ctxOriginalAlts
     let alts = [ AlignableArray.forceIndex originalAlts altn | altn <- altns ]
     startUpdateAvailableRuleRange newV
@@ -107,17 +119,13 @@ pegRulePipeline newV (PEG.Rule altns) = do
         do mempty
         do alts
     saveNewRuleRange newV newRange
-    newAlts <- forM alts \alt -> pegAltPipeline newV alt
-    let newRule = LAPEG.Rule
-            { ruleRange = newRange
-            , ruleAlts = newAlts
-            }
-    liftBuilder do LAPEGBuilder.addRule newV newRule
+    pushUpdateRuleItem newV newRange alts
     pure newRange
 
 pegAltHeadRangePipeline
     :: PEG.Alt altDoc a -> Pipeline start varDoc altDoc a LAPEG.HeadRange
-pegAltHeadRangePipeline alt = case PEG.altKind alt of
+pegAltHeadRangePipeline alt =
+    case PEG.altKind alt of
         PEG.AltSeq -> goStraight
         PEG.AltNot -> goNegative
         PEG.AltAnd -> goStraight
@@ -158,10 +166,22 @@ pegAltHeadRangePipeline alt = case PEG.altKind alt of
                                 }
                         pure hr1
 
+pegRulePipeline
+    :: LAPEG.VarNum -> LAPEG.HeadRange -> [PEG.Alt altDoc a]
+    -> Pipeline start varDoc altDoc a ()
+pegRulePipeline newV newRange alts = do
+    newAlts <- forM alts \alt -> pegAltPipeline newV alt
+    let newRule = LAPEG.Rule
+            { ruleRange = newRange
+            , ruleAlts = newAlts
+            }
+    liftBuilder do LAPEGBuilder.addRule newV newRule
+
 pegAltPipeline
     :: LAPEG.VarNum -> PEG.Alt altDoc a
     -> Pipeline start varDoc altDoc a LAPEG.AltNum
-pegAltPipeline newV alt = case PEG.altKind alt of
+pegAltPipeline newV alt =
+    case PEG.altKind alt of
         PEG.AltSeq -> goStraight
         PEG.AltNot -> goNegative
         PEG.AltAnd -> goStraight
@@ -274,6 +294,25 @@ getAvailableVar v = do
                 pure Nothing
             Just Just{} ->
                 pure do Just newV
+
+popUpdateRuleItem
+    :: Pipeline start varDoc altDoc a (Maybe (LAPEG.VarNum, LAPEG.HeadRange, [PEG.Alt altDoc a]))
+popUpdateRuleItem = do
+    updateRuleStack <- getCtx ctxUpdateRuleStack
+    case updateRuleStack of
+        [] ->
+            pure Nothing
+        item:items -> do
+            lift do modify' \ctx -> ctx { ctxUpdateRuleStack = items }
+            pure do Just item
+
+pushUpdateRuleItem
+    :: LAPEG.VarNum -> LAPEG.HeadRange -> [PEG.Alt altDoc a]
+    -> Pipeline start varDoc altDoc a ()
+pushUpdateRuleItem newV newRange alts = lift do
+    modify' \ctx -> ctx
+        { ctxUpdateRuleStack = (newV, newRange, alts):ctxUpdateRuleStack ctx
+        }
 
 getCtx
     :: (Context start varDoc altDoc a -> r)

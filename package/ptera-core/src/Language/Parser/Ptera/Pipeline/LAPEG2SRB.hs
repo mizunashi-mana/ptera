@@ -398,7 +398,8 @@ getUnitForAltItem p altn = do
 getAlt :: LAPEG.AltNum -> Pipeline start altDoc a (LAPEG.Alt altDoc a)
 getAlt altn = do
     alts <- getCtx ctxOriginalAlts
-    pure do AlignableArray.forceIndex alts altn
+    let alt = AlignableArray.forceIndex alts altn
+    pure alt
 
 getCtx :: (Context start altDoc a -> r) -> Pipeline start altDoc a r
 getCtx f = f <$> get
