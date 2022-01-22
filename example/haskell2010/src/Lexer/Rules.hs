@@ -236,6 +236,7 @@ reservedOpRule = do
     initialRule (stringP "::")      [||Right $ \_ -> TokSymDoubleColon||]
     initialRule (stringP "=")       [||Right $ \_ -> TokSymEqual||]
     initialRule (stringP "\\")      [||Right $ \_ -> TokSymBackslash||]
+    initialRule (stringP "|")       [||Right $ \_ -> TokSymBar||]
     initialRule (stringP "<-")      [||Right $ \_ -> TokSymLeftArrow||]
     initialRule (stringP "->")      [||Right $ \_ -> TokSymRightArrow||]
     initialRule (stringP "@")       [||Right $ \_ -> TokSymAt||]

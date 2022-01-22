@@ -227,8 +227,13 @@ pegAltPipeline newV alt =
             u:revUs -> do
                 (newU, hrU) <- pegUnitPipeline u
                 let hrUWithPost = if LAPEG.headRangeEpsilon hrU
-                        then hrU
-                        else hrU <> postRange
+                        then LAPEG.HeadRange
+                            { headRangeEpsilon =
+                                LAPEG.headRangeEpsilon postRange
+                            , headRangeConsume =
+                                LAPEG.headRangeConsume hrU <> LAPEG.headRangeConsume postRange
+                            }
+                        else hrU
                 goRevUnits hrUWithPost ((hrUWithPost, newU):newUs) revUs
 
 pegUnitPipeline

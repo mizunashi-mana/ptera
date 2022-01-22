@@ -228,11 +228,17 @@ runEnter v needBack enterSn = do
             pure ContParse
         Just memoItem -> case memoItem of
             MemoItemParsed pos1 mark1 x -> do
+#if DEBUG
+                debugTraceShow ("runEnter / MemoItemParsed", v, enterSn, pos1) do pure ()
+#endif
                 setNextState enterSn
                 pushItem do ItemArgument x
                 seekToMark pos1 mark1
                 pure ContParse
-            MemoItemFailed ->
+            MemoItemFailed -> do
+#if DEBUG
+                debugTraceShow ("runEnter / MemoItemFailed", v, enterSn) do pure ()
+#endif
                 parseFail Nothing
 
 #if DEBUG
@@ -468,9 +474,8 @@ insertMemoItemIfNeeded v pos mitem = do
 updateCustomContext :: Monad m => ctx -> RunT ctx posMark elem altHelp m ()
 updateCustomContext customCtx = RunT do
     modify' \ctx -> ctx
-        {
-            ctxMemoTable = AlignableMap.empty,
-            ctxCustomContext = customCtx
+        { ctxMemoTable = AlignableMap.empty
+        , ctxCustomContext = customCtx
         }
 
 setNextState :: Monad m => Parser.StateNum -> RunT ctx posMark elem altHelp m ()
