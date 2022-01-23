@@ -58,7 +58,7 @@ runT = go where
         :: Parser.TokenNum
         -> RunT ctx posMark elem altHelp m (ParseResult posMark altHelp a)
     goResult tok = getCtx ctxItemStack >>= \case
-        [ItemArgument x] ->
+        [ItemArgument (Parser.ReduceArgument x)] ->
             pure do Parsed do Unsafe.unsafeCoerce x
         _ -> do
             if tok >= 0
@@ -88,7 +88,7 @@ data FailedReason altHelp
 data Context ctx posMark elem altHelp = Context
     { ctxParser             :: Parser.T ctx elem altHelp
     , ctxState              :: Parser.StateNum
-    , ctxItemStack          :: [Item posMark]
+    , ctxItemStack          :: [Item posMark ctx]
     , ctxLookAHeadToken     :: Maybe (Position, posMark, Parser.TokenNum, Maybe elem)
     , ctxNextPosition       :: Position
     , ctxDeepestError       :: Maybe (Position, posMark, FailedReason altHelp)
@@ -101,15 +101,16 @@ newtype Position = Position Int
     deriving (Eq, Ord, Show)
     deriving Alignable.T via Alignable.Inst
 
-data MemoItem posMark where
-    MemoItemParsed :: Position -> posMark -> a -> MemoItem posMark
-    MemoItemFailed :: MemoItem posMark
+data MemoItem posMark
+    = MemoItemParsed Position posMark Parser.ReduceArgument
+    | MemoItemFailed
 
-data Item posMark where
-    ItemEnter :: Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum -> Item posMark
-    ItemHandleNot :: Parser.AltNum -> Item posMark
-    ItemBackpoint :: Position -> posMark -> Parser.StateNum -> Item posMark
-    ItemArgument :: a -> Item posMark
+data Item posMark ctx
+    = ItemEnter Position (Maybe posMark) Parser.VarNum Parser.StateNum
+    | ItemHandleNot Parser.AltNum
+    | ItemBackpoint Position posMark Parser.StateNum
+    | ItemArgument Parser.ReduceArgument
+    | ItemModifyCustomContext ctx
 
 data RunningResult
     = ContParse
@@ -186,6 +187,8 @@ prettyShowItemStack = do
                 "ItemBackpoint " <> show (p, s)
             ItemArgument _ ->
                 "ItemArgument"
+            ItemModifyCustomContext _ ->
+                "ItemModifyCustomContext"
 #endif
 
 runTransOp :: Scanner.T posMark elem m
@@ -204,7 +207,7 @@ runTransOp = \case
         (_, Nothing) ->
             parseFail do Just FailedByNotEnoughInput
         (_, Just x) -> do
-            pushItem do ItemArgument x
+            pushItem do ItemArgument do Parser.ReduceArgument x
             shift
             pure ContParse
     Parser.TransOpReduce alt ->
@@ -254,43 +257,42 @@ runReduce :: forall ctx posMark elem altHelp m
     .  Scanner.T posMark elem m
     => Parser.AltNum -> RunT ctx posMark elem altHelp m RunningResult
 runReduce alt = go0 where
-    go0 :: RunT ctx posMark elem altHelp m RunningResult
     go0 = do
 #if DEBUG
         debugShowHelpAlt "runReduce" alt
 #endif
         capturedCtxForFail <- captureCtx
-        go capturedCtxForFail []
+        go capturedCtxForFail Nothing []
 
-    go :: Context ctx posMark elem altHelp -> [u] -> RunT ctx posMark elem altHelp m RunningResult
-    go capturedCtxForFail args = popItem >>= \case
+    go capturedCtxForFail mrollbackCustomCtx0 args = popItem >>= \case
         Nothing ->
             pure CantContParse
         Just item -> case item of
-            ItemArgument x ->
-                go capturedCtxForFail do Unsafe.unsafeCoerce x:args
+            ItemArgument x -> do
+                go capturedCtxForFail mrollbackCustomCtx0 do x:args
+            ItemModifyCustomContext customCtx ->
+                go capturedCtxForFail
+                    do Just customCtx
+                    do args
             ItemBackpoint{} -> do
-                go capturedCtxForFail args
-            ItemHandleNot{} ->
+                go capturedCtxForFail mrollbackCustomCtx0 args
+            ItemHandleNot{} -> do
+                forM_ mrollbackCustomCtx0 \customCtx -> updateCustomContext customCtx
                 parseFailWithAlt alt
             ItemEnter pos mmark v enterSn ->
-                goEnter capturedCtxForFail args pos mmark v enterSn
+                goEnter capturedCtxForFail mrollbackCustomCtx0 args pos mmark v enterSn
 
-    goEnter
-        :: Context ctx posMark elem altHelp -> [u]
-        -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
-        -> RunT ctx posMark elem altHelp m RunningResult
-    goEnter capturedCtxForFail args pos0 mmark0 v enterSn = do
+    goEnter capturedCtxForFail mrollbackCustomCtx args pos0 mmark0 v enterSn = do
         parser <- getCtx ctxParser
         case Parser.parserAltKind parser alt of
-            PEG.AltSeq -> runActionAndSaveEnterResult v pos0 alt args >>= \case
+            PEG.AltSeq -> runActionAndSaveEnterResult v pos0 mrollbackCustomCtx alt args >>= \case
                 False -> do
                     restoreCtx capturedCtxForFail
                     parseFailWithAlt alt
                 True -> do
                     setNextState enterSn
                     pure ContParse
-            PEG.AltAnd -> runActionAndSaveEnterResult v pos0 alt args >>= \case
+            PEG.AltAnd -> runActionAndSaveEnterResult v pos0 mrollbackCustomCtx alt args >>= \case
                 False -> do
                     restoreCtx capturedCtxForFail
                     parseFailWithAlt alt
@@ -345,46 +347,61 @@ parseFail = go0 where
                 pure ()
             Just failedReason -> do
                 reportError failedReason
-        go
+        go Nothing
 
-    go :: RunT ctx posMark elem altHelp m RunningResult
-    go = popItem >>= \case
+    go :: Maybe ctx -> RunT ctx posMark elem altHelp m RunningResult
+    go mrollbackCustomCtx0 = popItem >>= \case
         Nothing ->
             pure CantContParse
         Just item -> case item of
             ItemBackpoint pos p backSn -> do
+                forM_ mrollbackCustomCtx0 \customCtx -> updateCustomContext customCtx
                 setNextState backSn
                 seekToMark pos p
                 pure ContParse
-            ItemHandleNot alt ->
-                goHandleNot alt
+            ItemHandleNot alt -> do
+                forM_ mrollbackCustomCtx0 \customCtx -> updateCustomContext customCtx
+                capturedCtxForFail <- captureCtx
+                goHandleNot capturedCtxForFail Nothing alt
+            ItemModifyCustomContext customCtx ->
+                go do Just customCtx
             ItemArgument{} ->
-                go
+                go mrollbackCustomCtx0
             ItemEnter pos0 _ v _ -> do
                 saveFailedEnterAction v pos0
-                go
+                go mrollbackCustomCtx0
 
-    goHandleNot alt = popItem >>= \case
+    goHandleNot capturedCtxForFail mrollbackCustomCtx0 alt = popItem >>= \case
         Nothing ->
             pure CantContParse
         Just item -> case item of
             ItemEnter pos0 mmark0 v enterSn ->
-                goEnter alt pos0 mmark0 v enterSn
-            _ ->
-                goHandleNot alt
+                goEnter capturedCtxForFail mrollbackCustomCtx0 alt pos0 mmark0 v enterSn
+            ItemArgument{} ->
+                goHandleNot capturedCtxForFail mrollbackCustomCtx0 alt
+            ItemBackpoint{} ->
+                goHandleNot capturedCtxForFail mrollbackCustomCtx0 alt
+            ItemHandleNot{} ->
+                pure CantContParse
+            ItemModifyCustomContext customCtx ->
+                goHandleNot capturedCtxForFail
+                    do Just customCtx
+                    do alt
 
     goEnter
-        :: Parser.AltNum -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
+        :: Context ctx posMark elem altHelp -> Maybe ctx
+        -> Parser.AltNum -> Position -> Maybe posMark -> Parser.VarNum -> Parser.StateNum
         -> RunT ctx posMark elem altHelp m RunningResult
-    goEnter alt pos0 mmark0 v enterSn = do
+    goEnter capturedCtxForFail mrollbackCustomCtx alt pos0 mmark0 v enterSn = do
         parser <- getCtx ctxParser
         case Parser.parserAltKind parser alt of
             PEG.AltSeq ->
                 error "unreachable: a not handling with seq alternative"
             PEG.AltAnd ->
                 error "unreachable: a not handling with and alternative"
-            PEG.AltNot -> runActionAndSaveEnterResult v pos0 alt [] >>= \case
-                False ->
+            PEG.AltNot -> runActionAndSaveEnterResult v pos0 mrollbackCustomCtx alt [] >>= \case
+                False -> do
+                    restoreCtx capturedCtxForFail
                     parseFailWithAlt alt
                 True -> do
                     let mark0 = case mmark0 of
@@ -398,22 +415,23 @@ parseFail = go0 where
 
 runActionAndSaveEnterResult
     :: Scanner.T posMark elem m
-    => Parser.VarNum -> Position -> Parser.AltNum -> [u]
+    => Parser.VarNum -> Position
+    -> Maybe ctx -> Parser.AltNum -> [Parser.ReduceArgument]
     -> RunT ctx posMark elem altHelp m Bool
-runActionAndSaveEnterResult v pos0 alt args = runAction alt args >>= \case
-    Syntax.ActionTaskFail -> do
-        saveFailedEnterAction v pos0
-        pure False
-    Syntax.ActionTaskResult res -> do
-        saveParsedEnterAction v pos0 Nothing res
-        pure True
-    Syntax.ActionTaskModifyResult ctx1 res -> do
-        saveParsedEnterAction v pos0 (Just ctx1) res
-        pure True
+runActionAndSaveEnterResult v pos0 mrollbackCustomCtx alt args =
+    runAction alt args >>= \case
+        Syntax.ActionTaskFail ->
+            pure False
+        Syntax.ActionTaskResult res -> do
+            saveParsedEnterAction v pos0 mrollbackCustomCtx Nothing res
+            pure True
+        Syntax.ActionTaskModifyResult ctx1 res -> do
+            saveParsedEnterAction v pos0 mrollbackCustomCtx (Just ctx1) res
+            pure True
 
 runAction :: Scanner.T posMark elem m
-    => Parser.AltNum -> [u]
-    -> RunT ctx posMark elem altHelp m (Syntax.ActionTaskResult ctx a)
+    => Parser.AltNum -> [Parser.ReduceArgument]
+    -> RunT ctx posMark elem altHelp m (Syntax.ActionTaskResult ctx Parser.ReduceArgument)
 runAction alt args = do
     parser <- getCtx ctxParser
     ctx0 <- getCtx ctxCustomContext
@@ -424,13 +442,19 @@ runAction alt args = do
 
 saveParsedEnterAction
     :: Scanner.T posMark elem m
-    => Parser.VarNum -> Position -> Maybe ctx -> a
+    => Parser.VarNum -> Position -> Maybe ctx -> Maybe ctx -> Parser.ReduceArgument
     -> RunT ctx posMark elem altHelp m ()
-saveParsedEnterAction v pos0 mctx1 res = do
-    forM_ mctx1 \ctx1 -> updateCustomContext ctx1
-    insertMemoItemIfNeeded v pos0 do
-        (pos1, pm1) <- getCurrentPosition
-        pure do MemoItemParsed pos1 pm1 res
+saveParsedEnterAction v pos0 mrollbackCustomCtx mactionCustomCtx res = do
+    forM_ mrollbackCustomCtx \customCtx -> do
+        needBack <- isNeedBack
+        when needBack do
+            pushItem do ItemModifyCustomContext customCtx
+    case mactionCustomCtx of
+        Just customCtx ->
+            updateCustomContext customCtx
+        Nothing -> insertMemoItemIfNeeded v pos0 do
+            (pos1, pm1) <- getCurrentPosition
+            pure do MemoItemParsed pos1 pm1 res
     pushItem do ItemArgument res
 
 saveFailedEnterAction
@@ -557,8 +581,9 @@ isNeedBack = do
     needBackItemsCount <- getCtx ctxNeedBackItemsCount
     pure do needBackItemsCount > 0
 
-pushItem :: Scanner.T posMark elem m
-    => Item posMark -> RunT ctx posMark elem altHelp m ()
+pushItem
+    :: Scanner.T posMark elem m
+    => Item posMark ctx -> RunT ctx posMark elem altHelp m ()
 pushItem item = do
     (pos, p) <- getCurrentPosition
     bc0 <- getCtx ctxNeedBackItemsCount
@@ -578,8 +603,9 @@ pushItem item = do
                     ctxMemoTable ctx
             }
 
-popItem :: Scanner.T posMark elem m
-    => RunT ctx posMark elem altHelp m (Maybe (Item posMark))
+popItem
+    :: Scanner.T posMark elem m
+    => RunT ctx posMark elem altHelp m (Maybe (Item posMark ctx))
 popItem = getCtx ctxItemStack >>= \case
     [] ->
         pure Nothing
@@ -595,12 +621,14 @@ popItem = getCtx ctxItemStack >>= \case
                 }
         pure do Just item
 
-isNeedBackItem :: Item posMark -> Bool
+isNeedBackItem :: Item posMark ctx -> Bool
 isNeedBackItem = \case
     ItemHandleNot{} ->
         False
     ItemBackpoint{} ->
         True
+    ItemModifyCustomContext{} ->
+        False
     ItemEnter _ mmark _ _ -> case mmark of
         Nothing ->
             False

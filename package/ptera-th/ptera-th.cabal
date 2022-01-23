@@ -101,7 +101,6 @@ common general
         enummapset-th,
         template-haskell,
         unordered-containers,
-        prettyprinter,
 
     autogen-modules:
         Paths_ptera_th

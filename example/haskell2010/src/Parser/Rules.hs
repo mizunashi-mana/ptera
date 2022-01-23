@@ -1317,9 +1317,9 @@ rDclass = ruleExpr
 
 rInst :: RuleExpr Type
 rInst = ruleExpr
-    [ alt $ varA @"qtycon"
-        <:> semAct \(qtycon :* HNil) ->
-            [||TypeId $$(qtycon)||]
+    [ alt $ varA @"gtycon"
+        <:> semAct \(gtycon :* HNil) ->
+            [||TypeId $$(gtycon)||]
     , alt $ tokA @"(" <^^> varA @"gtycon" <^> varA @"tyvar*" <^> tokA @")"
         <::> semAct \(_ :* _ :* gtycon :* tyvars :* _ :* _ :* HNil) ->
             [||TypeApp $$(gtycon) (seqToList $$(tyvars))||]
@@ -1505,12 +1505,9 @@ rGdrhs = ruleExpr
 
 rGuards :: RuleExpr [Guard]
 rGuards = ruleExpr
-    [ alt $ varA @"(guard ',')* guard"
-        <:> semAct \(guards1 :* HNil) ->
+    [ alt $ tokA @"|" <^^> varA @"(guard ',')* guard"
+        <:> semAct \(_ :* _ :* guards1 :* HNil) ->
             [||seqToList $$(guards1)||]
-    , eps
-        $ semAct \HNil ->
-            [||[]||]
     ]
 
 rGuards1 :: RuleExpr (Seq Guard)

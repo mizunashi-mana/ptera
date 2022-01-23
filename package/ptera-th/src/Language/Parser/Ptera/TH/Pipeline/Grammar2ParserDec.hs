@@ -8,7 +8,6 @@ import qualified Language.Haskell.TH                             as TH
 import qualified Language.Parser.Ptera.Pipeline.SafeGrammar2SRB  as SafeGrammar2SRB
 import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
 import qualified Language.Parser.Ptera.TH.Syntax                 as Syntax
-import qualified Prettyprinter
 import qualified Type.Membership                                 as Membership
 
 grammar2ParserDec
@@ -22,13 +21,9 @@ grammar2ParserDec param g = do
     srb <- case SafeGrammar2SRB.safeGrammar2Srb g of
         Right x -> pure x
         Left vs -> do
-            let errorMsg = Prettyprinter.hsep
-                    [ Prettyprinter.pretty "Failed to generate parser."
-                    , Prettyprinter.pretty "Detect left recursions at "
-                        <> Prettyprinter.pretty vs
-                        <> Prettyprinter.pretty "."
-                    ]
-            fail do show errorMsg
+            let errorMsg = "Failed to generate parser.  "
+                    <> "Detect left recursions at " <> show vs <> "."
+            fail errorMsg
     SRB2ParserDec.srb2QParser
         do SRB2ParserDec.PipelineParam
             {

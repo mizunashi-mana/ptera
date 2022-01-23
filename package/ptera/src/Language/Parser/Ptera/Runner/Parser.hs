@@ -11,6 +11,7 @@ module Language.Parser.Ptera.Runner.Parser (
     RunnerParser (..),
     Syntax.GrammarToken (..),
     ActionM (..),
+    ReduceArgument (..),
     Syntax.ActionTask (..),
     Syntax.getAction,
     Syntax.modifyAction,
@@ -35,9 +36,11 @@ type AltNum = Int
 type T = RunnerParser
 
 newtype ActionM ctx = ActionM
-    {
-        runActionM :: forall a b. [a] -> Syntax.ActionTask ctx b
+    { runActionM :: [ReduceArgument] -> Syntax.ActionTask ctx ReduceArgument
     }
+
+data ReduceArgument where
+    ReduceArgument :: a -> ReduceArgument
 
 data RunnerParser ctx elem altHelp = RunnerParser
     { parserInitial     :: StartNum -> Maybe StateNum

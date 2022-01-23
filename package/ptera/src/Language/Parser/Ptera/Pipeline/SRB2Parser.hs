@@ -109,14 +109,14 @@ transOp = \case
 
 runAction :: Action ctx -> Parser.ActionM ctx
 runAction (Grammar.Action (Syntax.SemActM f)) = Parser.ActionM \l ->
-        unsafeCoerceActionTask do f do goL l
+        Parser.ReduceArgument <$> f do goL l
     where
         goL = \case
-            []   -> unsafeCoerceHList HList.HNil
-            x:xs -> unsafeCoerceHList do x HList.:* goL xs
+            [] ->
+                unsafeCoerceHList HList.HNil
+            Parser.ReduceArgument x:xs ->
+                unsafeCoerceHList do x HList.:* goL xs
 
         unsafeCoerceHList :: HList.T us1 -> HList.T us2
         unsafeCoerceHList = Unsafe.unsafeCoerce
 
-        unsafeCoerceActionTask :: Syntax.ActionTask ctx a -> Syntax.ActionTask ctx b
-        unsafeCoerceActionTask = Unsafe.unsafeCoerce

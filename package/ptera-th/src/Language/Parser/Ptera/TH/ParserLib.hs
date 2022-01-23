@@ -1,7 +1,6 @@
 module Language.Parser.Ptera.TH.ParserLib (
     module Language.Parser.Ptera.Runner.Parser,
     module Data.Proxy,
-    module Prettyprinter,
     Parser,
     pteraTHTokenToTerminal,
     pteraTHArrayIndex,
@@ -9,11 +8,10 @@ module Language.Parser.Ptera.TH.ParserLib (
     pteraTHLookupTable8,
     pteraTHLookupTable16,
     pteraTHLookupTable32,
-    pteraTHUnsafeCoerce,
+    pteraTHUnsafeExtractReduceArgument,
     pteraTHUnsafeRunner,
     pteraTHAction,
-    pteraTHActionPure,
-    pteraTHHelpNotYetMessage,
+    pteraTHActionTaskPure,
 ) where
 
 import           Language.Parser.Ptera.Prelude
@@ -26,16 +24,14 @@ import qualified GHC.ST                              as ST
 import qualified GHC.Types                           as Types
 import qualified Language.Parser.Ptera.Data.HEnum    as HEnum
 import qualified Language.Parser.Ptera.Runner        as Runner
-import           Language.Parser.Ptera.Runner.Parser (ActionM, ActionTask,
+import           Language.Parser.Ptera.Runner.Parser (ActionM (..), ActionTask,
+                                                      ReduceArgument (..),
                                                       AltKind (..),
                                                       GrammarToken (..),
                                                       RunnerParser (..),
                                                       Trans (..), TransOp (..),
                                                       failAction, getAction,
                                                       modifyAction)
-import qualified Language.Parser.Ptera.Runner.Parser as RunnerParser
-import           Prettyprinter                       (Doc)
-import qualified Prettyprinter
 import qualified Unsafe.Coerce                       as Unsafe
 
 type Parser = Runner.T
@@ -77,17 +73,14 @@ pteraTHLookupTable32 offset table# s c = do
             let !(# s1#, r# #) = Prim.readInt32OffAddr# table# i# s0#
             (# s1#, Types.I# r# #)
 
-pteraTHUnsafeCoerce :: a -> b
-pteraTHUnsafeCoerce = Unsafe.unsafeCoerce
+pteraTHUnsafeExtractReduceArgument :: ReduceArgument -> a
+pteraTHUnsafeExtractReduceArgument (ReduceArgument x) = Unsafe.unsafeCoerce x
 
 pteraTHUnsafeRunner :: RunnerParser ctx elem () -> Parser ctx rules elem initials
 pteraTHUnsafeRunner p = Runner.UnsafeRunnerM p
 
-pteraTHAction :: ([a] -> ActionTask ctx b) -> ActionM ctx
-pteraTHAction f = RunnerParser.ActionM do Unsafe.unsafeCoerce f
+pteraTHAction :: ([ReduceArgument] -> ActionTask ctx b) -> ActionM ctx
+pteraTHAction f = ActionM do \args -> ReduceArgument <$> f args
 
-pteraTHActionPure :: a -> ActionTask ctx a
-pteraTHActionPure x = pure x
-
-pteraTHHelpNotYetMessage :: Doc ann
-pteraTHHelpNotYetMessage = Prettyprinter.pretty "Not support alternative help yet."
+pteraTHActionTaskPure :: a -> ActionTask ctx a
+pteraTHActionTaskPure x = pure x
