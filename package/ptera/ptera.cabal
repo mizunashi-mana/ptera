@@ -128,7 +128,6 @@ library
         Language.Parser.Ptera.Pipeline.SRB2Parser
 
         Language.Parser.Ptera.Data.HEnum
-        Language.Parser.Ptera.Data.HList
 
 test-suite doctest
     import:

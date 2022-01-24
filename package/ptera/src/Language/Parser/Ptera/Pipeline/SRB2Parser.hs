@@ -5,7 +5,6 @@ import           Language.Parser.Ptera.Prelude
 import qualified Data.EnumMap.Strict                        as EnumMap
 import qualified Language.Parser.Ptera.Data.Alignable.Array as AlignableArray
 import qualified Language.Parser.Ptera.Data.HEnum           as HEnum
-import qualified Language.Parser.Ptera.Data.HList           as HList
 import qualified Language.Parser.Ptera.Data.Symbolic.IntMap as SymbolicIntMap
 import qualified Language.Parser.Ptera.Machine.LAPEG        as LAPEG
 import qualified Language.Parser.Ptera.Machine.PEG          as PEG
@@ -113,10 +112,10 @@ runAction (Grammar.Action (Syntax.SemActM f)) = Parser.ActionM \l ->
     where
         goL = \case
             [] ->
-                unsafeCoerceHList HList.HNil
+                unsafeCoerceHList Syntax.HNil
             Parser.ReduceArgument x:xs ->
-                unsafeCoerceHList do x HList.:* goL xs
+                unsafeCoerceHList do x Syntax.:* goL xs
 
-        unsafeCoerceHList :: HList.T us1 -> HList.T us2
+        unsafeCoerceHList :: Syntax.HList us1 -> Syntax.HList us2
         unsafeCoerceHList = Unsafe.unsafeCoerce
 

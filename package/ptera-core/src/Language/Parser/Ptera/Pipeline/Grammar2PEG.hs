@@ -6,6 +6,7 @@ import qualified Data.EnumMap.Strict                       as EnumMap
 import qualified Language.Parser.Ptera.Machine.PEG         as PEG
 import qualified Language.Parser.Ptera.Machine.PEG.Builder as PEGBuilder
 import qualified Language.Parser.Ptera.Syntax.Grammar      as Grammar
+import qualified Type.Membership.HList as Membership
 
 
 grammar2Peg :: Enum start => Enum nonTerminal => Enum terminal
@@ -76,9 +77,9 @@ grammarExprPipeline = \e -> go [] e where
         -> Grammar.Expr nonTerminal terminal elem us'
         -> Pipeline start nonTerminal varDoc altDoc action [PEG.Unit]
     go acc = \case
-        Grammar.Eps ->
+        Membership.HNil ->
             pure do reverse acc
-        u Grammar.:^ e -> do
+        Membership.HCons u e -> do
             newU <- grammarUnitPipeline u
             go
                 do newU:acc

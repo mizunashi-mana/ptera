@@ -9,7 +9,7 @@ module Language.Parser.Ptera.Syntax.Grammar (
     Action (..),
     RuleExpr (..),
     Alt (..),
-    Expr (..),
+    Expr,
     Unit (..),
 
     initialT,
@@ -19,6 +19,7 @@ module Language.Parser.Ptera.Syntax.Grammar (
 import           Language.Parser.Ptera.Prelude
 
 import qualified Data.EnumMap.Strict           as EnumMap
+import qualified Type.Membership.HList as Membership
 
 
 type T start nonTerminal terminal elem varDoc altDoc action =
@@ -70,12 +71,7 @@ data Alt nonTerminal terminal elem altDoc action a where
     Alt :: Expr nonTerminal terminal elem us -> altDoc -> action us a
         -> Alt nonTerminal terminal elem altDoc action a
 
-data Expr nonTerminal terminal elem us where
-    Eps :: Expr nonTerminal terminal elem '[]
-    (:^) :: Unit nonTerminal terminal elem u -> Expr nonTerminal terminal elem us
-        -> Expr nonTerminal terminal elem (u ': us)
-
-infixr 5 :^
+type Expr nonTerminal terminal elem = Membership.HList (Unit nonTerminal terminal elem)
 
 data Unit nonTerminal terminal elem u where
     UnitToken :: terminal -> Unit nonTerminal terminal elem elem

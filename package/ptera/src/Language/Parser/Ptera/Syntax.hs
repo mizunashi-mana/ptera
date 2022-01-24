@@ -14,7 +14,11 @@ module Language.Parser.Ptera.Syntax (
     RuleExprM,
     AltM,
     SafeGrammar.Expr,
+    HList,
+    pattern HNil,
+    pattern (:*),
     SemActM (..),
+    semActM,
     ActionTask (..),
     ActionTaskResult (..),
     getAction,
@@ -30,8 +34,10 @@ module Language.Parser.Ptera.Syntax (
     SafeGrammar.fixGrammar,
     SafeGrammar.ruleExpr,
     (SafeGrammar.<^>),
-    (SafeGrammar.<:>),
-    SafeGrammar.eps,
+    (<:>),
+    eps,
+    (<::>),
+    epsM,
     SafeGrammar.var,
     SafeGrammar.varA,
     SafeGrammar.tok,
@@ -41,7 +47,7 @@ module Language.Parser.Ptera.Syntax (
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.HList         as HList
+import qualified Type.Membership.HList         as Membership
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 
 
@@ -56,20 +62,54 @@ type RuleExpr = RuleExprM ()
 type Alt = AltM ()
 
 
+(<:>)
+    :: SafeGrammar.Expr rules tokens elem us -> (HList us -> a)
+    -> AltM ctx rules tokens elem a
+e <:> act = e SafeGrammar.<:> semAct act
+
+infixl 4 <:>
+
+eps :: (HList '[] -> a) -> AltM ctx rules tokens elem a
+eps act = SafeGrammar.eps do semAct act
+
+(<::>)
+    :: SafeGrammar.Expr rules tokens elem us -> (HList us -> ActionTask ctx a)
+    -> AltM ctx rules tokens elem a
+e <::> act = e SafeGrammar.<:> semActM act
+
+infixl 4 <::>
+
+epsM :: (HList '[] -> ActionTask ctx a) -> AltM ctx rules tokens elem a
+epsM act = SafeGrammar.eps do semActM act
+
+
+type HList = Membership.HList Identity
+
+pattern HNil :: HList '[]
+pattern HNil = Membership.HNil
+
+pattern (:*) :: u -> HList us -> HList (u ': us)
+pattern x :* xs = Membership.HCons (Identity x) xs
+
+infixr 6 :*
+
+
 newtype SemActM ctx us a = SemActM
-    {
-        semanticAction :: HList.T us -> ActionTask ctx a
+    { semanticAction :: HList us -> ActionTask ctx a
     }
     deriving Functor
 
 type SemAct = SemActM ()
 
-semAct :: (HList.T us -> a) -> SemActM ctx us a
+semActM :: (HList us -> ActionTask ctx a) -> SemActM ctx us a
+semActM = SemActM
+
+semAct :: (HList us -> a) -> SemActM ctx us a
 semAct f = SemActM \l -> pure do f l
 
+
 newtype ActionTask ctx a = ActionTask
-    {
-        runActionTask :: ctx -> ActionTaskResult ctx a
+    { runActionTask :: ctx -> ActionTaskResult ctx a
     }
     deriving Functor
 

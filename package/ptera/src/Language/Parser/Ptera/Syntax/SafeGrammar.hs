@@ -41,6 +41,7 @@ import qualified Language.Parser.Ptera.Data.HEnum     as HEnum
 import qualified Language.Parser.Ptera.Syntax.Grammar as SyntaxGrammar
 import           Prelude                              (String)
 import qualified Type.Membership                      as Membership
+import qualified Type.Membership.HList                      as Membership
 
 type T = Grammar
 
@@ -144,10 +145,12 @@ fixGrammar ruleDefs = UnsafeGrammar do
         fixExpr :: SyntaxGrammar.Expr IntermNonTerminal Terminal elem us
             -> SyntaxGrammar.Expr NonTerminal Terminal elem us
         fixExpr = \case
-            SyntaxGrammar.Eps ->
-                SyntaxGrammar.Eps
-            u1 SyntaxGrammar.:^ e2 ->
-                fixUnit u1 SyntaxGrammar.:^ fixExpr e2
+            Membership.HNil ->
+                Membership.HNil
+            Membership.HCons u1 e2 ->
+                Membership.HCons
+                    do fixUnit u1
+                    do fixExpr e2
 
         fixUnit :: SyntaxGrammar.Unit IntermNonTerminal Terminal elem u
             -> SyntaxGrammar.Unit NonTerminal Terminal elem u
@@ -230,16 +233,20 @@ UnsafeExpr e <:> act = UnsafeAlt do SyntaxGrammar.Alt e Nothing act
 infixl 4 <:>
 
 eps :: action '[] a -> Alt action rules tokens elem a
-eps act = UnsafeAlt do SyntaxGrammar.Alt SyntaxGrammar.Eps Nothing act
+eps act = UnsafeAlt do SyntaxGrammar.Alt Membership.HNil Nothing act
 
 (<^>)
     :: Expr rules tokens elem us1 -> Expr rules tokens elem us2
     -> Expr rules tokens elem (Concat us1 us2)
-UnsafeExpr e1 <^> e2 = case e1 of
-    SyntaxGrammar.Eps ->
-        e2
-    u SyntaxGrammar.:^ e1' ->
-        UnsafeExpr do u SyntaxGrammar.:^ unsafeExpr do UnsafeExpr e1' <^> e2
+UnsafeExpr e1 <^> UnsafeExpr e2 = UnsafeExpr do hconcat e1 e2 where
+    hconcat
+        :: Membership.HList f xs1 -> Membership.HList f xs2
+        -> Membership.HList f (Concat xs1 xs2)
+    hconcat hl1 hl2 = case hl1 of
+        Membership.HNil ->
+            hl2
+        Membership.HCons x hl1' ->
+            Membership.HCons x do hconcat hl1' hl2
 
 infixr 5 <^>
 
@@ -250,7 +257,7 @@ type family Concat (us1 :: [k]) (us2 :: [k]) :: [k] where
         u ': Concat us1 us2
 
 var :: KnownSymbol v => proxy v -> Expr rules tokens elem '[RuleExprReturnType rules v]
-var p = UnsafeExpr do u SyntaxGrammar.:^ SyntaxGrammar.Eps where
+var p = UnsafeExpr do Membership.HCons u Membership.HNil where
     u = SyntaxGrammar.UnitVar do symbolVal p
 
 varA :: forall v rules tokens elem.
@@ -258,7 +265,7 @@ varA :: forall v rules tokens elem.
 varA = var do Proxy @v
 
 tok :: Membership.Membership (TokensTag tokens) t -> Expr rules tokens elem '[elem]
-tok p = UnsafeExpr do u SyntaxGrammar.:^ SyntaxGrammar.Eps where
+tok p = UnsafeExpr do Membership.HCons u Membership.HNil where
     u = SyntaxGrammar.UnitToken
         do HEnum.unsafeHEnum do HEnum.henum p
 

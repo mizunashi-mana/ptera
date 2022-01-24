@@ -57,21 +57,16 @@ genGrammarToken tyName tokenTy tokens = do
                 <$> sequence [[p|Proxy|], pure do TH.VarP paramTokenName]
                 <*> do TH.NormalB <$> TH.CaseE
                         do TH.VarE paramTokenName
-                        <$> traverse
-                            do \(tokenName, tokenPat) -> do
-                                let tokenLitTy = TH.LitT do TH.StrTyLit tokenName
-                                TH.Match
-                                    <$> tokenPat
-                                    <*> do TH.NormalB <$>
-                                            [e|henumA @ $(pure tokenLitTy)|]
-                                    <*> pure []
+                        <$> buildTokenToTerminalMatchesQ
+                            do 0 :: Int
+                            do []
                             do tokens
                 <*> pure []
 
-        buildTokensMemberInstDsQ n ds ts = case ts of
+        buildTokensMemberInstDsQ n ds = \case
             [] ->
                 pure ds
-            (tokenName, _):ts' -> do
+            (tokenName, _):ts -> do
                 let tokenLitTy = TH.LitT do TH.StrTyLit tokenName
                 tokenDs <- [d|
                     instance TokensMember $(tokensTy) $(pure tokenLitTy) where
@@ -80,7 +75,21 @@ genGrammarToken tyName tokenTy tokens = do
                 buildTokensMemberInstDsQ
                     do n + 1
                     do tokenDs ++ ds
-                    do ts'
+                    do ts
+
+        buildTokenToTerminalMatchesQ n ms = \case
+            [] ->
+                pure ms
+            (_, tokenPat):ts -> do
+                m <- TH.Match
+                    <$> tokenPat
+                    <*> do TH.NormalB <$>
+                            [e|henum $ unsafeMembership $(TH.lift n)|]
+                    <*> pure []
+                buildTokenToTerminalMatchesQ
+                    do n + 1
+                    do m:ms
+                    do ts
 
         tokensTy = pure do TH.ConT tyName
 
