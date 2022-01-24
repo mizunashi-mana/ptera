@@ -1,4 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE BlockArguments        #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -22,15 +22,14 @@ import           Data.Proxy                       (Proxy (..))
 import           Data.Sequence                    (Seq)
 import qualified Data.Sequence                    as Seq
 import qualified Data.Text                        as Text
-import           GHC.TypeLits                     (Symbol, KnownSymbol)
+import           GHC.TypeLits                     (KnownSymbol, Symbol)
 import qualified Language.Haskell.TH              as TH
 import           Language.Parser.Ptera.Data.HEnum (henumA)
 import           Language.Parser.Ptera.Data.HList (HList (..))
-import           Language.Parser.Ptera.TH         (TokensTag, eps,
-                                                   failAction, getAction,
-                                                   modifyAction,
-                                                   semAct, semActM, varA, ruleExpr, (<:>),
-                                                   (<^>))
+import           Language.Parser.Ptera.TH         (TokensTag, eps, failAction,
+                                                   getAction, modifyAction,
+                                                   ruleExpr, semAct, semActM,
+                                                   varA, (<:>), (<^>))
 import qualified Language.Parser.Ptera.TH         as Ptera
 import qualified Numeric
 import qualified Type.Membership                  as Membership

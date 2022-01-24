@@ -25,9 +25,9 @@ import qualified GHC.Types                           as Types
 import qualified Language.Parser.Ptera.Data.HEnum    as HEnum
 import qualified Language.Parser.Ptera.Runner        as Runner
 import           Language.Parser.Ptera.Runner.Parser (ActionM (..), ActionTask,
-                                                      ReduceArgument (..),
                                                       AltKind (..),
                                                       GrammarToken (..),
+                                                      ReduceArgument (..),
                                                       RunnerParser (..),
                                                       Trans (..), TransOp (..),
                                                       failAction, getAction,
