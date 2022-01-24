@@ -123,40 +123,40 @@ type instance RuleExprType Rules = RuleExpr
 
 rExprEos :: RuleExpr Ast
 rExprEos = ruleExpr
-    [ alt $ varA @"expr" <^> tokA @"EOS"
+    [ varA @"expr" <^> tokA @"EOS"
         <:> semAct \(e :* _ :* HNil) -> e
     ]
 
 rExpr :: RuleExpr Ast
 rExpr = ruleExpr
-    [ alt $ varA @"sum"
+    [ varA @"sum"
         <:> semAct \(e :* HNil) -> e
     ]
 
 rSum :: RuleExpr Ast
 rSum = ruleExpr
-    [ alt $ varA @"product" <^> tokA @"+" <^> varA @"sum"
+    [ varA @"product" <^> tokA @"+" <^> varA @"sum"
         <:> semAct \(e1 :* _ :* e2 :* HNil) -> Sum e1 e2
-    , alt $ varA @"product"
+    , varA @"product"
         <:> semAct \(e :* HNil) -> e
     ]
 
 rProduct :: RuleExpr Ast
 rProduct = ruleExpr
-    [ alt $ varA @"value" <^> tokA @"*" <^> varA @"product"
+    [ varA @"value" <^> tokA @"*" <^> varA @"product"
         <:> semAct \(e1 :* _ :* e2 :* HNil) -> Product e1 e2
-    , alt $ varA @"value"
+    , varA @"value"
         <:> semAct \(e :* HNil) -> e
     ]
 
 rValue :: RuleExpr Ast
 rValue = ruleExpr
-    [ alt $ tokA @"(" <^> varA @"expr" <^> tokA @")"
+    [ tokA @"(" <^> varA @"expr" <^> tokA @")"
         <:> semAct \(_ :* e :* _ :* HNil) -> e
-    , alt $ tokA @"int" <:> semAct \(e :* HNil) -> case e of
+    , tokA @"int" <:> semAct \(e :* HNil) -> case e of
         TokLitInteger i -> Value i
         _               -> error "unreachable: expected integer token"
-    , alt $ tokA @"id" <:> semAct \(e :* HNil) -> case e of
+    , tokA @"id" <:> semAct \(e :* HNil) -> case e of
         TokIdentifier v -> Var v
         _               -> error "unreachable: expected identifier token"
     ]
