@@ -10,14 +10,16 @@ module Language.Parser.Ptera.TH.Syntax (
     SafeGrammar.RuleExprType,
 
     GrammarM,
-    SafeGrammar.MemberInitials,
-    SafeGrammar.Rules,
+    SafeGrammar.MemberInitials (..),
+    SafeGrammar.Rules (..),
     SafeGrammar.GrammarToken (..),
     RuleExprM,
     AltM,
     SafeGrammar.Expr,
     SemActM (..),
     semActM,
+    HFList.HFList (..),
+    HFList.DictF (..),
     HTExpList,
     pattern HNil,
     pattern (:*),
@@ -55,7 +57,7 @@ import qualified Language.Haskell.TH.Syntax               as TH
 import qualified Language.Parser.Ptera.Syntax             as Syntax
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 import           Language.Parser.Ptera.TH.ParserLib
-import qualified Type.Membership.HList as Membership
+import qualified Language.Parser.Ptera.Data.HFList as HFList
 
 
 type T ctx = GrammarM ctx
@@ -77,7 +79,7 @@ e@(SafeGrammar.UnsafeExpr ue) <:> act = e SafeGrammar.<:> semAct act ue
 infixl 4 <:>
 
 eps :: (HTExpList '[] -> TH.Q (TH.TExp a)) -> AltM ctx rules tokens elem a
-eps act = SafeGrammar.eps do semAct act Membership.HNil
+eps act = SafeGrammar.eps do semAct act HFList.HFNil
 
 (<::>)
     :: SafeGrammar.Expr rules tokens elem us
@@ -90,20 +92,20 @@ infixl 4 <::>
 epsM
     :: (HTExpList '[] -> TH.Q (TH.TExp (ActionTask ctx a)))
     -> AltM ctx rules tokens elem a
-epsM act = SafeGrammar.eps do semActM act Membership.HNil
+epsM act = SafeGrammar.eps do semActM act HFList.HFNil
 
 
-type HTExpList = Membership.HList TExpQ
+type HTExpList = HFList.T TExpQ
 
 newtype TExpQ a = TExpQ
     { unTExpQ :: TH.Q (TH.TExp a)
     }
 
 pattern HNil :: HTExpList '[]
-pattern HNil = Membership.HNil
+pattern HNil = HFList.HFNil
 
 pattern (:*) :: TH.Q (TH.TExp u) -> HTExpList us -> HTExpList (u ': us)
-pattern e :* es = Membership.HCons (TExpQ e) es
+pattern e :* es = HFList.HFCons (TExpQ e) es
 
 infixr 6 :*
 
@@ -117,7 +119,7 @@ type SemAct = SemActM ()
 
 semActM
     :: (HTExpList us -> TH.Q (TH.TExp (Syntax.ActionTask ctx a)))
-    -> Membership.HList f us -> SemActM ctx us a
+    -> HFList.T f us -> SemActM ctx us a
 semActM f xs0 = UnsafeSemActM go where
     go = do
         (ns, args) <- actArgs xs0
@@ -132,11 +134,11 @@ semActM f xs0 = UnsafeSemActM go where
                 error "unreachable: unexpected arguments"
             |]
 
-    actArgs :: Membership.HList f us -> TH.Q ([TH.Name], HTExpList us)
+    actArgs :: HFList.T f us -> TH.Q ([TH.Name], HTExpList us)
     actArgs = \case
-        Membership.HNil ->
+        HFList.HFNil ->
             pure ([], HNil)
-        Membership.HCons _ xs -> do
+        HFList.HFCons _ xs -> do
             n <- TH.newName "pteraTHSemActArg"
             let ne = TH.unsafeTExpCoerce do pure do TH.VarE n
             let arg = [||pteraTHUnsafeExtractReduceArgument $$(ne)||]
@@ -145,5 +147,5 @@ semActM f xs0 = UnsafeSemActM go where
 
 semAct
     :: (HTExpList us -> TH.Q (TH.TExp a))
-    -> Membership.HList f us -> SemActM ctx us a
+    -> HFList.T f us -> SemActM ctx us a
 semAct f = semActM do \us -> [||pteraTHActionTaskPure $$(f us)||]

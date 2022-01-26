@@ -14,7 +14,6 @@ import           Data.Proxy                       (Proxy (..))
 import           Language.Parser.Ptera            hiding (RuleExpr, Rules)
 import qualified Language.Parser.Ptera            as Ptera
 import           Language.Parser.Ptera.Data.HEnum (henumA)
-import           Language.Parser.Ptera.Data.HList (HList (..))
 import qualified Type.Membership.Internal         as MembershipInternal
 import           Types
 
@@ -55,6 +54,20 @@ type instance RulesTag Rules =
     , "product"
     , "value"
     ]
+
+instance Ptera.Rules Rules where
+    generateRules
+        = Ptera.HFCons Ptera.DictF
+        $ Ptera.HFCons Ptera.DictF
+        $ Ptera.HFCons Ptera.DictF
+        $ Ptera.HFCons Ptera.DictF
+        $ Ptera.HFCons Ptera.DictF
+        $ Ptera.HFNil
+
+instance Ptera.MemberInitials Rules ParsePoints where
+    memberInitials
+        = Ptera.HFCons Ptera.DictF
+        $ Ptera.HFNil
 
 instance TokensMember Tokens "+" where
     tokensMembership _ = MembershipInternal.membership
@@ -124,39 +137,39 @@ type instance RuleExprType Rules = RuleExpr
 rExprEos :: RuleExpr Ast
 rExprEos = ruleExpr
     [ varA @"expr" <^> tokA @"EOS"
-        <:> semAct \(e :* _ :* HNil) -> e
+        <:> \(e :* _ :* HNil) -> e
     ]
 
 rExpr :: RuleExpr Ast
 rExpr = ruleExpr
     [ varA @"sum"
-        <:> semAct \(e :* HNil) -> e
+        <:> \(e :* HNil) -> e
     ]
 
 rSum :: RuleExpr Ast
 rSum = ruleExpr
     [ varA @"product" <^> tokA @"+" <^> varA @"sum"
-        <:> semAct \(e1 :* _ :* e2 :* HNil) -> Sum e1 e2
+        <:> \(e1 :* _ :* e2 :* HNil) -> Sum e1 e2
     , varA @"product"
-        <:> semAct \(e :* HNil) -> e
+        <:> \(e :* HNil) -> e
     ]
 
 rProduct :: RuleExpr Ast
 rProduct = ruleExpr
     [ varA @"value" <^> tokA @"*" <^> varA @"product"
-        <:> semAct \(e1 :* _ :* e2 :* HNil) -> Product e1 e2
+        <:> \(e1 :* _ :* e2 :* HNil) -> Product e1 e2
     , varA @"value"
-        <:> semAct \(e :* HNil) -> e
+        <:> \(e :* HNil) -> e
     ]
 
 rValue :: RuleExpr Ast
 rValue = ruleExpr
     [ tokA @"(" <^> varA @"expr" <^> tokA @")"
-        <:> semAct \(_ :* e :* _ :* HNil) -> e
-    , tokA @"int" <:> semAct \(e :* HNil) -> case e of
+        <:> \(_ :* e :* _ :* HNil) -> e
+    , tokA @"int" <:> \(e :* HNil) -> case e of
         TokLitInteger i -> Value i
         _               -> error "unreachable: expected integer token"
-    , tokA @"id" <:> semAct \(e :* HNil) -> case e of
+    , tokA @"id" <:> \(e :* HNil) -> case e of
         TokIdentifier v -> Var v
         _               -> error "unreachable: expected identifier token"
     ]

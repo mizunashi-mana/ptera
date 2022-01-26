@@ -6,7 +6,7 @@ import qualified Data.EnumMap.Strict                       as EnumMap
 import qualified Language.Parser.Ptera.Machine.PEG         as PEG
 import qualified Language.Parser.Ptera.Machine.PEG.Builder as PEGBuilder
 import qualified Language.Parser.Ptera.Syntax.Grammar      as Grammar
-import qualified Type.Membership.HList as Membership
+import qualified Language.Parser.Ptera.Data.HFList as HFList
 
 
 grammar2Peg :: Enum start => Enum nonTerminal => Enum terminal
@@ -71,19 +71,13 @@ grammarExprPipeline :: forall start nonTerminal terminal elem varDoc altDoc acti
     .  Enum nonTerminal => Enum terminal
     => Grammar.Expr nonTerminal terminal elem us
     -> Pipeline start nonTerminal varDoc altDoc action [PEG.Unit]
-grammarExprPipeline = \e -> go [] e where
-    go
-        :: [PEG.Unit]
-        -> Grammar.Expr nonTerminal terminal elem us'
-        -> Pipeline start nonTerminal varDoc altDoc action [PEG.Unit]
-    go acc = \case
-        Membership.HNil ->
-            pure do reverse acc
-        Membership.HCons u e -> do
+grammarExprPipeline e = do
+    revUs <- HFList.hfoldMWithIndex []
+        do \acc _ u -> do
             newU <- grammarUnitPipeline u
-            go
-                do newU:acc
-                do e
+            pure do newU:acc
+        do e
+    pure do reverse revUs
 
 grammarUnitPipeline :: Enum nonTerminal => Enum terminal
     => Grammar.Unit nonTerminal terminal elem u

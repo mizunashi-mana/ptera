@@ -13,9 +13,7 @@ module Parser.Rules where
 
 import           Data.Proxy                       (Proxy (..))
 import qualified Language.Haskell.TH              as TH
-import           Language.Parser.Ptera.Data.HEnum (henumA)
-import           Language.Parser.Ptera.Data.HList (HList (..))
-import           Language.Parser.Ptera.TH         hiding (RuleExpr, Rules)
+import           Language.Parser.Ptera.TH         hiding (RuleExpr)
 import qualified Language.Parser.Ptera.TH         as Ptera
 import           Types
 
@@ -31,7 +29,7 @@ $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
     ])
 
 $(Ptera.genRules
-    do TH.mkName "Rules"
+    do TH.mkName "RuleDefs"
     do GenRulesTypes
         { genRulesCtxTy = [t|()|]
         , genRulesTokensTy = [t|Tokens|]
@@ -45,8 +43,15 @@ $(Ptera.genRules
     ]
     )
 
-grammar :: Grammar Rules Tokens Token ParsePoints
-grammar = fixGrammar $ Rules
+$(Ptera.genParsePoints
+    do TH.mkName "ParsePoints"
+    do TH.mkName "RuleDefs"
+    [ "expr EOS"
+    ]
+    )
+
+grammar :: Grammar RuleDefs Tokens Token ParsePoints
+grammar = fixGrammar $ RuleDefs
     { rexpreos = rExprEos
     , rexpr = rExpr
     , rsum = rSum
@@ -54,50 +59,47 @@ grammar = fixGrammar $ Rules
     , rvalue = rValue
     }
 
-type ParsePoints = '[ "expr EOS" ]
-
-type RuleExpr = Ptera.RuleExpr Rules Tokens Token
+type RuleExpr = Ptera.RuleExpr RuleDefs Tokens Token
 
 
 rExprEos :: RuleExpr Ast
 rExprEos = ruleExpr
-    [ alt $ varA @"expr" <^> tokA @"EOS"
-        <:> semAct \(e :* _ :* HNil) ->
-            e
+    [ varA @"expr" <^> tokA @"EOS"
+        <:> \(e :* _ :* HNil) -> e
     ]
 
 rExpr :: RuleExpr Ast
 rExpr = ruleExpr
-    [ alt $ varA @"sum"
-        <:> semAct \(e :* HNil) -> e
+    [ varA @"sum"
+        <:> \(e :* HNil) -> e
     ]
 
 rSum :: RuleExpr Ast
 rSum = ruleExpr
-    [ alt $ varA @"product" <^> tokA @"+" <^> varA @"sum"
-        <:> semAct \(e1 :* _ :* e2 :* HNil) -> [|| Sum $$(e1) $$(e2) ||]
-    , alt $ varA @"product"
-        <:> semAct \(e :* HNil) -> e
+    [ varA @"product" <^> tokA @"+" <^> varA @"sum"
+        <:> \(e1 :* _ :* e2 :* HNil) -> [|| Sum $$(e1) $$(e2) ||]
+    , varA @"product"
+        <:> \(e :* HNil) -> e
     ]
 
 rProduct :: RuleExpr Ast
 rProduct = ruleExpr
-    [ alt $ varA @"value" <^> tokA @"*" <^> varA @"product"
-        <:> semAct \(e1 :* _ :* e2 :* HNil) -> [|| Product $$(e1) $$(e2) ||]
-    , alt $ varA @"value"
-        <:> semAct \(e :* HNil) -> e
+    [ varA @"value" <^> tokA @"*" <^> varA @"product"
+        <:> \(e1 :* _ :* e2 :* HNil) -> [|| Product $$(e1) $$(e2) ||]
+    , varA @"value"
+        <:> \(e :* HNil) -> e
     ]
 
 rValue :: RuleExpr Ast
 rValue = ruleExpr
-    [ alt $ tokA @"(" <^> varA @"expr" <^> tokA @")"
-        <:> semAct \(_ :* e :* _ :* HNil) -> e
-    , alt $ tokA @"int" <:> semAct \(e :* HNil) ->
+    [ tokA @"(" <^> varA @"expr" <^> tokA @")"
+        <:> \(_ :* e :* _ :* HNil) -> e
+    , tokA @"int" <:> \(e :* HNil) ->
         [|| case $$(e) of
             TokLitInteger i -> Value i
             _               -> error "unreachable: expected integer token"
         ||]
-    , alt $ tokA @"id" <:> semAct \(e :* HNil) ->
+    , tokA @"id" <:> \(e :* HNil) ->
         [|| case $$(e) of
             TokIdentifier v -> Var v
             _               -> error "unreachable: expected identifier token"

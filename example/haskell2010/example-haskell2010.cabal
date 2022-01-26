@@ -40,7 +40,6 @@ library
         tlex-th,
         text,
         enummapset-th,
-        membership,
         charset,
         containers,
         transformers,

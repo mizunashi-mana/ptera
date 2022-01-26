@@ -19,7 +19,7 @@ module Language.Parser.Ptera.Syntax.Grammar (
 import           Language.Parser.Ptera.Prelude
 
 import qualified Data.EnumMap.Strict           as EnumMap
-import qualified Type.Membership.HList as Membership
+import qualified Language.Parser.Ptera.Data.HFList as HFList
 
 
 type T start nonTerminal terminal elem varDoc altDoc action =
@@ -71,7 +71,7 @@ data Alt nonTerminal terminal elem altDoc action a where
     Alt :: Expr nonTerminal terminal elem us -> altDoc -> action us a
         -> Alt nonTerminal terminal elem altDoc action a
 
-type Expr nonTerminal terminal elem = Membership.HList (Unit nonTerminal terminal elem)
+type Expr nonTerminal terminal elem = HFList.T (Unit nonTerminal terminal elem)
 
 data Unit nonTerminal terminal elem u where
     UnitToken :: terminal -> Unit nonTerminal terminal elem elem

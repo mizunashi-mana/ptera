@@ -124,6 +124,7 @@ library
         Language.Parser.Ptera.Data.Symbolic.IntSet
         Language.Parser.Ptera.Data.Symbolic.IntMap
         Language.Parser.Ptera.Data.IntMap.GreaterRestriction
+        Language.Parser.Ptera.Data.HFList
 
         Language.Parser.Ptera.Syntax.Grammar
         Language.Parser.Ptera.Machine.PEG

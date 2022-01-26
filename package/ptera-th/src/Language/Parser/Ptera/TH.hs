@@ -23,10 +23,11 @@ import           Language.Parser.Ptera.TH.ParserLib
 import qualified Language.Parser.Ptera.TH.Pipeline.Grammar2ParserDec as Grammar2ParserDec
 import           Language.Parser.Ptera.TH.Syntax                     hiding (T,
                                                                       UnsafeSemActM,
-                                                                      unsafeSemanticAction)
+                                                                      unsafeSemanticAction, semAct, semActM)
 import           Language.Parser.Ptera.TH.Util                       (GenRulesTypes (..),
                                                                       genGrammarToken,
-                                                                      genRules)
+                                                                      genRules,
+                                                                      genParsePoints)
 import qualified Type.Membership                                     as Membership
 
 genRunner :: forall initials rules tokens ctx elem

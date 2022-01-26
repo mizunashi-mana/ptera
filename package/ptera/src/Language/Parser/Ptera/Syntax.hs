@@ -8,12 +8,14 @@ module Language.Parser.Ptera.Syntax (
     SafeGrammar.RuleExprType,
 
     GrammarM,
-    SafeGrammar.MemberInitials,
-    SafeGrammar.Rules,
+    SafeGrammar.MemberInitials (..),
+    SafeGrammar.Rules (..),
     SafeGrammar.GrammarToken (..),
     RuleExprM,
     AltM,
     SafeGrammar.Expr,
+    HFList.HFList (..),
+    HFList.DictF (..),
     HList,
     pattern HNil,
     pattern (:*),
@@ -47,7 +49,7 @@ module Language.Parser.Ptera.Syntax (
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Type.Membership.HList         as Membership
+import qualified Language.Parser.Ptera.Data.HFList as HFList
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 
 
@@ -83,13 +85,13 @@ epsM :: (HList '[] -> ActionTask ctx a) -> AltM ctx rules tokens elem a
 epsM act = SafeGrammar.eps do semActM act
 
 
-type HList = Membership.HList Identity
+type HList = HFList.T Identity
 
 pattern HNil :: HList '[]
-pattern HNil = Membership.HNil
+pattern HNil = HFList.HFNil
 
 pattern (:*) :: u -> HList us -> HList (u ': us)
-pattern x :* xs = Membership.HCons (Identity x) xs
+pattern x :* xs = HFList.HFCons (Identity x) xs
 
 infixr 6 :*
 

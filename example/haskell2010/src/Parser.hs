@@ -13,7 +13,7 @@ import           Types
 $(PteraTH.genRunner
     (PteraTH.GenParam {
         PteraTH.startsTy = [t|Rules.ParsePoints|],
-        PteraTH.rulesTy  = [t|Rules.Rules|],
+        PteraTH.rulesTy  = [t|Rules.RuleDefs|],
         PteraTH.tokensTy = [t|Rules.Tokens|],
         PteraTH.tokenTy  = [t|Token|],
         PteraTH.customCtxTy = [t|Rules.GrammarContext|]

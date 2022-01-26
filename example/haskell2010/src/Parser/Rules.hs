@@ -25,11 +25,9 @@ import qualified Data.Text                        as Text
 import           GHC.TypeLits                     (KnownSymbol, Symbol)
 import qualified Language.Haskell.TH              as TH
 import           Language.Parser.Ptera.Data.HEnum (henum)
-import           Language.Parser.Ptera.TH         hiding (RuleExpr, Rules, Alt, tokA)
+import           Language.Parser.Ptera.TH         hiding (RuleExpr, Rules, Alt, Expr, tokA)
 import qualified Language.Parser.Ptera.TH         as Ptera
 import qualified Numeric
-import qualified Type.Membership                  as Membership
-import qualified Type.Membership.Internal         as MembershipInternal
 import           Types
 
 
@@ -99,7 +97,7 @@ $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
 type GrammarContext = [Int]
 
 $(Ptera.genRules
-    do TH.mkName "Rules"
+    do TH.mkName "RuleDefs"
     do Ptera.GenRulesTypes
         { Ptera.genRulesCtxTy = [t|GrammarContext|]
         , Ptera.genRulesTokensTy = [t|Tokens|]
@@ -292,8 +290,15 @@ $(Ptera.genRules
     , (TH.mkName "rskip", "skip", [t|()|])
     ])
 
-grammar :: Ptera.GrammarM GrammarContext Rules Tokens Token ParsePoints
-grammar = Ptera.fixGrammar $ Rules
+$(Ptera.genParsePoints
+    do TH.mkName "ParsePoints"
+    do TH.mkName "RuleDefs"
+    [ "module EOS"
+    ]
+    )
+
+grammar :: Ptera.GrammarM GrammarContext RuleDefs Tokens Token ParsePoints
+grammar = Ptera.fixGrammar $ RuleDefs
     { rmoduleeos = rModuleEos
 
     , rmodule = rModule
@@ -480,10 +485,9 @@ grammar = Ptera.fixGrammar $ Rules
     , rskip = rSkip
     }
 
-type ParsePoints = '["module EOS", "gtycon"]
-
-type RuleExpr = Ptera.RuleExprM GrammarContext Rules Tokens Token
-type Alt = Ptera.AltM GrammarContext Rules Tokens Token
+type RuleExpr = Ptera.RuleExprM GrammarContext RuleDefs Tokens Token
+type Alt = Ptera.AltM GrammarContext RuleDefs Tokens Token
+type Expr = Ptera.Expr RuleDefs Tokens Token
 type SemAct = Ptera.SemActM GrammarContext
 
 rModuleEos :: RuleExpr Program
@@ -2416,7 +2420,7 @@ rSkip = ruleExpr
     ]
 
 tokA :: forall t.
-    Ptera.TokensMember Tokens t => Ptera.Expr Rules Tokens Token '[(), Token]
+    Ptera.TokensMember Tokens t => Expr '[(), Token]
 tokA = varA @"skip" <^> Ptera.tokA @t
 
 altId :: String -> Alt ()

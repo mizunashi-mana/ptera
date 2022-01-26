@@ -4,7 +4,8 @@ module Language.Parser.Ptera.TH.Util (
     genGrammarToken,
     GenRulesTypes (..),
     genRules,
-    henumA,
+    genParsePoints,
+    module Language.Parser.Ptera.Data.HEnum,
     unsafeMembership,
 ) where
 
@@ -12,7 +13,7 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Haskell.TH              as TH
 import qualified Language.Haskell.TH.Syntax       as TH
-import           Language.Parser.Ptera.Data.HEnum (henumA)
+import           Language.Parser.Ptera.Data.HEnum (HEnum (..))
 import           Language.Parser.Ptera.TH.Syntax
 import           Prelude                          (String)
 import qualified Type.Membership                  as Membership
@@ -84,7 +85,7 @@ genGrammarToken tyName tokenTy tokens = do
                 m <- TH.Match
                     <$> tokenPat
                     <*> do TH.NormalB <$>
-                            [e|henum $ unsafeMembership $(TH.lift n)|]
+                            [e|UnsafeHEnum $(TH.lift n)|]
                     <*> pure []
                 buildTokenToTerminalMatchesQ
                     do n + 1
@@ -100,10 +101,11 @@ data GenRulesTypes = GenRulesTypes
     }
 
 genRules :: TH.Name -> GenRulesTypes -> [(TH.Name, String, TH.Q TH.Type)] -> TH.Q [TH.Dec]
-genRules rulesTyName genRulesTypes ruleDefs = do
-        ds1 <- sequence [ rulesTyD, rulesTagInstD, ruleExprTypeTyD ]
-        ds2 <- hasFieldDs
-        pure do ds1 ++ ds2
+genRules rulesTyName genRulesTypes ruleDefs
+    = (:) <$> rulesTyD <*>
+        do (:) <$> rulesTagInstD <*>
+            do (:) <$> ruleExprTypeTyD <*>
+                do (++) <$> rulesInstD <*> hasFieldDs
     where
         rulesTyD = TH.DataD [] rulesTyName [] Nothing
             <$> sequence
@@ -117,6 +119,17 @@ genRules rulesTyName genRulesTypes ruleDefs = do
                 TH.TySynEqn Nothing
                     <$> [t|RulesTag $(rulesTy)|]
                     <*> buildNonTerminalSymList [t|'[]|] ruleDefs
+
+        rulesInstD =
+            [d|
+            instance Rules $(rulesTy) where
+                generateRules =
+                    $(foldl'
+                        do \l _ -> [|HFCons DictF $(l)|]
+                        do [|HFNil|]
+                        ruleDefs
+                    )
+            |]
 
         ruleExprTypeTyD = TH.TySynInstD
             <$> do
@@ -172,6 +185,32 @@ genRules rulesTyName genRulesTypes ruleDefs = do
                 $(genRulesTokensTy genRulesTypes)
                 $(genRulesTokenTy genRulesTypes)
             |]
+
+genParsePoints :: TH.Name -> TH.Name -> [String] -> TH.Q [TH.Dec]
+genParsePoints tyName rulesTyName initials = (:) <$> parsePointsTyD <*> memberInitialsInstD where
+    parsePointsTyD = TH.TySynD tyName [] <$> buildParsePointsSymList initials
+
+    memberInitialsInstD =
+        [d|
+        instance MemberInitials $(rulesTy) $(parsePointsTy) where
+            memberInitials =
+                $(foldl'
+                    do \l _ -> [|HFCons DictF $(l)|]
+                    do [|HFNil|]
+                    do initials
+                )
+        |]
+
+    buildParsePointsSymList = \case
+        [] ->
+            [t|'[]|]
+        n:ns -> do
+            let nameTy = TH.LitT do TH.StrTyLit n
+            [t|$(pure nameTy) ': $(buildParsePointsSymList ns)|]
+
+    parsePointsTy = pure do TH.ConT tyName
+
+    rulesTy = pure do TH.ConT rulesTyName
 
 unsafeMembership :: Int -> Membership.Membership xs x
 unsafeMembership = Unsafe.unsafeCoerce

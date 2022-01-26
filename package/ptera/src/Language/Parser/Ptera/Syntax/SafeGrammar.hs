@@ -16,8 +16,8 @@ module Language.Parser.Ptera.Syntax.SafeGrammar (
     Terminal,
     NonTerminal,
     HasRuleExprField (..),
-    MemberInitials,
-    Rules,
+    MemberInitials (..),
+    Rules (..),
     genStartPoint,
 
     RuleExpr (..),
@@ -38,10 +38,11 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Data.HashMap.Strict                  as HashMap
 import qualified Language.Parser.Ptera.Data.HEnum     as HEnum
+import qualified Language.Parser.Ptera.Data.HFList     as HFList
 import qualified Language.Parser.Ptera.Syntax.Grammar as SyntaxGrammar
 import           Prelude                              (String)
 import qualified Type.Membership                      as Membership
-import qualified Type.Membership.HList                      as Membership
+
 
 type T = Grammar
 
@@ -73,8 +74,8 @@ class
     ) => HasRuleExprField rules v where
     type RuleExprReturnType rules v :: Type
 
-    nonTerminalName :: Proxy# rules -> Proxy# v -> String
-    nonTerminalName _ p# = symbolVal' p#
+    nonTerminalName :: rules -> proxy v -> String
+    nonTerminalName _ p = symbolVal p
 
 type GrammarMForFixGrammar elem action = SyntaxGrammar.GrammarT
     StartPoint
@@ -94,37 +95,30 @@ fixGrammar
 fixGrammar ruleDefs = UnsafeGrammar do
     runIdentity do
         SyntaxGrammar.fixGrammarT do
-            Membership.henumerateFor
-                do Proxy @(HasRuleExprField rules)
-                do Proxy @initials
-                do fixInitial
-                do pure ()
-            Membership.henumerateFor
-                do Proxy @(HasRuleExprField rules)
-                do Proxy @(RulesTag rules)
-                do fixRule
-                do pure ()
+            HFList.hforMWithIndex
+                memberInitials
+                fixInitial
+            HFList.hforMWithIndex
+                generateRules
+                fixRule
     where
-        fixInitial :: forall v. HasRuleExprField rules v
-            => Membership.Membership initials v
+        fixInitial
+            :: Membership.Membership initials v
+            -> HFList.DictF (HasRuleExprField rules) v
             -> GrammarMForFixGrammar elem action ()
-            -> GrammarMForFixGrammar elem action ()
-        fixInitial m g = g >> do
+        fixInitial m HFList.DictF = do
             let sn = genStartPoint m
-            let vn = getNewV
-                    do symbolVal' do proxy# @v
+            let vn = getNewV do symbolVal m
             SyntaxGrammar.initialT sn vn
 
-        fixRule :: forall v. HasRuleExprField rules v
-            => Membership.Membership (RulesTag rules) v
+        fixRule
+            :: forall v
+            .  Membership.Membership (RulesTag rules) v
+            -> HFList.DictF (HasRuleExprField rules) v
             -> GrammarMForFixGrammar elem action ()
-            -> GrammarMForFixGrammar elem action ()
-        fixRule _ g = g >> do
-            let vn = getNewV
-                    do symbolVal' do proxy# @v
-                d = nonTerminalName
-                        do proxy# @rules
-                        do proxy# @v
+        fixRule m HFList.DictF = do
+            let vn = getNewV do symbolVal m
+            let d = nonTerminalName ruleDefs m
             SyntaxGrammar.ruleT vn d do
                 fixRuleExpr do getField @v ruleDefs
 
@@ -144,13 +138,8 @@ fixGrammar ruleDefs = UnsafeGrammar do
 
         fixExpr :: SyntaxGrammar.Expr IntermNonTerminal Terminal elem us
             -> SyntaxGrammar.Expr NonTerminal Terminal elem us
-        fixExpr = \case
-            Membership.HNil ->
-                Membership.HNil
-            Membership.HCons u1 e2 ->
-                Membership.HCons
-                    do fixUnit u1
-                    do fixExpr e2
+        fixExpr = HFList.hmapWithIndex
+            do \_ u1 -> fixUnit u1
 
         fixUnit :: SyntaxGrammar.Unit IntermNonTerminal Terminal elem u
             -> SyntaxGrammar.Unit NonTerminal Terminal elem u
@@ -173,35 +162,29 @@ type Terminal = Int
 type NonTerminal = Int
 type IntermNonTerminal = String
 
-class Membership.Forall (HasRuleExprField rules) initials
-        => MemberInitials rules initials
-instance Membership.Forall (HasRuleExprField rules) initials
-        => MemberInitials rules initials
 
-class Membership.Forall (HasRuleExprField rules) (RulesTag rules)
-        => Rules rules
-instance Membership.Forall (HasRuleExprField rules) (RulesTag rules)
-        => Rules rules
+class MemberInitials rules initials where
+    memberInitials :: HFList.T (HFList.DictF (HasRuleExprField rules)) initials
+
+class Rules rules where
+    generateRules :: HFList.T (HFList.DictF (HasRuleExprField rules)) (RulesTag rules)
+
 
 genStartPoint :: forall initials v. Membership.Membership initials v -> StartPoint
 genStartPoint m = Membership.getMemberId m
 
 genRulesTagMap :: forall rules.
     Rules rules => Proxy# rules -> HashMap.HashMap IntermNonTerminal NonTerminal
-genRulesTagMap _ = Membership.henumerateFor
-    do Proxy @(HasRuleExprField rules)
-    do Proxy @(RulesTag rules)
-    do go
-    do HashMap.empty
-    where
-        go :: forall v. HasRuleExprField rules v
-            => Membership.Membership (RulesTag rules) v
-            -> HashMap.HashMap IntermNonTerminal NonTerminal
-            -> HashMap.HashMap IntermNonTerminal NonTerminal
-        go member m = HashMap.insert
-            do symbolVal' do proxy# @v
-            do Membership.getMemberId member
-            do m
+genRulesTagMap _ = HFList.hfoldlWithIndex HashMap.empty go generateRules where
+    go :: forall v
+        .  HashMap.HashMap IntermNonTerminal NonTerminal
+        -> Membership.Membership (RulesTag rules) v
+        -> HFList.DictF (HasRuleExprField rules) v
+        -> HashMap.HashMap IntermNonTerminal NonTerminal
+    go vMap m HFList.DictF = HashMap.insert
+        do symbolVal' do proxy# @v
+        do Membership.getMemberId m
+        do vMap
 
 type RuleExpr :: ([Type] -> Type -> Type) -> Type -> Type -> Type -> Type -> Type
 newtype RuleExpr action rules tokens elem a = RuleExpr
@@ -233,31 +216,17 @@ UnsafeExpr e <:> act = UnsafeAlt do SyntaxGrammar.Alt e Nothing act
 infixl 4 <:>
 
 eps :: action '[] a -> Alt action rules tokens elem a
-eps act = UnsafeAlt do SyntaxGrammar.Alt Membership.HNil Nothing act
+eps act = UnsafeAlt do SyntaxGrammar.Alt HFList.HFNil Nothing act
 
 (<^>)
     :: Expr rules tokens elem us1 -> Expr rules tokens elem us2
-    -> Expr rules tokens elem (Concat us1 us2)
-UnsafeExpr e1 <^> UnsafeExpr e2 = UnsafeExpr do hconcat e1 e2 where
-    hconcat
-        :: Membership.HList f xs1 -> Membership.HList f xs2
-        -> Membership.HList f (Concat xs1 xs2)
-    hconcat hl1 hl2 = case hl1 of
-        Membership.HNil ->
-            hl2
-        Membership.HCons x hl1' ->
-            Membership.HCons x do hconcat hl1' hl2
+    -> Expr rules tokens elem (HFList.Concat us1 us2)
+UnsafeExpr e1 <^> UnsafeExpr e2 = UnsafeExpr do HFList.hconcat e1 e2
 
 infixr 5 <^>
 
-type family Concat (us1 :: [k]) (us2 :: [k]) :: [k] where
-    Concat '[] us2 =
-        us2
-    Concat (u ': us1) us2 =
-        u ': Concat us1 us2
-
 var :: KnownSymbol v => proxy v -> Expr rules tokens elem '[RuleExprReturnType rules v]
-var p = UnsafeExpr do Membership.HCons u Membership.HNil where
+var p = UnsafeExpr do HFList.HFCons u HFList.HFNil where
     u = SyntaxGrammar.UnitVar do symbolVal p
 
 varA :: forall v rules tokens elem.
@@ -265,7 +234,7 @@ varA :: forall v rules tokens elem.
 varA = var do Proxy @v
 
 tok :: Membership.Membership (TokensTag tokens) t -> Expr rules tokens elem '[elem]
-tok p = UnsafeExpr do Membership.HCons u Membership.HNil where
+tok p = UnsafeExpr do HFList.HFCons u HFList.HFNil where
     u = SyntaxGrammar.UnitToken
         do HEnum.unsafeHEnum do HEnum.henum p
 
