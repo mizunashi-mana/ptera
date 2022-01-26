@@ -92,15 +92,15 @@ common general
         base                 >= 4.14.0 && < 5,
 
         -- project depends
-        ptera-core,
-        ptera,
-        ghc-prim,
-        containers,
-        array,
-        membership,
-        enummapset-th,
-        template-haskell,
-        unordered-containers,
+        ptera-core              >= 0.1.0 && < 0.2,
+        ptera                   >= 0.1.0 && < 0.2,
+        ghc-prim                >= 0.6.1 && < 0.7,
+        containers              >= 0.6.0 && < 0.7,
+        unordered-containers    >= 0.2.0 && < 0.3,
+        array                   >= 0.5.4 && < 0.6,
+        membership              >= 0.0.1 && < 0.1,
+        enummapset-th           >= 0.6.0 && < 0.7,
+        template-haskell        >= 2.16.0 && < 2.17,
 
     autogen-modules:
         Paths_ptera_th

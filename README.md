@@ -12,7 +12,9 @@ Set username / password on `~/.cabal/config`, then:
 
 ```bash
 env CANDIDATE=no ./script/publish.bash \
-    ptera-0.1.0.0
+    ptera-core-0.1.0.0 \
+    ptera-0.1.0.0 \
+    ptera-th-0.1.0.0
 ```
 
 ## License

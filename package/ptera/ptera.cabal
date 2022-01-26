@@ -92,11 +92,11 @@ common general
         base                 >= 4.14.0 && < 5,
 
         -- project depends
-        ptera-core,
-        containers,
-        unordered-containers,
-        membership,
-        enummapset-th,
+        ptera-core              >= 0.1.0 && < 0.2,
+        containers              >= 0.6.0 && < 0.7,
+        unordered-containers    >= 0.2.0 && < 0.3,
+        membership              >= 0.0.1 && < 0.1,
+        enummapset-th           >= 0.6.0 && < 0.7,
 
     autogen-modules:
         Paths_ptera
