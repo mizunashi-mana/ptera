@@ -13,8 +13,8 @@ if [ -z "$*" ]; then
     exit 1
 fi
 
-if ! git branch | grep '^* master$' >/dev/null; then
-    echo "Not on master branch" >&2
+if ! git branch | grep '^* main$' >/dev/null; then
+    echo "Not on main branch" >&2
     exit 1
 fi
 
@@ -30,7 +30,7 @@ for item in "$@"; do
         exit 1
     fi
 
-    if [ "$CANDIDATE" = "true" ]; then
+    if [ "$CANDIDATE" != "no" ]; then
         cabal upload "$dist_file"
     else
         cabal upload --publish "$dist_file"
