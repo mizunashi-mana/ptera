@@ -32,7 +32,6 @@ library
         base,
         ptera-th,
         ptera,
-        ptera-core,
         bytestring,
         tlex,
         tlex-encoding,

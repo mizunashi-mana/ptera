@@ -5,7 +5,6 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedLabels      #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TemplateHaskell       #-}
@@ -229,8 +228,7 @@ $(Ptera.genRules
     , (TH.mkName "ralt", "alt", [t|Seq CaseAlt|])
     , (TH.mkName "rgdpat", "gdpat", [t|Seq ([Guard], Exp)|])
     , (TH.mkName "rdostmts", "dostmts", [t|([Stmt], Exp)|])
-    , (TH.mkName "rstmts", "stmts", [t|([Stmt], Exp)|])
-    , (TH.mkName "rstmts0", "stmt*", [t|Seq Stmt|])
+    , (TH.mkName "rstmts", "stmts", [t|(Seq Stmt, Exp)|])
     , (TH.mkName "rstmt", "stmt", [t|Seq Stmt|])
     , (TH.mkName "rfbind", "fbind", [t|(QualifiedId, Exp)|])
 
@@ -425,7 +423,6 @@ grammar = Ptera.fixGrammar $ RuleDefs
     , rgdpat = rGdpat
     , rdostmts = rDoStmts
     , rstmts = rStmts
-    , rstmts0 = rStmts0
     , rstmt = rStmt
     , rfbind = rFbind
 
@@ -1796,27 +1793,20 @@ rDoStmts :: RuleExpr ([Stmt], Exp)
 rDoStmts = ruleExpr
     [ varA @"expbo" <^> varA @"stmts" <^> varA @"expbc"
         <:> \(_ :* stmts :* _ :* HNil) ->
-            stmts
+            [||case $$(stmts) of (ss, e) -> (seqToList ss, e)||]
     , varA @"impbo" <^> varA @"stmts" <^> varA @"impbc"
         <:> \(_ :* stmts :* _ :* HNil) ->
-            stmts
+            [||case $$(stmts) of (ss, e) -> (seqToList ss, e)||]
     ]
 
-rStmts :: RuleExpr ([Stmt], Exp)
+rStmts :: RuleExpr (Seq Stmt, Exp)
 rStmts = ruleExpr
-    [ varA @"stmt*" <^> varA @"exp" <^> varA @"semi?"
-        <:> \(stmts0 :* exp :* _ :* HNil) ->
-            [||(seqToList $$(stmts0), $$(exp))||]
-    ]
-
-rStmts0 :: RuleExpr (Seq Stmt)
-rStmts0 = ruleExpr
-    [ varA @"stmt" <^> varA @"stmt*"
-        <:> \(stmt :* stmts0 :* HNil) ->
-            [||$$(stmt) Seq.>< $$(stmts0)||]
-    , eps
-        $ \HNil ->
-            [||Seq.empty||]
+    [ varA @"stmt" <^> varA @"stmts"
+        <:> \(stmt :* stmts :* HNil) ->
+            [||case $$(stmts) of (ss, e) -> ($$(stmt) Seq.>< ss, e)||]
+    , varA @"exp" <^> varA @"semi?"
+        <:> \(exp :* _ :* HNil) ->
+            [||(Seq.empty, $$(exp))||]
     ]
 
 rStmt :: RuleExpr (Seq Stmt)

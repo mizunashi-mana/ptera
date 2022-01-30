@@ -1,4 +1,4 @@
-module Sample where
+module ShouldCompile where
 
 type T = Int
 

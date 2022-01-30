@@ -1,9 +1,7 @@
-{-# LANGUAGE BlockArguments        #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedLabels      #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -29,12 +27,12 @@ $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
     ])
 
 $(Ptera.genRules
-    do TH.mkName "RuleDefs"
-    do GenRulesTypes
+    (TH.mkName "RuleDefs")
+    (GenRulesTypes
         { genRulesCtxTy = [t|()|]
         , genRulesTokensTy = [t|Tokens|]
         , genRulesTokenTy = [t|Token|]
-        }
+        })
     [ (TH.mkName "rexpreos", "expr EOS", [t|Ast|])
     , (TH.mkName "rexpr", "expr", [t|Ast|])
     , (TH.mkName "rsum", "sum", [t|Ast|])
@@ -44,8 +42,8 @@ $(Ptera.genRules
     )
 
 $(Ptera.genParsePoints
-    do TH.mkName "ParsePoints"
-    do TH.mkName "RuleDefs"
+    (TH.mkName "ParsePoints")
+    (TH.mkName "RuleDefs")
     [ "expr EOS"
     ]
     )
