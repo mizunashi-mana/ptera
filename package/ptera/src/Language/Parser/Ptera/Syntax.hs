@@ -49,7 +49,7 @@ module Language.Parser.Ptera.Syntax (
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Language.Parser.Ptera.Data.HFList as HFList
+import qualified Language.Parser.Ptera.Data.HFList        as HFList
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 
 

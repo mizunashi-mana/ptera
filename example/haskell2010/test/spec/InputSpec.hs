@@ -2,9 +2,9 @@ module InputSpec (spec) where
 
 import           Test.Hspec
 
-import           Data.Either (isRight)
-import qualified Data.Text       as Text
-import qualified Data.Text.IO       as TextIO
+import           Data.Either  (isRight)
+import qualified Data.Text    as Text
+import qualified Data.Text.IO as TextIO
 import qualified Lexer
 import qualified Parser
 import           Types

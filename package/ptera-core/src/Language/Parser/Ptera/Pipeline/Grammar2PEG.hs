@@ -3,10 +3,10 @@ module Language.Parser.Ptera.Pipeline.Grammar2PEG where
 import           Language.Parser.Ptera.Prelude
 
 import qualified Data.EnumMap.Strict                       as EnumMap
+import qualified Language.Parser.Ptera.Data.HFList         as HFList
 import qualified Language.Parser.Ptera.Machine.PEG         as PEG
 import qualified Language.Parser.Ptera.Machine.PEG.Builder as PEGBuilder
 import qualified Language.Parser.Ptera.Syntax.Grammar      as Grammar
-import qualified Language.Parser.Ptera.Data.HFList as HFList
 
 
 grammar2Peg :: Enum start => Enum nonTerminal => Enum terminal

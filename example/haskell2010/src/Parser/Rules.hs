@@ -24,7 +24,8 @@ import qualified Data.Text                        as Text
 import           GHC.TypeLits                     (KnownSymbol, Symbol)
 import qualified Language.Haskell.TH              as TH
 import           Language.Parser.Ptera.Data.HEnum (henum)
-import           Language.Parser.Ptera.TH         hiding (RuleExpr, Rules, Alt, Expr, tokA)
+import           Language.Parser.Ptera.TH         hiding (Alt, Expr, RuleExpr,
+                                                   Rules, tokA)
 import qualified Language.Parser.Ptera.TH         as Ptera
 import qualified Numeric
 import           Types

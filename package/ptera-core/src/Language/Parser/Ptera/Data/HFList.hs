@@ -16,10 +16,10 @@ module Language.Parser.Ptera.Data.HFList (
     DictF (..),
 ) where
 
-import Language.Parser.Ptera.Prelude
+import           Language.Parser.Ptera.Prelude
 
-import           Type.Membership (Membership)
-import qualified Unsafe.Coerce as Unsafe
+import           Type.Membership               (Membership)
+import qualified Unsafe.Coerce                 as Unsafe
 
 
 type T = HFList

@@ -38,7 +38,7 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Data.HashMap.Strict                  as HashMap
 import qualified Language.Parser.Ptera.Data.HEnum     as HEnum
-import qualified Language.Parser.Ptera.Data.HFList     as HFList
+import qualified Language.Parser.Ptera.Data.HFList    as HFList
 import qualified Language.Parser.Ptera.Syntax.Grammar as SyntaxGrammar
 import           Prelude                              (String)
 import qualified Type.Membership                      as Membership

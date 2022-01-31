@@ -15,7 +15,8 @@ import           Language.Parser.Ptera.Runner                  (ParseResult (..)
                                                                 runParser)
 import qualified Language.Parser.Ptera.Runner                  as Runner
 import           Language.Parser.Ptera.Scanner                 hiding (T)
-import           Language.Parser.Ptera.Syntax                  hiding (T, semAct, semActM)
+import           Language.Parser.Ptera.Syntax                  hiding (T,
+                                                                semAct, semActM)
 
 type Parser = Runner.T
 

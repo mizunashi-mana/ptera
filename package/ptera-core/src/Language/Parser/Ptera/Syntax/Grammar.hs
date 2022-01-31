@@ -18,7 +18,7 @@ module Language.Parser.Ptera.Syntax.Grammar (
 
 import           Language.Parser.Ptera.Prelude
 
-import qualified Data.EnumMap.Strict           as EnumMap
+import qualified Data.EnumMap.Strict               as EnumMap
 import qualified Language.Parser.Ptera.Data.HFList as HFList
 
 

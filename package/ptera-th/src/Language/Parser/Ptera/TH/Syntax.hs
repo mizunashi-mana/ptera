@@ -54,10 +54,10 @@ import           Language.Parser.Ptera.Prelude
 
 import qualified Language.Haskell.TH                      as TH
 import qualified Language.Haskell.TH.Syntax               as TH
+import qualified Language.Parser.Ptera.Data.HFList        as HFList
 import qualified Language.Parser.Ptera.Syntax             as Syntax
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar as SafeGrammar
 import           Language.Parser.Ptera.TH.ParserLib
-import qualified Language.Parser.Ptera.Data.HFList as HFList
 
 
 type T ctx = GrammarM ctx
