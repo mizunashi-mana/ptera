@@ -11,7 +11,7 @@ import qualified Data.Text                        as Text
 import qualified GHC.Word                         as Word
 import qualified Language.Lexer.Tlex              as Tlex
 import qualified Lexer.CodeUnit                   as CodeUnit
-import qualified Lexer.PreprocessLayout           as PreprocessLayout
+import qualified Lexer.Layout                     as Layout
 import qualified Lexer.Rules                      as LexerRules
 import           Types
 
@@ -19,7 +19,7 @@ import           Types
 $(LexerRules.buildLexer)
 
 lexText :: Text.Text -> Either String [Token]
-lexText input = PreprocessLayout.preprocessLayout <$> go initialLctx [] where
+lexText input = Layout.preprocessLayout <$> go initialLctx [] where
     initialLctx = LexerContext
         { commentNestLevel = 0
         , currentLexingCtx = LexingContext

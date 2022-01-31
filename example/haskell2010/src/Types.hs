@@ -54,7 +54,6 @@ data Token
     | TokSymLeftArrow
     | TokSymRightArrow
     | TokSymAt
-    | TokSymMinus
     | TokSymTilde
     | TokSymRightDoubleArrow
     | TokQualifiedVarId [Text] Text

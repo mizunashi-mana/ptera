@@ -74,7 +74,6 @@ $(Ptera.genGrammarToken (TH.mkName "Tokens") [t|Token|]
     , ("<-",        [p|TokSymLeftArrow{}|])
     , ("->",        [p|TokSymRightArrow{}|])
     , ("@",         [p|TokSymAt{}|])
-    , ("-",         [p|TokSymMinus{}|])
     , ("~",         [p|TokSymTilde{}|])
     , ("=>",        [p|TokSymRightDoubleArrow{}|])
 
@@ -265,11 +264,13 @@ $(Ptera.genRules
     , (TH.mkName "rqconid", "qconid", [t|QualifiedId|])
     , (TH.mkName "rqconsym", "qconsym", [t|QualifiedId|])
     , (TH.mkName "rmodid", "modid", [t|QualifiedId|])
+
     , (TH.mkName "ridexport", "'export'", [t|()|])
     , (TH.mkName "ridhiding", "'hiding'", [t|()|])
     , (TH.mkName "ridas", "'as'", [t|()|])
     , (TH.mkName "ridqualified", "'qualified'", [t|()|])
     , (TH.mkName "rsymexclamation", "'!'", [t|()|])
+    , (TH.mkName "rsymminus", "'-'", [t|()|])
 
     , (TH.mkName "rliteral", "literal", [t|Lit|])
     , (TH.mkName "rinteger", "integer", [t|Integer|])
@@ -459,11 +460,13 @@ grammar = Ptera.fixGrammar $ RuleDefs
     , rqconid = rQconId
     , rqconsym = rQconSym
     , rmodid = rModId
+
     , ridexport = rIdExport
     , ridhiding = rIdHiding
     , ridas = rIdAs
     , ridqualified = rIdQualified
     , rsymexclamation = rSymExclamation
+    , rsymminus = rSymMinus
 
     , rliteral = rLiteral
     , rinteger = rInteger
@@ -1540,8 +1543,8 @@ rExp = ruleExpr
 
 rInfixExp :: RuleExpr Exp
 rInfixExp = ruleExpr
-    [ tokA @"-" <^> varA @"infixexp"
-        <:> \(_ :* _ :* infixexp :* HNil) ->
+    [ varA @"'-'" <^> varA @"infixexp"
+        <:> \(_ :* infixexp :* HNil) ->
             [||ExpMinus $$(infixexp)||]
     , varA @"lexp" <^> varA @"qop" <^> varA @"infixexp"
         <:> \(lexp :* qop :* infixexp :* HNil) ->
@@ -1844,11 +1847,11 @@ rPat = ruleExpr
 
 rLpat :: RuleExpr Pat
 rLpat = ruleExpr
-    [ tokA @"-" <^> varA @"integer"
-        <:> \(_ :* _ :* integer :* HNil) ->
+    [ varA @"'-'" <^> varA @"integer"
+        <:> \(_ :* integer :* HNil) ->
             [||PatMinusInteger $$(integer)||]
-    , tokA @"-" <^> varA @"float"
-        <:> \(_ :* _ :* float :* HNil) ->
+    , varA @"'-'" <^> varA @"float"
+        <:> \(_ :* float :* HNil) ->
             [||PatMinusFloat $$(float)||]
     , varA @"gcon" <^> varA @"apat+"
         <:> \(gcon :* apats1 :* HNil) ->
@@ -2218,6 +2221,18 @@ rSymExclamation = ruleExpr
             ||]
     ]
 
+rSymMinus :: RuleExpr ()
+rSymMinus = ruleExpr
+    [ varA @"varsym"
+        <::> \(varsym :* HNil) ->
+            [||case $$(varsym) of
+                Id txt | txt == Text.pack "-" ->
+                    pure ()
+                _ ->
+                    failAction
+            ||]
+    ]
+
 rLiteral :: RuleExpr Lit
 rLiteral = ruleExpr
     [ varA @"integer"
@@ -2323,7 +2338,7 @@ rImpBo = ruleExpr
                         | n > m ->
                             modifyAction \l' -> n:l'
                         | otherwise ->
-                            failAction
+                            modifyAction \l' -> (n + 1):l'
                     []
                         | n > 0 ->
                             modifyAction \l' -> n:l'
