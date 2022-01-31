@@ -215,8 +215,8 @@ UnsafeExpr e <:> act = UnsafeAlt do SyntaxGrammar.Alt e Nothing act
 
 infixl 4 <:>
 
-eps :: action '[] a -> Alt action rules tokens elem a
-eps act = UnsafeAlt do SyntaxGrammar.Alt HFList.HFNil Nothing act
+eps :: Expr rules tokens elem '[]
+eps = UnsafeExpr HFList.HFNil
 
 (<^>)
     :: Expr rules tokens elem us1 -> Expr rules tokens elem us2

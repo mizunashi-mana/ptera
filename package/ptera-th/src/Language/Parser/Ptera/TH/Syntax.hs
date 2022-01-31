@@ -39,10 +39,9 @@ module Language.Parser.Ptera.TH.Syntax (
     SafeGrammar.fixGrammar,
     SafeGrammar.ruleExpr,
     (SafeGrammar.<^>),
+    SafeGrammar.eps,
     (<:>),
-    eps,
     (<::>),
-    epsM,
     SafeGrammar.var,
     SafeGrammar.varA,
     SafeGrammar.tok,
@@ -78,9 +77,6 @@ e@(SafeGrammar.UnsafeExpr ue) <:> act = e SafeGrammar.<:> semAct act ue
 
 infixl 4 <:>
 
-eps :: (HTExpList '[] -> TH.Q (TH.TExp a)) -> AltM ctx rules tokens elem a
-eps act = SafeGrammar.eps do semAct act HFList.HFNil
-
 (<::>)
     :: SafeGrammar.Expr rules tokens elem us
     -> (HTExpList us -> TH.Q (TH.TExp (ActionTask ctx a)))
@@ -88,11 +84,6 @@ eps act = SafeGrammar.eps do semAct act HFList.HFNil
 e@(SafeGrammar.UnsafeExpr ue) <::> act = e SafeGrammar.<:> semActM act ue
 
 infixl 4 <::>
-
-epsM
-    :: (HTExpList '[] -> TH.Q (TH.TExp (ActionTask ctx a)))
-    -> AltM ctx rules tokens elem a
-epsM act = SafeGrammar.eps do semActM act HFList.HFNil
 
 
 type HTExpList = HFList.T TExpQ

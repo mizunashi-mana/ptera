@@ -565,7 +565,7 @@ rExports0 = ruleExpr
         <:> \(export :* HNil) ->
             [||Seq.singleton $$(export)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -594,7 +594,7 @@ rCnames = ruleExpr
         <:> \(cnames1 :* HNil) ->
             [||seqToList $$(cnames1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -624,7 +624,7 @@ rAsModIdOpt = ruleExpr
         <:> \(_ :* modid :* HNil) ->
             [||Just $$(modid)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -634,7 +634,7 @@ rImpSpecOpt = ruleExpr
         <:> \(impspec :* HNil) ->
             [||Just $$(impspec)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -657,7 +657,7 @@ rImports = ruleExpr
         <:> \(imp :* HNil) ->
             [||Seq.singleton $$(imp)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -690,7 +690,7 @@ rTopDecls = ruleExpr
         <:> \(topdecls1 :* HNil) ->
             [||seqToList $$(topdecls1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -741,7 +741,7 @@ rDerivingOpt = ruleExpr
         <:> \(deriv :* HNil) ->
             [||Just $$(deriv)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -751,7 +751,7 @@ rContextOpt = ruleExpr
         <:> \(context :* _ :* _ :* HNil) ->
             [||Just $$(context)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -761,7 +761,7 @@ rScontextOpt = ruleExpr
         <:> \(context :* _ :* _ :* HNil) ->
             [||Just $$(context)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -771,7 +771,7 @@ rWhereCdeclsOpt = ruleExpr
         <:> \(_ :* _ :* cdecls :* HNil) ->
             cdecls
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -781,7 +781,7 @@ rWhereIdeclsOpt = ruleExpr
         <:> \(_ :* _ :* idecls :* HNil) ->
             idecls
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -791,7 +791,7 @@ rTypes = ruleExpr
         <:> \(types1 :* HNil) ->
             [||seqToList $$(types1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -821,7 +821,7 @@ rDeclsInL = ruleExpr
         <:> \(declsinl1 :* HNil) ->
             [||seqToList $$(declsinl1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -867,7 +867,7 @@ rCdeclsInL = ruleExpr
         <:> \(cdeclsinl1 :* HNil) ->
             [||seqToList $$(cdeclsinl1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -913,7 +913,7 @@ rIdeclsInL = ruleExpr
         <:> \(ideclsinl1 :* HNil) ->
             [||seqToList $$(ideclsinl1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -939,7 +939,7 @@ rIdecl = ruleExpr
         <:> \(var :* rhs :* HNil) ->
             [||Seq.singleton $ DeclVar (PatId $$(var) Nothing) $$(rhs)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -955,7 +955,7 @@ rGenDecl = ruleExpr
         <:> \(fixity :* ops :* HNil) ->
             [||Seq.singleton $ DeclFixity $$(fixity) Nothing (seqToList $$(ops))||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -1015,7 +1015,7 @@ rAtypes = ruleExpr
         <:> \(atype :* atypes :* HNil) ->
             [||$$(atype) Seq.:<| $$(atypes)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -1093,7 +1093,7 @@ rClasses = ruleExpr
         <:> \(classes1 :* HNil) ->
             [||seqToList $$(classes1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -1146,7 +1146,7 @@ rSimpleClasses = ruleExpr
         <:> \(simpleclasses1 :* HNil) ->
             [||seqToList $$(simpleclasses1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -1180,7 +1180,7 @@ rTyVars = ruleExpr
         <:> \(tyvar :* tyvars :* HNil) ->
             [||TypeId (nonQualifiedId $$(tyvar)) Seq.:<| $$(tyvars)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -1213,7 +1213,7 @@ rFieldDecls = ruleExpr
         <:> \(fielddecls1 :* HNil) ->
             [||seqToList $$(fielddecls1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -1243,7 +1243,7 @@ rActypes = ruleExpr
         <:> \(actype :* actypes :* HNil) ->
             [||$$(actype) Seq.:<| $$(actypes)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -1293,7 +1293,7 @@ rDclasses = ruleExpr
         <:> \(dclasses1 :* HNil) ->
             [||seqToList $$(dclasses1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -1382,7 +1382,7 @@ rSafetyOpt = ruleExpr
         <:> \(safety :* HNil) ->
             [||Just $$(safety)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -1392,7 +1392,7 @@ rImpent = ruleExpr
         <:> \(string :* HNil) ->
             [||Just $$(string)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -1402,7 +1402,7 @@ rExpent = ruleExpr
         <:> \(string :* HNil) ->
             [||Just $$(string)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -1488,7 +1488,7 @@ rWhereDeclsOpt = ruleExpr
         <:> \(_ :* _ :* decls :* HNil) ->
             decls
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -1585,7 +1585,7 @@ rSemiOpt = ruleExpr
         <:> \(_ :* HNil) ->
             [||()||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||()||]
     ]
 
@@ -1602,7 +1602,7 @@ rAexps = ruleExpr
         <:> \(aexp :* aexps :* HNil) ->
             [||$$(aexp) Seq.:<| $$(aexps)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -1626,7 +1626,7 @@ rRecUpdates = ruleExpr
         <:> \(_ :* fbinds :* _ :* recUpdates :* HNil) ->
             [||$$(fbinds) Seq.:<| $$(recUpdates)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -1693,7 +1693,7 @@ rCexpOpt = ruleExpr
         <:> \(_ :* _ :* exp :* HNil) ->
             [||Just $$(exp)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -1703,7 +1703,7 @@ rExpOpt = ruleExpr
         <:> \(exp :* HNil) ->
             [||Just $$(exp)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Nothing||]
     ]
 
@@ -1723,7 +1723,7 @@ rFbinds = ruleExpr
         <:> \(fbinds1 :* HNil) ->
             [||seqToList $$(fbinds1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -1779,7 +1779,7 @@ rAlt = ruleExpr
         <:> \(pat :* gdpat :* decls :* HNil) ->
             [||Seq.singleton $ CaseAlt $$(pat) (seqToList $$(gdpat)) $$(decls)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||Seq.empty||]
     ]
 
@@ -1919,7 +1919,7 @@ rFpats = ruleExpr
         <:> \(fpats1 :* HNil) ->
             [||seqToList $$(fpats1)||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||[]||]
     ]
 
@@ -2350,8 +2350,8 @@ rImpBo = ruleExpr
 
 rImpBc :: RuleExpr ()
 rImpBc = ruleExpr
-    [ epsM
-        $ \HNil ->
+    [ eps
+        <::> \HNil ->
             [||do
                 l <- getAction
                 case l of
@@ -2368,7 +2368,7 @@ rSemis0 = ruleExpr
         <:> \(_ :* _ :* HNil) ->
             [||()||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||()||]
     ]
 
@@ -2421,7 +2421,7 @@ rSkip = ruleExpr
                         failAction
             ||]
     , eps
-        $ \HNil ->
+        <:> \HNil ->
             [||()||]
     ]
 
