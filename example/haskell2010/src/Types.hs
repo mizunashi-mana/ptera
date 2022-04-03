@@ -1,7 +1,10 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Types where
 
 import           Data.Text (Text)
 import qualified Data.Text as Text
+import Language.Parser.Ptera.TH (LiftType (..))
 
 
 data WsToken
@@ -69,6 +72,9 @@ data Token
     | TokVirtEndOfInput
     deriving (Eq, Show)
 
+instance LiftType Token where
+    liftType _ = [t|Token|]
+
 data Location = Location
     { locRow :: Int
     , locCol :: Int
@@ -84,6 +90,9 @@ data Program = Program
     }
     deriving (Eq, Show)
 
+instance LiftType Program where
+    liftType _ = [t|Program|]
+
 data ProgramBody = ProgramBody
     {
         importDecls :: [ImportDecl],
@@ -91,12 +100,18 @@ data ProgramBody = ProgramBody
     }
     deriving (Eq, Show)
 
+instance LiftType ProgramBody where
+    liftType _ = [t|ProgramBody|]
+
 data ExportItem
     = ExportItemId QualifiedId
     | ExportItemTyConAll QualifiedId
     | ExportItemTyConSpecified QualifiedId [Id]
     | ExportItemModule QualifiedId
     deriving (Eq, Show)
+
+instance LiftType ExportItem where
+    liftType _ = [t|ExportItem|]
 
 data ImportDecl = ImportDecl
     {
@@ -107,16 +122,25 @@ data ImportDecl = ImportDecl
     }
     deriving (Eq, Show)
 
+instance LiftType ImportDecl where
+    liftType _ = [t|ImportDecl|]
+
 data ImportSpec
     = ImportSpecSpecified [ImportItem]
     | ImportSpecHiding [ImportItem]
     deriving (Eq, Show)
+
+instance LiftType ImportSpec where
+    liftType _ = [t|ImportSpec|]
 
 data ImportItem
     = ImportItemId Id
     | ImportItemTyConAll Id
     | ImportItemTyConSpecified Id [Id]
     deriving (Eq, Show)
+
+instance LiftType ImportItem where
+    liftType _ = [t|ImportItem|]
 
 data Decl
     = DeclType Type Type
@@ -133,20 +157,32 @@ data Decl
     | DeclForeignExport ForeignCallConv (Maybe String) Id Type
     deriving (Eq, Show)
 
+instance LiftType Decl where
+    liftType _ = [t|Decl|]
+
 data Fixity
     = FixityInfixL
     | FixityInfixR
     | FixityInfix
     deriving (Eq, Show)
 
+instance LiftType Fixity where
+    liftType _ = [t|Fixity|]
+
 data Rhs = Rhs [([Guard], Exp)] [Decl]
     deriving (Eq, Show)
+
+instance LiftType Rhs where
+    liftType _ = [t|Rhs|]
 
 data Guard
     = GuardPat Pat Exp
     | GuardLet [Decl]
     | GuardExp Exp
     deriving (Eq, Show)
+
+instance LiftType Guard where
+    liftType _ = [t|Guard|]
 
 data Exp
     = ExpSig Exp (Maybe Context) Type
@@ -170,14 +206,23 @@ data Exp
     | ExpId QualifiedId
     deriving (Eq, Show)
 
+instance LiftType Exp where
+    liftType _ = [t|Exp|]
+
 data CaseAlt = CaseAlt Pat [([Guard], Exp)] [Decl]
     deriving (Eq, Show)
+
+instance LiftType CaseAlt where
+    liftType _ = [t|CaseAlt|]
 
 data Stmt
     = StmtExp Exp
     | StmtPat Pat Exp
     | StmtLet [Decl]
     deriving (Eq, Show)
+
+instance LiftType Stmt where
+    liftType _ = [t|Stmt|]
 
 data ForeignCallConv
     = ForeignCallCcall
@@ -187,10 +232,16 @@ data ForeignCallConv
     | ForeignCallDotnet
     deriving (Eq, Show)
 
+instance LiftType ForeignCallConv where
+    liftType _ = [t|ForeignCallConv|]
+
 data Safety
     = Unsafe
     | Safe
     deriving (Eq, Show)
+
+instance LiftType Safety where
+    liftType _ = [t|Safety|]
 
 data Type
     = TypeArrow Type Type
@@ -201,21 +252,36 @@ data Type
     | TypeList Type
     deriving (Eq, Show)
 
+instance LiftType Type where
+    liftType _ = [t|Type|]
+
 newtype Context = Context [Type]
     deriving (Eq, Show)
+
+instance LiftType Context where
+    liftType _ = [t|Context|]
 
 data Constr
     = ConstrWithFields Id [(Strictness, [Id], Type)]
     | ConstrApp Id [(Strictness, Type)]
     deriving (Eq, Show)
 
+instance LiftType Constr where
+    liftType _ = [t|Constr|]
+
 data Strictness
     = Unstrict
     | Strict
     deriving (Eq, Show)
 
+instance LiftType Strictness where
+    liftType _ = [t|Strictness|]
+
 newtype Deriving = Deriving [Type]
     deriving (Eq, Show)
+
+instance LiftType Deriving where
+    liftType _ = [t|Deriving|]
 
 data Pat
     = PatInfixApp Pat QualifiedId Pat
@@ -232,10 +298,16 @@ data Pat
     | PatRecord QualifiedId [(QualifiedId, Pat)]
     deriving (Eq, Show)
 
+instance LiftType Pat where
+    liftType _ = [t|Pat|]
+
 data Gcon
     = GconId QualifiedId
     | GconTuple Int
     deriving (Eq, Show)
+
+instance LiftType Gcon where
+    liftType _ = [t|Gcon|]
 
 data Lit
     = LitInteger Integer
@@ -244,8 +316,14 @@ data Lit
     | LitString String
     deriving (Eq, Show)
 
+instance LiftType Lit where
+    liftType _ = [t|Lit|]
+
 newtype Id = Id Text
     deriving (Eq, Show)
+
+instance LiftType Id where
+    liftType _ = [t|Id|]
 
 mkId :: String -> Id
 mkId s = Id (Text.pack s)
@@ -255,6 +333,9 @@ newtype ModId = ModId [Id]
 
 data QualifiedId = QualifiedId ModId Id
     deriving (Eq, Show)
+
+instance LiftType QualifiedId where
+    liftType _ = [t|QualifiedId|]
 
 nonQualifiedId :: Id -> QualifiedId
 nonQualifiedId x = QualifiedId (ModId []) x

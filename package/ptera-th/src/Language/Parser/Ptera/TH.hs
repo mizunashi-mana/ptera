@@ -6,6 +6,7 @@ module Language.Parser.Ptera.TH (
     module Language.Parser.Ptera.Runner,
     module Language.Parser.Ptera.TH.ParserLib,
     module Language.Parser.Ptera.TH.Util,
+    module Language.Parser.Ptera.TH.Class.LiftType,
     genRunner,
     GenParam (..),
     defaultCustomCtxTy,
@@ -30,6 +31,7 @@ import           Language.Parser.Ptera.TH.Util                       (GenRulesTy
                                                                       genGrammarToken,
                                                                       genParsePoints,
                                                                       genRules)
+import           Language.Parser.Ptera.TH.Class.LiftType            (LiftType (..))
 import qualified Type.Membership                                     as Membership
 
 genRunner :: forall initials rules tokens ctx elem

@@ -123,6 +123,7 @@ library
         Language.Parser.Ptera.TH.ParserLib
 
         Language.Parser.Ptera.TH.Data.Bits.MaxBit
+        Language.Parser.Ptera.TH.Class.LiftType
 
         Language.Parser.Ptera.TH.Syntax
         Language.Parser.Ptera.TH.Util

@@ -163,10 +163,10 @@ genRules rulesTyName genRulesTypes ruleDefs
                 let nameTy = pure do TH.LitT do TH.StrTyLit name
                 insts <-
                     [d|
-                    instance HasField $(nameTy) $(rulesTy) ($(ruleExprTy) $(ty)) where
-                        getField x = $(pure do TH.VarE fieldName) x
                     instance HasRuleExprField $(rulesTy) $(nameTy) where
                         type RuleExprReturnType $(rulesTy) $(nameTy) = $(ty)
+
+                        getExprField x _ = $(pure do TH.VarE fieldName) x
                     |]
                 buildHasFieldInstances
                     do insts ++ acc

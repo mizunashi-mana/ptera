@@ -98,35 +98,30 @@ instance GrammarToken Tokens Token where
         TokIdentifier{} -> henumA @"id"
         TokEndOfInput{} -> henumA @"EOS"
 
-instance HasField "expr EOS" Rules (RuleExpr Ast) where
-    getField = rexpreos
-
-instance HasField "expr" Rules (RuleExpr Ast) where
-    getField = rexpr
-
-instance HasField "sum" Rules (RuleExpr Ast) where
-    getField = rsum
-
-instance HasField "product" Rules (RuleExpr Ast) where
-    getField = rproduct
-
-instance HasField "value" Rules (RuleExpr Ast) where
-    getField = rvalue
-
 instance HasRuleExprField Rules "expr EOS" where
     type RuleExprReturnType Rules "expr EOS" = Ast
+
+    getExprField x _ = rexpreos x
 
 instance HasRuleExprField Rules "expr" where
     type RuleExprReturnType Rules "expr" = Ast
 
+    getExprField x _ = rexpr x
+
 instance HasRuleExprField Rules "sum" where
     type RuleExprReturnType Rules "sum" = Ast
+
+    getExprField x _ = rsum x
 
 instance HasRuleExprField Rules "product" where
     type RuleExprReturnType Rules "product" = Ast
 
+    getExprField x _ = rproduct x
+
 instance HasRuleExprField Rules "value" where
     type RuleExprReturnType Rules "value" = Ast
+
+    getExprField x _ = rvalue x
 
 type RuleExpr = Ptera.RuleExpr Rules Tokens Token
 type instance RuleExprType Rules = RuleExpr

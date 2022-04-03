@@ -1,6 +1,9 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Types where
 
 import           Data.ByteString (ByteString)
+import           Language.Parser.Ptera.TH (LiftType (..))
 
 data Token
     = TokPlus
@@ -18,3 +21,9 @@ data Ast
     | Var ByteString
     | Value Integer
     deriving (Eq, Show)
+
+instance LiftType Token where
+    liftType _ = [t|Token|]
+
+instance LiftType Ast where
+    liftType _ = [t|Ast|]

@@ -68,11 +68,10 @@ type family RuleExprType (rules :: Type) :: Type -> Type
 class GrammarToken tokens elem where
     tokenToTerminal :: Proxy tokens -> elem -> HEnum.T (TokensTag tokens)
 
-class
-    ( KnownSymbol v
-    , HasField v rules ((RuleExprType rules) (RuleExprReturnType rules v))
-    ) => HasRuleExprField rules v where
+class KnownSymbol v => HasRuleExprField rules v where
     type RuleExprReturnType rules v :: Type
+
+    getExprField :: rules -> proxy v -> RuleExprType rules (RuleExprReturnType rules v)
 
     nonTerminalName :: rules -> proxy v -> String
     nonTerminalName _ p = symbolVal p
@@ -120,7 +119,7 @@ fixGrammar ruleDefs = UnsafeGrammar do
             let vn = getNewV do symbolVal m
             let d = nonTerminalName ruleDefs m
             SyntaxGrammar.ruleT vn d do
-                fixRuleExpr do getField @v ruleDefs
+                fixRuleExpr do getExprField ruleDefs m
 
         fixRuleExpr :: RuleExpr action rules tokens elem a
             -> SyntaxGrammar.RuleExpr NonTerminal Terminal elem (Maybe ()) action

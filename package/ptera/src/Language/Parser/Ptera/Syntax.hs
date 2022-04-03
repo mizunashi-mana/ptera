@@ -1,7 +1,6 @@
 module Language.Parser.Ptera.Syntax (
     T,
 
-    HasField (..),
     SafeGrammar.HasRuleExprField (..),
     SafeGrammar.TokensTag,
     SafeGrammar.RulesTag,
