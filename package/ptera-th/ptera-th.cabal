@@ -2,7 +2,7 @@ cabal-version:       3.0
 build-type:          Custom
 
 name:                ptera-th
-version:             0.2.0.0
+version:             0.3.0.0
 license:             Apache-2.0 OR MPL-2.0
 license-file:        LICENSE
 copyright:           (c) 2021 Mizunashi Mana
