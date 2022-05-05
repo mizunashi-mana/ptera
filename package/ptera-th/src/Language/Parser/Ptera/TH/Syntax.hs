@@ -164,10 +164,14 @@ newtype TExpQ a = TExpQ
 pattern HNil :: HTExpList '[]
 pattern HNil = HFList.HFNil
 
+{-# COMPLETE HNil #-}
+
 pattern (:*) :: TH.Q (TH.TExp u) -> HTExpList us -> HTExpList (u ': us)
 pattern e :* es = HFList.HFCons (TExpQ e) es
 
 infixr 6 :*
+
+{-# COMPLETE (:*) #-}
 
 
 type SemActM :: Type -> [Type] -> Type -> Type
