@@ -8,7 +8,6 @@ module Lexer where
 import qualified Control.Monad.Trans.State.Strict as StateT
 import qualified Data.EnumSet                     as EnumSet
 import qualified Data.Text                        as Text
-import qualified GHC.Word                         as Word
 import qualified Language.Lexer.Tlex              as Tlex
 import qualified Lexer.CodeUnit                   as CodeUnit
 import qualified Lexer.Layout                     as Layout

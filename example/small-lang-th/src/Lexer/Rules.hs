@@ -1,5 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+
 module Lexer.Rules where
 
 import qualified Data.ByteString.Char8               as Char8

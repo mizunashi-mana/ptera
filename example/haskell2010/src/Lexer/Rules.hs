@@ -1,10 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+
 module Lexer.Rules where
 
 import qualified Data.EnumSet                  as EnumSet
 import qualified Data.Text                     as Text
-import qualified Data.Word                     as Word
 import qualified Language.Haskell.TH           as TH
 import qualified Language.Lexer.Tlex           as Tlex
 import qualified Language.Lexer.Tlex.Plugin.TH as TlexTH

@@ -15,17 +15,16 @@
 
 module Parser.Rules where
 
+import           Prelude hiding (exp, mod)
+
 import           Data.Coerce
 import           Data.Foldable
-import           Data.Proxy                       (Proxy (..))
 import           Data.Sequence                    (Seq)
 import qualified Data.Sequence                    as Seq
 import qualified Data.Text                        as Text
-import           GHC.TypeLits                     (KnownSymbol, Symbol)
 import qualified Language.Haskell.TH              as TH
-import           Language.Parser.Ptera.Data.HEnum (henum)
 import           Language.Parser.Ptera.TH         hiding (Alt, TypedExpr, RuleExpr,
-                                                   Rules, tokA)
+                                                   Rules, tokA, var, tok)
 import qualified Language.Parser.Ptera.TH         as Ptera
 import qualified Numeric
 import           Types

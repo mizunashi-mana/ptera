@@ -9,7 +9,6 @@
 
 module Parser.Rules where
 
-import           Data.Proxy               (Proxy (..))
 import qualified Language.Haskell.TH      as TH
 import           Language.Parser.Ptera.TH hiding (RuleExpr)
 import qualified Language.Parser.Ptera.TH as Ptera

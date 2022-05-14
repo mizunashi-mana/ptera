@@ -42,9 +42,9 @@ spec = do
                 `shouldBe`
                     Right
                         (Program
-                            { moduleId = Nothing
-                            , exports = []
-                            , body = ProgramBody
+                            { progModuleId = Nothing
+                            , progExportItems = []
+                            , progBody = ProgramBody
                                 { importDecls = []
                                 , topDecls =
                                     [ DeclVar (PatId (Id "f") Nothing)

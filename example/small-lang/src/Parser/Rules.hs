@@ -8,7 +8,6 @@
 
 module Parser.Rules where
 
-import           Data.Proxy                       (Proxy (..))
 import           Language.Parser.Ptera            hiding (RuleExpr, Rules)
 import qualified Language.Parser.Ptera            as Ptera
 import           Language.Parser.Ptera.Data.HEnum (henumA)
@@ -89,7 +88,7 @@ instance TokensMember Tokens "EOS" where
     tokensMembership _ = MembershipInternal.membership
 
 instance GrammarToken Tokens Token where
-    tokenToTerminal Proxy token = case token of
+    tokenToTerminal _ token = case token of
         TokPlus{}       -> henumA @"+"
         TokMulti{}      -> henumA @"*"
         TokParenOpen{}  -> henumA @"("

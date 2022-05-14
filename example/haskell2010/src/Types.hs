@@ -84,9 +84,9 @@ data Location = Location
 
 data Program = Program
     {
-        moduleId :: Maybe QualifiedId,
-        exports  :: [ExportItem],
-        body     :: ProgramBody
+        progModuleId :: Maybe QualifiedId,
+        progExportItems :: [ExportItem],
+        progBody     :: ProgramBody
     }
     deriving (Eq, Show)
 

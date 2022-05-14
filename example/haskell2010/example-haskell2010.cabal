@@ -19,6 +19,8 @@ executable haskell2010-exe
 library
     default-language: Haskell2010
 
+    ghc-options:
+        -Wall
     hs-source-dirs:
         src
     exposed-modules:

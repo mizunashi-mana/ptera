@@ -2,9 +2,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell  #-}
 
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+
 module Parser where
 
-import           Data.Proxy                         (Proxy (..))
 import qualified Language.Parser.Ptera.TH           as PteraTH
 import           Language.Parser.Ptera.TH.ParserLib
 import qualified Parser.Rules                       as Rules

@@ -11,12 +11,9 @@ import qualified Language.Parser.Ptera.Machine.SRB               as SRB
 import qualified Language.Parser.Ptera.Pipeline.Grammar2PEG      as Grammar2PEG
 import qualified Language.Parser.Ptera.Pipeline.LAPEG2SRB        as LAPEG2SRB
 import qualified Language.Parser.Ptera.Pipeline.PEG2LAPEG        as PEG2LAPEG
-import qualified Language.Parser.Ptera.Runner.Parser             as RunnerParser
 import qualified Language.Parser.Ptera.Syntax.SafeGrammar        as SafeGrammar
 import qualified Language.Parser.Ptera.TH                        as PteraTH
-import           Language.Parser.Ptera.TH.ParserLib
 import qualified Language.Parser.Ptera.TH.Pipeline.SRB2ParserDec as SRB2ParserDec
-import qualified Parser
 import qualified Parser.Rules                                    as Rules
 import           Types
 

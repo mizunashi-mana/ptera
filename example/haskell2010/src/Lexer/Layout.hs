@@ -4,7 +4,7 @@ import           Types
 
 preprocessLayout :: [(Location, Token)] -> [Token]
 preprocessLayout ts0 = case ts0 of
-    (loc,t):ts
+    (loc,t):_
         | isFirstLayoutToken t ->
             let r' = locRow loc
             in go1 r' ts0
@@ -20,12 +20,12 @@ preprocessLayout ts0 = case ts0 of
                 let r' = locRow loc
                     c' = locCol loc
                 in if r /= r'
-                    then TokVirtNewline c':go2 r' c' t ts'
-                    else go2 r' c' t ts'
+                    then TokVirtNewline c':go2 r' t ts'
+                    else go2 r' t ts'
             [] ->
                 [TokVirtEndOfInput]
 
-        go2 r1 c1 t1 ts
+        go2 r1 t1 ts
             | isLayoutToken t1 = case ts of
                 (loc2,t2):ts' ->
                     let r2 = locRow loc2
