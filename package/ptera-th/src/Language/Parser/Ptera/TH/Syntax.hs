@@ -104,14 +104,19 @@ infixr 5 <^>
 
 
 (<:>)
-    :: TypedExpr rules tokens elem us -> (HTExpList us -> TH.Q (TH.TExp a))
+    :: LiftType.T ctx
+    => LiftType.T a
+    => TypedExpr rules tokens elem us
+    -> (HTExpList us -> TH.Q (TH.TExp a))
     -> AltM ctx rules tokens elem a
 e <:> act = unTypedExpr e SafeGrammar.<:> semAct act do getTypesOfExpr e
 
 infixl 4 <:>
 
 (<::>)
-    :: TypedExpr rules tokens elem us
+    :: LiftType.T ctx
+    => LiftType.T a
+    => TypedExpr rules tokens elem us
     -> (HTExpList us -> TH.Q (TH.TExp (ActionTask ctx a)))
     -> AltM ctx rules tokens elem a
 e <::> act = unTypedExpr e SafeGrammar.<:> semActM act do getTypesOfExpr e
@@ -181,24 +186,28 @@ newtype SemActM ctx us a = UnsafeSemActM
 
 type SemAct = SemActM ()
 
-semActM
-    :: (HTExpList us -> TH.Q (TH.TExp (Syntax.ActionTask ctx a)))
+semActM :: forall ctx us a
+    .  LiftType.T ctx
+    => LiftType.T a
+    => (HTExpList us -> TH.Q (TH.TExp (ActionTask ctx a)))
     -> HFList.T TTypeQ us -> SemActM ctx us a
 semActM f xs0 = UnsafeSemActM go where
     go = do
         (ns, args) <- actArgs xs0
         l <- TH.newName "pteraTHSemActArgs"
+        let tqA = LiftType.liftType do Proxy @a
+        let tqCtx = LiftType.liftType do Proxy @ctx
         let lp = pure do TH.VarP l
         let le = pure do TH.VarE l
         let lp0 = pure do TH.ListP [TH.VarP n | n <- ns]
         [e|\ $(lp) -> case $(le) of
             $(lp0) ->
-                $(TH.unType <$> f args)
+                $(TH.unType <$> f args) :: ActionTask $(tqCtx) $(tqA)
             _ ->
                 error "unreachable: unexpected arguments"
             |]
 
-    actArgs :: HFList.T TTypeQ us -> TH.Q ([TH.Name], HTExpList us)
+    actArgs :: HFList.T TTypeQ args -> TH.Q ([TH.Name], HTExpList args)
     actArgs = \case
         HFList.HFNil ->
             pure ([], HNil)
@@ -211,6 +220,8 @@ semActM f xs0 = UnsafeSemActM go where
             pure (n:ns, arg :* args)
 
 semAct
-    :: (HTExpList us -> TH.Q (TH.TExp a))
+    :: LiftType.T ctx
+    => LiftType.T a
+    => (HTExpList us -> TH.Q (TH.TExp a))
     -> HFList.T TTypeQ us -> SemActM ctx us a
 semAct f = semActM do \us -> [||pteraTHActionTaskPure $$(f us)||]
