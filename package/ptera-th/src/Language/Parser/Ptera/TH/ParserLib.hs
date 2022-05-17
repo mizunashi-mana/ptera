@@ -2,6 +2,7 @@ module Language.Parser.Ptera.TH.ParserLib (
     module Language.Parser.Ptera.Runner.Parser,
     module Data.Proxy,
     Parser,
+    PteraTHArray,
     pteraTHTokenToTerminal,
     pteraTHArrayIndex,
     pteraTHArrayFromList,
@@ -36,13 +37,15 @@ import qualified Unsafe.Coerce                       as Unsafe
 
 type Parser = Runner.T
 
+type PteraTHArray = Array.Array
+
 pteraTHTokenToTerminal :: GrammarToken tokens elem => Proxy tokens -> elem -> Int
 pteraTHTokenToTerminal p t = HEnum.unsafeHEnum do tokenToTerminal p t
 
-pteraTHArrayIndex :: Array.Array Int e -> Int -> e
+pteraTHArrayIndex :: PteraTHArray Int e -> Int -> e
 pteraTHArrayIndex arr i = arr Array.! i
 
-pteraTHArrayFromList :: Int -> [e] -> Array.Array Int e
+pteraTHArrayFromList :: Int -> [e] -> PteraTHArray Int e
 pteraTHArrayFromList b l = Array.listArray (0, b) l
 
 pteraTHLookupTable8 :: Int -> Prim.Addr# -> Int -> Int -> Int

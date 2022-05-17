@@ -109,6 +109,7 @@ outputParserInitialFn parserInitialFnName initials =
                     else Nothing
             |]
             <*> [d|
+                table :: PteraTHArray Int (Maybe Int)
                 table = pteraTHArrayFromList $(TH.lift ub) $(TH.ListE <$> qes)
             |]
     where
@@ -121,7 +122,7 @@ outputParserInitialFn parserInitialFnName initials =
                 Nothing ->
                     [e|Nothing|]
                 Just (SRB.StateNum s) ->
-                    [e|Just $(TH.lift s)|]
+                    [e|Just $(TH.lift s) :: Maybe Int|]
             [0..ub]
 
 outputParserTransFn :: TH.Name
@@ -302,12 +303,12 @@ outputParserAltKindFn
     -> TH.Q TH.Dec
 outputParserAltKindFn parserAltKindFnName alts = TH.ValD
     do TH.VarP parserAltKindFnName
-    <$> fmap TH.NormalB [e|
-        let arr = pteraTHArrayFromList $(TH.lift do length alts - 1)
-                $(TH.ListE <$> traverse altKindExp do toList alts)
-        in \i -> pteraTHArrayIndex arr i
+    <$> fmap TH.NormalB [e|\i -> pteraTHArrayIndex table i|]
+    <*> [d|
+        table :: PteraTHArray Int AltKind
+        table = pteraTHArrayFromList $(TH.lift do length alts - 1)
+            $(TH.ListE <$> traverse altKindExp do toList alts)
     |]
-    <*> pure []
     where
         altKindExp alt = case LAPEG.altKind alt of
             AltSeq -> [e|AltSeq|]
@@ -320,19 +321,19 @@ outputParserStateHelpFn
     -> TH.Q TH.Dec
 outputParserStateHelpFn fnName states = TH.ValD
     do TH.VarP fnName
-    <$> fmap TH.NormalB [e|
-        let arr = pteraTHArrayFromList $(TH.lift do length states - 1)
-                $(TH.ListE <$> traverse stateHelpExp do toList states)
-        in \i -> pteraTHArrayIndex arr i
+    <$> fmap TH.NormalB [e|\i -> pteraTHArrayIndex table i|]
+    <*> [d|
+        table :: PteraTHArray Int [(Int, Int)]
+        table = pteraTHArrayFromList $(TH.lift do length states - 1)
+            $(TH.ListE <$> traverse stateHelpExp do toList states)
     |]
-    <*> pure []
     where
         stateHelpExp st =
             let altItems = SRB.stateAltItems st
             in TH.ListE <$> forM altItems \altItem -> do
                 let altNum :: Int = coerce do SRB.altItemAltNum altItem
                     pos :: Int = coerce do SRB.altItemCurPos altItem
-                [e|($(TH.lift altNum), $(TH.lift pos))|]
+                [e|($(TH.lift altNum) :: Int, $(TH.lift pos) :: Int)|]
 
 outputParserAltHelpFn
     :: TH.Name
@@ -341,12 +342,12 @@ outputParserAltHelpFn
     -> TH.Q TH.Dec
 outputParserAltHelpFn parserAltHelpFnName alts vars = TH.ValD
     do TH.VarP parserAltHelpFnName
-    <$> fmap TH.NormalB [e|
-        let arr = pteraTHArrayFromList $(TH.lift do length alts - 1)
-                $(TH.ListE <$> traverse altHelpExp do toList alts)
-        in \i -> pteraTHArrayIndex arr i
+    <$> fmap TH.NormalB [e|\i -> pteraTHArrayIndex table i|]
+    <*> [d|
+        table :: PteraTHArray Int (StringLit, Maybe ())
+        table = pteraTHArrayFromList $(TH.lift do length alts - 1)
+            $(TH.ListE <$> traverse altHelpExp do toList alts)
     |]
-    <*> pure []
     where
         altHelpExp alt =
             let v = AlignableArray.forceIndex vars do LAPEG.altVar alt
