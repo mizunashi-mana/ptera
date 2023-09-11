@@ -54,9 +54,9 @@ pteraTHLookupTable8 offset table# s c = do
     ST.runST do
         ST.ST \s0# -> do
             let !(# s1#, r# #) = Prim.readWord8OffAddr# table# i# s0#
-            case r# of
-                255## -> (# s1#, -1 #)
-                _     -> (# s1#, Types.I# do Prim.word2Int# r# #)
+            case Prim.word2Int# do Prim.word8ToWord# r# of
+                255# -> (# s1#, -1 #)
+                ri#  -> (# s1#, Types.I# ri# #)
 
 pteraTHLookupTable16 :: Int -> Prim.Addr# -> Int -> Int -> Int
 pteraTHLookupTable16 offset table# s c = do
@@ -64,9 +64,9 @@ pteraTHLookupTable16 offset table# s c = do
     ST.runST do
         ST.ST \s0# -> do
             let !(# s1#, r# #) = Prim.readWord16OffAddr# table# i# s0#
-            case r# of
-                65535## -> (# s1#, -1 #)
-                _       -> (# s1#, Types.I# do Prim.word2Int# r# #)
+            case Prim.word2Int# do Prim.word16ToWord# r# of
+                65535# -> (# s1#, -1 #)
+                ri#    -> (# s1#, Types.I# ri# #)
 
 pteraTHLookupTable32 :: Int -> Prim.Addr# -> Int -> Int -> Int
 pteraTHLookupTable32 offset table# s c = do
@@ -74,10 +74,11 @@ pteraTHLookupTable32 offset table# s c = do
     ST.runST do
         ST.ST \s0# -> do
             let !(# s1#, r# #) = Prim.readInt32OffAddr# table# i# s0#
-            (# s1#, Types.I# r# #)
+            (# s1#, Types.I# do Prim.int32ToInt# r# #)
 
 pteraTHUnsafeExtractReduceArgument :: ReduceArgument -> a
-pteraTHUnsafeExtractReduceArgument (ReduceArgument x) = Unsafe.unsafeCoerce x
+pteraTHUnsafeExtractReduceArgument = \case
+    ReduceArgument x -> Unsafe.unsafeCoerce x
 
 pteraTHUnsafeRunner :: RunnerParser ctx elem () -> Parser ctx rules elem initials
 pteraTHUnsafeRunner p = Runner.UnsafeRunnerM p

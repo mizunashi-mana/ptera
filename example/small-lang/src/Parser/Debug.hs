@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Parser.Debug where
 
 import           Language.Parser.Ptera.Prelude

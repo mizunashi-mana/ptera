@@ -253,11 +253,11 @@ addrCodeUnitsLE unitSize n
     | n == -1   = replicate unitSize 0xFF
     | otherwise = error "unsupported"
     where
-        mod8bit = case Bits.bitSizeMaybe n of
-            Nothing -> \x -> x Bits..&. 0xFF
+        mod8bit x = case Bits.bitSizeMaybe n of
+            Nothing -> x Bits..&. 0xFF
             Just bs
-                | bs <= 8   -> \x -> x
-                | otherwise -> \x -> x Bits..&. 0xFF
+                | bs <= 8   -> x
+                | otherwise -> x Bits..&. 0xFF
 
 toTransOpsExp :: OutTransOpsRepr -> TH.Q TH.Exp
 toTransOpsExp = \case
@@ -387,15 +387,16 @@ outputParserActionFn parserActionFnName alts = TH.ValD
 outputRunnerFn
     :: TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name -> TH.Name
     -> TH.Q TH.Dec
-outputRunnerFn runnerFnName = \
-        parserInitialFnName
-        parserGetTokenNumFnName
-        parserTransFnName
-        parserAltKindFnName
-        parserStateHelpFnName
-        parserAltHelpFnName
-        parserActionFnName
-    -> TH.ValD do TH.VarP runnerFnName
+outputRunnerFn
+    runnerFnName
+    parserInitialFnName
+    parserGetTokenNumFnName
+    parserTransFnName
+    parserAltKindFnName
+    parserStateHelpFnName
+    parserAltHelpFnName
+    parserActionFnName
+    = TH.ValD do TH.VarP runnerFnName
         <$> fmap TH.NormalB [e|pteraTHUnsafeRunner parser|]
         <*> [d|
             parser = RunnerParser

@@ -7,7 +7,7 @@ license:             Apache-2.0 OR MPL-2.0
 license-file:        LICENSE
 copyright:           (c) 2021 Mizunashi Mana
 author:              Mizunashi Mana
-maintainer:          mizunashi-mana@noreply.git
+maintainer:          contact@mizunashi.work
 
 category:            Parsing
 homepage:            https://github.com/mizunashi-mana/ptera
@@ -88,15 +88,15 @@ common general
             -dcore-lint
 
     build-depends:
-        base                 >= 4.14.0 && < 5,
+        base                    >= 4.14.0 && < 5,
 
         -- project depends
-        transformers            >= 0.5.0 && < 0.6,
+        transformers            >= 0.5.0 && < 1,
         containers              >= 0.6.0 && < 0.7,
-        enummapset-th           >= 0.6.0 && < 0.7,
+        enummapset              >= 0.7.1 && < 1,
         membership              >= 0.0.1 && < 0.1,
         unordered-containers    >= 0.2.0 && < 0.3,
-        hashable                >= 1.1   && < 1.4,
+        hashable                >= 1.1   && < 2,
         array                   >= 0.5.4 && < 0.6,
 
     autogen-modules:

@@ -3,7 +3,7 @@ name:               small-lang-th
 version:            0.1.0.0
 
 author:             Mizunashi Mana
-maintainer:         mizunashi-mana@noreply.git
+maintainer:         contact@mizunashi.work
 
 executable small-lang-th-exe
     main-is:          Main.hs

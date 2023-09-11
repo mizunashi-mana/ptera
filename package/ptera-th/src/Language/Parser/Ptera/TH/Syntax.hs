@@ -23,7 +23,6 @@ module Language.Parser.Ptera.TH.Syntax (
     HTExpList,
     pattern HNil,
     pattern (:*),
-    TExpQ (..),
     Syntax.ActionTask (..),
     Syntax.ActionTaskResult (..),
     Syntax.getAction,
@@ -107,7 +106,7 @@ infixr 5 <^>
     :: LiftType.T ctx
     => LiftType.T a
     => TypedExpr rules tokens elem us
-    -> (HTExpList us -> TH.Q (TH.TExp a))
+    -> (HTExpList us -> TH.Code TH.Q a)
     -> AltM ctx rules tokens elem a
 e <:> act = unTypedExpr e SafeGrammar.<:> semAct act do getTypesOfExpr e
 
@@ -117,7 +116,7 @@ infixl 4 <:>
     :: LiftType.T ctx
     => LiftType.T a
     => TypedExpr rules tokens elem us
-    -> (HTExpList us -> TH.Q (TH.TExp (ActionTask ctx a)))
+    -> (HTExpList us -> TH.Code TH.Q (ActionTask ctx a))
     -> AltM ctx rules tokens elem a
 e <::> act = unTypedExpr e SafeGrammar.<:> semActM act do getTypesOfExpr e
 
@@ -160,19 +159,15 @@ tokA = tok
     do SafeGrammar.tokensMembership do proxy# @'(tokens, t)
 
 
-type HTExpList = HFList.T TExpQ
-
-newtype TExpQ a = TExpQ
-    { unTExpQ :: TH.Q (TH.TExp a)
-    }
+type HTExpList = HFList.T (TH.Code TH.Q)
 
 pattern HNil :: HTExpList '[]
 pattern HNil = HFList.HFNil
 
 {-# COMPLETE HNil #-}
 
-pattern (:*) :: TH.Q (TH.TExp u) -> HTExpList us -> HTExpList (u ': us)
-pattern e :* es = HFList.HFCons (TExpQ e) es
+pattern (:*) :: TH.Code TH.Q u -> HTExpList us -> HTExpList (u ': us)
+pattern e :* es = HFList.HFCons e es
 
 infixr 6 :*
 
@@ -189,7 +184,7 @@ type SemAct = SemActM ()
 semActM :: forall ctx us a
     .  LiftType.T ctx
     => LiftType.T a
-    => (HTExpList us -> TH.Q (TH.TExp (ActionTask ctx a)))
+    => (HTExpList us -> TH.Code TH.Q (ActionTask ctx a))
     -> HFList.T TTypeQ us -> SemActM ctx us a
 semActM f xs0 = UnsafeSemActM go where
     go = do
@@ -202,7 +197,7 @@ semActM f xs0 = UnsafeSemActM go where
         let lp0 = pure do TH.ListP [TH.VarP n | n <- ns]
         [e|\ $(lp) -> case $(le) of
             $(lp0) ->
-                $(TH.unType <$> f args) :: ActionTask $(tqCtx) $(tqA)
+                $(TH.unTypeCode do f args) :: ActionTask $(tqCtx) $(tqA)
             _ ->
                 error "unreachable: unexpected arguments"
             |]
@@ -214,7 +209,7 @@ semActM f xs0 = UnsafeSemActM go where
         HFList.HFCons (TTypeQ t) xs -> do
             n <- TH.newName "pteraTHSemActArg"
             let e = pure do TH.VarE n
-            let arg = TH.unsafeTExpCoerce
+            let arg = TH.unsafeCodeCoerce
                     [|pteraTHUnsafeExtractReduceArgument $(e) :: $(t)|]
             (ns, args) <- actArgs xs
             pure (n:ns, arg :* args)
@@ -222,6 +217,6 @@ semActM f xs0 = UnsafeSemActM go where
 semAct
     :: LiftType.T ctx
     => LiftType.T a
-    => (HTExpList us -> TH.Q (TH.TExp a))
+    => (HTExpList us -> TH.Code TH.Q a)
     -> HFList.T TTypeQ us -> SemActM ctx us a
 semAct f = semActM do \us -> [||pteraTHActionTaskPure $$(f us)||]

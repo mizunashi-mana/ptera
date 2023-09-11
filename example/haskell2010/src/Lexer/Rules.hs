@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
@@ -24,10 +24,10 @@ type ScannerBuilder = TlexTH.THScannerBuilder LexerState LexerCodeUnit LexerActi
 type Pattern = Tlex.Pattern LexerCodeUnit
 type CharSet = EnumSet.EnumSet LexerCodeUnit
 
-initialRule :: Pattern -> TH.Q (TH.TExp LexerAction) -> ScannerBuilder ()
+initialRule :: Pattern -> TH.Code TH.Q LexerAction -> ScannerBuilder ()
 initialRule = TlexTH.thLexRule [Initial]
 
-nestedCommentRule :: Pattern -> TH.Q (TH.TExp LexerAction) -> ScannerBuilder ()
+nestedCommentRule :: Pattern -> TH.Code TH.Q LexerAction -> ScannerBuilder ()
 nestedCommentRule = TlexTH.thLexRule [NestedComment]
 
 buildLexer :: TH.Q [TH.Dec]
