@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
@@ -21,7 +21,7 @@ type LexerCodeUnit = Word.Word8
 type ScannerBuilder = TlexTH.THScannerBuilder LexerState LexerCodeUnit LexerAction
 type Pattern = Tlex.Pattern LexerCodeUnit
 
-initialRule :: Pattern -> TH.Q (TH.TExp LexerAction) -> ScannerBuilder ()
+initialRule :: Pattern -> TH.Code TH.Q LexerAction -> ScannerBuilder ()
 initialRule = TlexTH.thLexRule [()]
 
 buildLexer :: TH.Q [TH.Dec]

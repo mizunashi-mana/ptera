@@ -3,7 +3,7 @@ name:               example-haskell2010
 version:            0.1.0.0
 
 author:             Mizunashi Mana
-maintainer:         mizunashi-mana@noreply.git
+maintainer:         contact@mizunashi.work
 
 executable haskell2010-exe
     main-is:          Main.hs
@@ -41,7 +41,7 @@ library
         tlex,
         tlex-th,
         text,
-        enummapset-th,
+        enummapset,
         charset,
         containers,
         transformers,
@@ -63,7 +63,7 @@ test-suite spec
         base,
         example-haskell2010,
         charset,
-        enummapset-th,
+        enummapset,
         text,
 
         hspec,

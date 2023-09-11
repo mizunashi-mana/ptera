@@ -1,92 +1,69 @@
 name: Haskell CI
 
 on:
-  push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - main
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        ghc:
-        - 8.10.7
-        cabal:
-        - 3.2.0.0
-        - 3.4.1.0
-        os:
-        - ubuntu-latest
+    build:
+        strategy:
+            matrix:
+                include:
+                    -
+                        ghc: 9.4.7
+                        cabal: 3.6.2.0
+                        os: ubuntu-latest
+                    -
+                        ghc: 9.6.2
+                        cabal: 3.10.1.0
+                        os: ubuntu-latest
+                    -
+                        ghc: 9.6.2
+                        cabal: 3.10.1.0
+                        os: macOS-latest
+                    -
+                        ghc: 9.6.2
+                        cabal: 3.10.1.0
+                        os: windows-latest
 
-        include:
-        - ghc: 8.10.7
-          cabal: 3.4.1.0
-          os: macOS-latest
-        - ghc: 8.10.7
-          cabal: 3.4.1.0
-          os: windows-latest
+        runs-on: ${{ matrix.os }}
 
-    runs-on: ${{ matrix.os }}
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: haskell/actions/setup@v2
+                with:
+                    ghc-version: ${{ matrix.ghc }}
+                    cabal-version: ${{ matrix.cabal }}
 
-    steps:
-    - uses: actions/checkout@v2
+            -   name: Cache
+                uses: actions/cache@v3
+                env:
+                    cache-name: cache-cabal
+                with:
+                    path: ~/.cabal
+                    key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
+                    restore-keys: |
+                        ${{ runner.os }}-build-${{ env.cache-name }}-
+                        ${{ runner.os }}-build-
+                        ${{ runner.os }}-
 
-    - name: Install ghcup on windows
-      run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force;
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
-        Invoke-Command -ScriptBlock ([ScriptBlock]::Create((Invoke-WebRequest https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1 -UseBasicParsing))) -ArgumentList $false,$true,$true,$false,$false,$false,$false,"C:\"
-      if: contains(matrix.os, 'windows-')
-    - name: Add ghcup to PATH on windows
-      run: echo "/c/ghcup/bin" >> $GITHUB_PATH
-      shell: bash
-      if: contains(matrix.os, 'windows-')
-    - name: Install ghcup if not windows
-      run: curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-      shell: bash
-      if: "!contains(matrix.os, 'windows-')"
+            -   name: Install dependencies
+                run: |
+                    set -exuo pipefail
+                    cabal update
+                    cabal build --only-dependencies --enable-tests --enable-benchmarks all
+                shell: bash
 
-    - name: Install GHC and cabal
-      run: |
-        ghcup install ghc ${{ matrix.ghc }}
-        ghcup set ghc ${{ matrix.ghc }}
-        ghcup install cabal ${{ matrix.cabal }}
-      shell: bash
+            -   name: Build
+                run: cabal build --flag develop --enable-tests --enable-benchmarks all
 
-    - name: Set the cache paths on windows
-      run: |
-        echo "cabal_cache_paths=~/AppData\Roaming\cabal" >> $GITHUB_ENV
-      shell: bash
-      if: contains(matrix.os, 'windows-')
-    - name: Set the cache paths on windows
-      run: |
-        echo "cabal_cache_paths=~/.cabal" >> $GITHUB_ENV
-      if: "!contains(matrix.os, 'windows-')"
-
-    - name: Cache
-      uses: actions/cache@v2
-      env:
-        cache-name: cache-cabal-v2
-      with:
-        path: ${{ env.cabal_cache_paths }}
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
-        restore-keys: |
-          ${{ runner.os }}-build-${{ env.cache-name }}-
-          ${{ runner.os }}-build-
-          ${{ runner.os }}-
-
-    - name: Install dependencies
-      run: |
-        cabal update
-        cabal build --only-dependencies --enable-tests --enable-benchmarks all
-      shell: bash
-    - name: Build
-      run: cabal build --flag develop --enable-tests --enable-benchmarks all
-      shell: bash
-    - name: Run tests
-      run: |
-        cabal test all
-        cabal sdist all
-      shell: bash
+            -   name: Run tests
+                run: |
+                    set -exuo pipefail
+                    cabal test all
+                    cabal sdist all
+                shell: bash

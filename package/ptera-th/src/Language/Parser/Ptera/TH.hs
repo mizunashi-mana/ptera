@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 
 module Language.Parser.Ptera.TH (
     module Language.Parser.Ptera.TH.Syntax,
