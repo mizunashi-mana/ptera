@@ -2,7 +2,7 @@ cabal-version:       3.0
 build-type:          Custom
 
 name:                ptera-th
-version:             0.6.1.0
+version:             0.7.0.0
 license:             Apache-2.0 OR MPL-2.0
 license-file:        LICENSE
 copyright:           (c) 2021 Mizunashi Mana
@@ -92,8 +92,8 @@ common general
         base                 >= 4.14.0 && < 5,
 
         -- project depends
-        ptera-core              >= 0.1.0 && < 0.2,
-        ptera                   >= 0.3.0 && < 0.4,
+        ptera-core              >= 0.2.0  && < 0.3,
+        ptera                   >= 0.4.0  && < 0.5,
         ghc-prim                >= 0.6.1 && < 0.7,
         containers              >= 0.6.0 && < 0.7,
         unordered-containers    >= 0.2.0 && < 0.3,
